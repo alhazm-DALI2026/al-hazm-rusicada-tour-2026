@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* dark: basé sur la classe html.dark (toggle JS) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ── Design tokens Al Hazm Academy ─────────────────────────── */
 :root {
   --color-blue:    #003090;
