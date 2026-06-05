@@ -24,6 +24,22 @@ export async function POST(request: NextRequest) {
   return Response.json(data, { status: 201 })
 }
 
+export async function PUT(request: NextRequest) {
+  const body = await request.json()
+  const { id, ...fields } = body
+  if (!id) return Response.json({ error: 'id requis' }, { status: 400 })
+
+  const { data, error } = await supabaseAdmin
+    .from('staff')
+    .update(fields)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) return Response.json({ error: error.message }, { status: 500 })
+  return Response.json(data)
+}
+
 export async function DELETE(request: NextRequest) {
   const id = request.nextUrl.searchParams.get('id')
   if (!id) return Response.json({ error: 'id requis' }, { status: 400 })
