@@ -1,3 +1,7 @@
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
-  return <div className="min-h-screen bg-[var(--color-bg)]">{children}</div>
+  return (
+    <div className="min-h-screen bg-bg font-sans">
+      {children}
+    </div>
+  )
 }
