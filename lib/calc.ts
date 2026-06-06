@@ -49,8 +49,8 @@ export function calculerCoutOffre(
         return total + cout.montant * offre.nombre_jours;
       case 'par_personne':
         return total + cout.montant;
-      case 'fixe_global':
-        return total + (offre.places_total > 0 ? cout.montant / offre.places_total : 0);
+      default:
+        return total;
     }
   }, 0);
 }

@@ -36,7 +36,7 @@ interface FormState {
   type_public: TypePublic; type_chambre: TypeChambre
   nombre_nuits: string; nombre_jours: string
   transport_inclus: boolean; transport_optionnel: boolean
-  repas_type: RepasType; places_total: string
+  repas_type: RepasType
   couts_inclus: string[]; prix_vente: string; ordre_affichage: string
 }
 
@@ -44,7 +44,7 @@ const EMPTY: FormState = {
   nom: '', description: '', type_public: 'adulte', type_chambre: 'Double',
   nombre_nuits: '4', nombre_jours: '5',
   transport_inclus: false, transport_optionnel: false,
-  repas_type: 'demi', places_total: '20',
+  repas_type: 'demi',
   couts_inclus: [], prix_vente: '', ordre_affichage: '0',
 }
 
@@ -58,25 +58,23 @@ function buildDraft(f: FormState): Offre {
     couts_inclus: f.couts_inclus,
     nombre_nuits: parseInt(f.nombre_nuits) || 0,
     nombre_jours: parseInt(f.nombre_jours) || 0,
-    places_total: parseInt(f.places_total) || 1,
+    places_total: 0,
   } as unknown as Offre
 }
 
 function calcBreakdown(f: FormState, couts: MoteurCout[]) {
-  const map    = new Map(couts.map(c => [c.id, c]))
-  const nuits  = parseInt(f.nombre_nuits)  || 0
-  const jours  = parseInt(f.nombre_jours)  || 0
-  const places = parseInt(f.places_total)  || 1
-  const res    = new Map<MoteurCoutCategorie, number>()
+  const map   = new Map(couts.map(c => [c.id, c]))
+  const nuits = parseInt(f.nombre_nuits) || 0
+  const jours = parseInt(f.nombre_jours) || 0
+  const res   = new Map<MoteurCoutCategorie, number>()
   for (const id of f.couts_inclus) {
     const c = map.get(id)
     if (!c?.actif) continue
     let v = 0
     switch (c.type) {
-      case 'par_nuit':     v = c.montant * nuits;   break
-      case 'par_jour':     v = c.montant * jours;   break
-      case 'par_personne': v = c.montant;            break
-      case 'fixe_global':  v = c.montant / places;  break
+      case 'par_nuit':     v = c.montant * nuits; break
+      case 'par_jour':     v = c.montant * jours; break
+      case 'par_personne': v = c.montant;          break
     }
     res.set(c.categorie, (res.get(c.categorie) ?? 0) + v)
   }
@@ -272,7 +270,6 @@ export default function OffresPage() {
       transport_inclus:    o.transport_inclus,
       transport_optionnel: o.transport_optionnel,
       repas_type:          o.repas_type,
-      places_total:        String(o.places_total),
       couts_inclus:        o.couts_inclus,
       prix_vente:          String(o.prix_vente),
       ordre_affichage:     String(o.ordre_affichage),
@@ -286,7 +283,6 @@ export default function OffresPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    const places = parseInt(form.places_total) || 0
     const payload = {
       ...(editItem ? { id: editItem.id } : {}),
       nom:                 form.nom.trim(),
@@ -298,8 +294,8 @@ export default function OffresPage() {
       transport_inclus:    form.transport_inclus,
       transport_optionnel: form.transport_optionnel,
       repas_type:          form.repas_type,
-      places_total:        places,
-      places_restantes:    editItem ? editItem.places_restantes : places,
+      places_total:        editItem?.places_total ?? 100,
+      places_restantes:    editItem ? editItem.places_restantes : 100,
       couts_inclus:        form.couts_inclus,
       cout_revient:        cdr,
       prix_vente:          prixVente,
@@ -546,17 +542,8 @@ export default function OffresPage() {
                 </div>
               </div>
 
-              {/* Places + Prix vente + Ordre */}
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Places total <span className="text-red-500">*</span>
-                  </label>
-                  <input type="number" required min="1" value={form.places_total}
-                    onChange={e => setField('places_total', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
-                  />
-                </div>
+              {/* Prix vente + Ordre */}
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Prix de vente (DA) <span className="text-red-500">*</span>
