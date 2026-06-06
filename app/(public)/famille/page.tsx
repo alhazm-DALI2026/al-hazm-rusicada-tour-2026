@@ -4,28 +4,26 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { calculerFamille } from '@/lib/calc'
-import type { FamilleGrille } from '@/lib/calc'
 import type { Parametres, RepasType } from '@/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface FamilleForm {
-  nb_adultes:          string
-  nb_enfants:          string
-  nb_bebes:            string
-  nombre_nuits:        string
-  type_chambre_adulte: 'Single' | 'Double'
-  transport:           boolean
-  repas:               RepasType
-  nom:                 string
-  prenom:              string
-  telephone:           string
-  email:               string
+  nb_adultes:   string
+  nb_enfants:   string
+  nb_bebes:     string
+  nombre_nuits: string
+  transport:    boolean
+  repas:        RepasType
+  nom:          string
+  prenom:       string
+  telephone:    string
+  email:        string
 }
 
 const EMPTY: FamilleForm = {
   nb_adultes: '2', nb_enfants: '0', nb_bebes: '0', nombre_nuits: '5',
-  type_chambre_adulte: 'Double', transport: false, repas: 'complet',
+  transport: false, repas: 'complet',
   nom: '', prenom: '', telephone: '', email: '',
 }
 
@@ -35,12 +33,17 @@ function fmt(n: number) {
   return n.toLocaleString('fr-DZ') + ' DA'
 }
 
+function formatChambres(chambres: { type: string; occupants: string }[]) {
+  const counts = new Map<string, number>()
+  for (const c of chambres) counts.set(c.type, (counts.get(c.type) ?? 0) + 1)
+  return Array.from(counts.entries()).map(([type, n]) => `${n}×${type}`).join(' + ')
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function FamillePage() {
   const router = useRouter()
 
-  const [grille, setGrille]         = useState<FamilleGrille[]>([])
   const [params, setParams]         = useState<Parametres | null>(null)
   const [loading, setLoading]       = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -51,32 +54,23 @@ export default function FamillePage() {
   const adminNumero  = process.env.NEXT_PUBLIC_WHATSAPP_NUMERO ?? ''
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/famille-grille').then(r => r.json()),
-      fetch('/api/parametres').then(r => r.json()),
-    ]).then(([g, p]: [FamilleGrille[], Parametres]) => {
-      setGrille(g)
-      setParams(p)
-    }).finally(() => setLoading(false))
+    fetch('/api/parametres')
+      .then(r => r.json())
+      .then((p: Parametres) => setParams(p))
+      .finally(() => setLoading(false))
   }, [])
 
   const result = useMemo(() => {
-    if (!grille.length) return null
-    return calculerFamille(
-      grille,
-      {
-        nbAdultes:         parseInt(form.nb_adultes)  || 0,
-        nbEnfants:         parseInt(form.nb_enfants)  || 0,
-        nbBebes:           parseInt(form.nb_bebes)    || 0,
-        nombreNuits:       parseInt(form.nombre_nuits) || 0,
-        typeChambreAdulte: form.type_chambre_adulte,
-        transport:         form.transport,
-        repas:             form.repas,
-      },
-      params?.taux_demi_pension  ?? 35,
-      params?.taux_marge_famille ?? 23,
-    )
-  }, [grille, form, params])
+    if (!params) return null
+    return calculerFamille(params, {
+      nbAdultes:   parseInt(form.nb_adultes)   || 0,
+      nbEnfants:   parseInt(form.nb_enfants)   || 0,
+      nbBebes:     parseInt(form.nb_bebes)     || 0,
+      nombreNuits: parseInt(form.nombre_nuits) || 0,
+      transport:   form.transport,
+      repas:       form.repas,
+    })
+  }, [params, form])
 
   function setField<K extends keyof FamilleForm>(key: K, val: FamilleForm[K]) {
     setForm(f => ({ ...f, [key]: val }))
@@ -106,8 +100,9 @@ export default function FamillePage() {
       cout_revient:   result?.cdrTotal ?? 0,
       prix_vente:     result?.pvTotal  ?? 0,
       options_custom: {
-        nb_bebes:            parseInt(form.nb_bebes) || 0,
-        type_chambre_adulte: form.type_chambre_adulte,
+        chambres:   result?.chambres ?? [],
+        nb_bebes:   parseInt(form.nb_bebes) || 0,
+        detail_cdr: result?.detail ?? null,
       },
     }
 
@@ -168,11 +163,11 @@ export default function FamillePage() {
           <div className="flex justify-center py-16 text-[#003090]">
             <i className="ti ti-loader-2 animate-spin text-4xl" aria-hidden="true" />
           </div>
-        ) : !grille.length ? (
+        ) : !params ? (
           <div className="bg-white rounded-2xl shadow-sm p-8 text-center text-gray-500">
             <i className="ti ti-users-off text-4xl mb-3 block" aria-hidden="true" />
             <p className="font-medium mb-1">Pack Famille non disponible</p>
-            <p className="text-sm mb-4">La grille tarifaire n&apos;est pas encore configurée.</p>
+            <p className="text-sm mb-4">Les paramètres tarifaires ne sont pas encore configurés.</p>
             <Link href="/" className="px-5 py-2.5 bg-[#003090] text-white rounded-xl text-sm font-semibold hover:bg-[#002070] transition-colors">
               Voir les formules disponibles
             </Link>
@@ -217,7 +212,7 @@ export default function FamillePage() {
                 </div>
               </div>
 
-              {/* Nuits + chambre adulte */}
+              {/* Nuits */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Nombre de nuits</label>
@@ -226,17 +221,6 @@ export default function FamillePage() {
                     onChange={e => setField('nombre_nuits', e.target.value)}
                     className={inputCls}
                   />
-                </div>
-                <div>
-                  <label className={labelCls}>Chambre adulte</label>
-                  <select
-                    value={form.type_chambre_adulte}
-                    onChange={e => setField('type_chambre_adulte', e.target.value as 'Single' | 'Double')}
-                    className={selectCls}
-                  >
-                    <option value="Double">Double</option>
-                    <option value="Single">Single</option>
-                  </select>
                 </div>
               </div>
 
@@ -268,9 +252,13 @@ export default function FamillePage() {
             </div>
 
             {/* ── Prix ──────────────────────────────────────────── */}
-            {result && (
-              <div className="bg-[#003090] text-white rounded-2xl p-5">
-                <p className="text-[#fdbe11] text-xs font-semibold uppercase tracking-wide mb-3">Prix du pack</p>
+            {result && result.chambres.length > 0 && (
+              <div className="bg-[#003090] text-white rounded-2xl p-5 space-y-3">
+                <p className="text-[#fdbe11] text-xs font-semibold uppercase tracking-wide">Prix du pack</p>
+                <div className="flex items-center gap-2 text-sm text-white/80">
+                  <i className="ti ti-bed" aria-hidden="true" />
+                  <span>{formatChambres(result.chambres)}</span>
+                </div>
                 <div className="border-t border-white/20 pt-3 flex justify-between items-center">
                   <span className="font-bold">Total</span>
                   <span className="text-2xl font-bold font-mono">{fmt(result.pvTotal)}</span>

@@ -94,15 +94,30 @@ export interface Parametres {
   lien_groupe_whatsapp: string | null;
   taux_demi_pension:    number;
   taux_marge_famille:   number;
+  cdr_single:           number;
+  cdr_double:           number;
+  cdr_triple:           number;
+  cdr_quadruple:        number;
+  pv_single:            number;
+  pv_double:            number;
+  pv_triple:            number;
+  pv_quadruple:         number;
+  cdr_repas_complet:    number;
+  pv_repas_complet:     number;
+  cdr_transport_adulte: number;
+  cdr_transport_enfant: number;
+  cdr_transport_bebe:   number;
+  pv_transport_adulte:  number;
+  pv_transport_enfant:  number;
+  pv_transport_bebe:    number;
   updated_at:           string;
 }
 
 export interface ChoixFamille {
-  nbAdultes:          number;
-  nbEnfants:          number;
-  nbBebes:            number;
-  nombreNuits:        number;
-  typeChambreAdulte:  'Single' | 'Double';
-  transport:          boolean;
-  repas:              RepasType;
+  nbAdultes:    number;
+  nbEnfants:    number;
+  nbBebes:      number;
+  nombreNuits:  number;
+  transport:    boolean;
+  repas:        RepasType;
 }

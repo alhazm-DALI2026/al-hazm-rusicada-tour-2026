@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import StatutBadge from '@/components/StatutBadge'
 import Toast from '@/components/Toast'
-import { calculerCoutFamille } from '@/lib/calc'
+import { calculerFamille } from '@/lib/calc'
 import type {
-  MoteurCout, Offre, Parametres, Reservation,
+  Offre, Parametres, Reservation,
   RepasType, SourceReservation, TypeReservation,
 } from '@/types'
 
@@ -17,16 +17,16 @@ interface Filters { statut: string; source: string; type: string; search: string
 
 interface CreateForm {
   resType: TypeReservation
-  offre_id: string; offre_adulte_id: string; offre_enfant_id: string
-  nb_adultes: string; nb_enfants: string
+  offre_id: string
+  nb_adultes: string; nb_enfants: string; nb_bebes: string
   nom: string; prenom: string; telephone: string; email: string
   transport: boolean; repas_type: RepasType
   nombre_nuits: string; prix_vente: string
 }
 
 const EMPTY_FORM: CreateForm = {
-  resType: 'standard', offre_id: '', offre_adulte_id: '', offre_enfant_id: '',
-  nb_adultes: '2', nb_enfants: '1',
+  resType: 'standard', offre_id: '',
+  nb_adultes: '2', nb_enfants: '1', nb_bebes: '0',
   nom: '', prenom: '', telephone: '', email: '',
   transport: false, repas_type: 'demi', nombre_nuits: '4', prix_vente: '',
 }
@@ -155,6 +155,15 @@ function DrawerDetail({ r, onClose }: { r: ResWithOffre; onClose(): void }) {
           <Section title="Séjour">
             <DRow label="Offre" value={r.offre?.nom ?? '—'} />
             <DRow label="Type" value={r.type === 'famille' ? 'Famille' : 'Standard'} />
+            {r.type === 'famille' && (() => {
+              const oc = r.options_custom as { chambres?: { type: string }[] } | null
+              const chambres = oc?.chambres
+              if (!chambres?.length) return null
+              const counts = new Map<string, number>()
+              for (const c of chambres) counts.set(c.type, (counts.get(c.type) ?? 0) + 1)
+              const label = Array.from(counts.entries()).map(([t, n]) => `${n}×${t}`).join(' + ')
+              return <DRow label="Chambres" value={label} />
+            })()}
             <DRow label="Composition" value={(() => {
                 const nbB = r.type === 'famille'
                   ? ((r.options_custom as { nb_bebes?: number } | null)?.nb_bebes ?? 0)
@@ -214,9 +223,9 @@ function DrawerDetail({ r, onClose }: { r: ResWithOffre; onClose(): void }) {
 // ── CreateModal ───────────────────────────────────────────────────────────────
 
 function CreateModal({
-  offres, allCouts, taux, onSuccess, onClose,
+  offres, params, onSuccess, onClose,
 }: {
-  offres: Offre[]; allCouts: MoteurCout[]; taux: number
+  offres: Offre[]; params: Parametres | null
   onSuccess(): void; onClose(): void
 }) {
   const [form, setForm] = useState<CreateForm>(EMPTY_FORM)
@@ -225,9 +234,7 @@ function CreateModal({
   const setF = <K extends keyof CreateForm>(k: K, v: CreateForm[K]) =>
     setForm(f => ({ ...f, [k]: v }))
 
-  const offre       = offres.find(o => o.id === form.offre_id) ?? null
-  const offreAdulte = offres.find(o => o.id === form.offre_adulte_id) ?? null
-  const offreEnfant = offres.find(o => o.id === form.offre_enfant_id) ?? null
+  const offre = offres.find(o => o.id === form.offre_id) ?? null
 
   // Auto-fill fields when standard offre is selected
   useEffect(() => {
@@ -242,19 +249,32 @@ function CreateModal({
     }
   }, [form.offre_id, form.resType]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Live calcul famille
+  const familleResult = useMemo(() => {
+    if (form.resType !== 'famille' || !params) return null
+    return calculerFamille(params, {
+      nbAdultes:   parseInt(form.nb_adultes)   || 0,
+      nbEnfants:   parseInt(form.nb_enfants)   || 0,
+      nbBebes:     parseInt(form.nb_bebes)     || 0,
+      nombreNuits: parseInt(form.nombre_nuits) || 0,
+      transport:   form.transport,
+      repas:       form.repas_type,
+    })
+  }, [form.resType, form.nb_adultes, form.nb_enfants, form.nb_bebes, form.nombre_nuits, form.transport, form.repas_type, params])
+
+  // Auto-fill PV when famille result changes
+  useEffect(() => {
+    if (form.resType === 'famille' && familleResult) {
+      setForm(f => ({ ...f, prix_vente: String(Math.round(familleResult.pvTotal)) }))
+    }
+  }, [familleResult, form.resType]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Live CDR
   const cdr = useMemo(() => {
     if (form.resType === 'standard' && offre) return Number(offre.cout_revient)
-    if (form.resType === 'famille' && offreAdulte && offreEnfant) {
-      return calculerCoutFamille(
-        offreAdulte, offreEnfant, allCouts,
-        parseInt(form.nb_adultes) || 0,
-        parseInt(form.nb_enfants) || 0,
-        form.transport, form.repas_type, taux,
-      )
-    }
+    if (form.resType === 'famille' && familleResult) return familleResult.cdrTotal
     return 0
-  }, [form, offre, offreAdulte, offreEnfant, allCouts, taux])
+  }, [form.resType, offre, familleResult])
 
   const prixVente = parseFloat(form.prix_vente) || 0
   const marge     = prixVente - cdr
@@ -265,8 +285,9 @@ function CreateModal({
     const nuits     = parseInt(form.nombre_nuits) || (offre?.nombre_nuits ?? 1)
     const nbAdultes = parseInt(form.nb_adultes) || 1
     const nbEnfants = parseInt(form.nb_enfants) || 0
+    const nbBebes   = parseInt(form.nb_bebes)   || 0
     const payload = {
-      offre_id:    form.resType === 'standard' ? form.offre_id || null : form.offre_adulte_id || null,
+      offre_id:    form.resType === 'standard' ? form.offre_id || null : null,
       nom:         form.nom.trim(), prenom: form.prenom.trim(),
       telephone:   form.telephone.trim(), email: form.email.trim() || null,
       type:        form.resType,
@@ -281,6 +302,13 @@ function CreateModal({
       prix_vente:  prixVente,
       notif_soumission_envoyee:   false,
       notif_confirmation_envoyee: false,
+      ...(form.resType === 'famille' && familleResult ? {
+        options_custom: {
+          chambres:   familleResult.chambres,
+          nb_bebes:   nbBebes,
+          detail_cdr: familleResult.detail,
+        },
+      } : {}),
     }
     const r = await fetch('/api/reservations', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -330,35 +358,32 @@ function CreateModal({
               </select>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className={labelCls}>Offre adulte <span className="text-red-500">*</span></label>
-                <select required value={form.offre_adulte_id} onChange={e => setF('offre_adulte_id', e.target.value)} className={selCls}>
-                  <option value="">— Adulte —</option>
-                  {offres.filter(o => o.actif && o.type_public === 'adulte').map(o => (
-                    <option key={o.id} value={o.id}>{o.nom}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={labelCls}>Offre enfant <span className="text-red-500">*</span></label>
-                <select required value={form.offre_enfant_id} onChange={e => setF('offre_enfant_id', e.target.value)} className={selCls}>
-                  <option value="">— Enfant —</option>
-                  {offres.filter(o => o.actif && o.type_public === 'enfant').map(o => (
-                    <option key={o.id} value={o.id}>{o.nom}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={labelCls}>Nb adultes</label>
+                <label className={labelCls}>Adultes</label>
                 <input type="number" min="1" value={form.nb_adultes}
                   onChange={e => setF('nb_adultes', e.target.value)} className={inputCls} />
               </div>
               <div>
-                <label className={labelCls}>Nb enfants</label>
+                <label className={labelCls}>Enfants</label>
                 <input type="number" min="0" value={form.nb_enfants}
                   onChange={e => setF('nb_enfants', e.target.value)} className={inputCls} />
               </div>
+              <div>
+                <label className={labelCls}>Bébés</label>
+                <input type="number" min="0" value={form.nb_bebes}
+                  onChange={e => setF('nb_bebes', e.target.value)} className={inputCls} />
+              </div>
+              {familleResult && familleResult.chambres.length > 0 && (
+                <div className="col-span-3 flex items-center gap-2 px-3 py-2 bg-[#f0f2f8] dark:bg-white/5 rounded-lg text-xs text-gray-600 dark:text-gray-300">
+                  <i className="ti ti-bed text-[#003090] dark:text-[#fdbe11]" aria-hidden="true" />
+                  {(() => {
+                    const counts = new Map<string, number>()
+                    for (const c of familleResult.chambres) counts.set(c.type, (counts.get(c.type) ?? 0) + 1)
+                    return Array.from(counts.entries()).map(([t, n]) => `${n}×${t}`).join(' + ')
+                  })()}
+                </div>
+              )}
             </div>
           )}
 
@@ -435,8 +460,7 @@ function CreateModal({
 export default function ReservationsPage() {
   const [reservations, setReservations] = useState<ResWithOffre[]>([])
   const [offres, setOffres]             = useState<Offre[]>([])
-  const [allCouts, setAllCouts]         = useState<MoteurCout[]>([])
-  const [taux, setTaux]                 = useState(35)
+  const [params, setParams]             = useState<Parametres | null>(null)
   const [loading, setLoading]           = useState(true)
   const [filters, setFilters]           = useState<Filters>({ statut: '', source: '', type: '', search: '' })
   const [drawerItem, setDrawerItem]     = useState<ResWithOffre | null>(null)
@@ -450,16 +474,14 @@ export default function ReservationsPage() {
   // ── Load ─────────────────────────────────────────────────────
   const loadAll = useCallback(async () => {
     setLoading(true)
-    const [rr, ro, rc, rp] = await Promise.all([
+    const [rr, ro, rp] = await Promise.all([
       fetch('/api/reservations'),
       fetch('/api/offres'),
-      fetch('/api/moteur'),
       fetch('/api/parametres'),
     ])
     if (rr.ok) setReservations(await rr.json())
     if (ro.ok) setOffres(await ro.json())
-    if (rc.ok) setAllCouts(await rc.json())
-    if (rp.ok) { const p: Parametres = await rp.json(); setTaux(p.taux_demi_pension) }
+    if (rp.ok) setParams(await rp.json())
     setLoading(false)
   }, [])
 
@@ -688,7 +710,7 @@ export default function ReservationsPage() {
       {/* Create modal */}
       {showCreate && (
         <CreateModal
-          offres={offres} allCouts={allCouts} taux={taux}
+          offres={offres} params={params}
           onSuccess={() => { setShowCreate(false); notify('Réservation créée.', 'success'); loadAll() }}
           onClose={() => setShowCreate(false)}
         />

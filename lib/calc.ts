@@ -1,4 +1,4 @@
-import type { CoutInclus, MoteurCout, Offre, RepasType } from '@/types';
+import type { CoutInclus, MoteurCout, Offre, Parametres, RepasType } from '@/types';
 
 // ─── helpers internes ────────────────────────────────────────────────────────
 
@@ -72,7 +72,7 @@ export function getTransportSupplement(offre: Offre): number {
   }
 }
 
-// ─── Grille famille ──────────────────────────────────────────────────────────
+// ─── Grille famille (type conservé pour rétrocompat DB, plus utilisé en calcul) ─
 
 export type FamilleGrille = {
   id:           string
@@ -83,66 +83,157 @@ export type FamilleGrille = {
   actif:        boolean
 }
 
-export function calculerFamille(
-  grille: FamilleGrille[],
-  choix: {
-    nbAdultes:         number
-    nbEnfants:         number
-    nbBebes:           number
-    nombreNuits:       number
-    typeChambreAdulte: 'Single' | 'Double'
-    transport:         boolean
-    repas:             'sans' | 'demi' | 'complet'
-  },
-  tauxDemiPension: number,
-  tauxMarge: number,
+// ─── Calcul chambres hôtelières ──────────────────────────────────────────────
+
+type ChambreItem = { type: string; occupants: string }
+
+function calculerChambres(
+  nbAdultes: number,
+  nbEnfants: number,
 ): {
+  liste:        ChambreItem[]
+  nbSingle:     number
+  nbDouble:     number
+  nbTriple:     number
+  nbQuadruple:  number
+} {
+  const liste: ChambreItem[] = []
+  let adultsRestants  = nbAdultes
+  let enfantsRestants = nbEnfants
+
+  // Adults in pairs, absorb up to 2 kids per room
+  while (adultsRestants >= 2) {
+    const kids = Math.min(enfantsRestants, 2)
+    enfantsRestants -= kids
+    adultsRestants  -= 2
+    const total = 2 + kids
+    liste.push({
+      type: total === 2 ? 'Double' : total === 3 ? 'Triple' : 'Quadruple',
+      occupants: kids > 0 ? `2 adultes + ${kids} enfant${kids > 1 ? 's' : ''}` : '2 adultes',
+    })
+  }
+
+  // Remaining single adult
+  if (adultsRestants === 1) {
+    if (enfantsRestants === 0) {
+      liste.push({ type: 'Single', occupants: '1 adulte' })
+    } else {
+      const kids = Math.min(enfantsRestants, 2)
+      enfantsRestants -= kids
+      const total = 1 + kids
+      liste.push({
+        type: total === 1 ? 'Single' : total === 2 ? 'Double' : 'Triple',
+        occupants: `1 adulte + ${kids} enfant${kids > 1 ? 's' : ''}`,
+      })
+    }
+  }
+
+  // Remaining kids in their own rooms (up to 3 per room)
+  while (enfantsRestants > 0) {
+    const n = Math.min(enfantsRestants, 3)
+    enfantsRestants -= n
+    liste.push({
+      type: n === 1 ? 'Single' : n === 2 ? 'Double' : 'Triple',
+      occupants: `${n} enfant${n > 1 ? 's' : ''}`,
+    })
+  }
+
+  return {
+    liste,
+    nbSingle:    liste.filter(c => c.type === 'Single').length,
+    nbDouble:    liste.filter(c => c.type === 'Double').length,
+    nbTriple:    liste.filter(c => c.type === 'Triple').length,
+    nbQuadruple: liste.filter(c => c.type === 'Quadruple').length,
+  }
+}
+
+// ─── Calcul pack famille ─────────────────────────────────────────────────────
+
+export function calculerFamille(
+  params: Parametres,
+  choix: {
+    nbAdultes:    number
+    nbEnfants:    number
+    nbBebes:      number
+    nombreNuits:  number
+    transport:    boolean
+    repas:        'sans' | 'demi' | 'complet'
+  },
+): {
+  chambres:  ChambreItem[]
   cdrAdulte: number
   cdrEnfant: number
   cdrBebe:   number
   cdrTotal:  number
   pvTotal:   number
   marge:     number
+  detail: {
+    hebergement_cdr: number
+    hebergement_pv:  number
+    repas_cdr:       number
+    repas_pv:        number
+    transport_cdr:   number
+    transport_pv:    number
+  }
 } {
-  const g = (cat: string, chambre?: string) =>
-    grille.find(x =>
-      x.actif &&
-      x.categorie === cat &&
-      (!chambre || x.type_chambre === chambre),
-    )?.montant ?? 0
+  const ch = calculerChambres(choix.nbAdultes, choix.nbEnfants)
 
-  const repasBase = g('repas')
-  const repasMontant =
+  // Hébergement
+  const cdrHeberg =
+    ch.nbSingle    * params.cdr_single    * choix.nombreNuits +
+    ch.nbDouble    * params.cdr_double    * choix.nombreNuits +
+    ch.nbTriple    * params.cdr_triple    * choix.nombreNuits +
+    ch.nbQuadruple * params.cdr_quadruple * choix.nombreNuits
+
+  const pvHeberg =
+    ch.nbSingle    * params.pv_single    * choix.nombreNuits +
+    ch.nbDouble    * params.pv_double    * choix.nombreNuits +
+    ch.nbTriple    * params.pv_triple    * choix.nombreNuits +
+    ch.nbQuadruple * params.pv_quadruple * choix.nombreNuits
+
+  // Repas
+  const nbPersonnes = choix.nbAdultes + choix.nbEnfants
+  const facteurRepas =
     choix.repas === 'sans' ? 0 :
-    choix.repas === 'demi' ? repasBase * (1 - tauxDemiPension / 100) :
-    repasBase
+    choix.repas === 'demi' ? (1 - params.taux_demi_pension / 100) : 1
 
-  const supplements = grille
-    .filter(x => x.actif && x.categorie === 'supplement')
-    .reduce((s, x) => s + x.montant, 0)
+  const cdrRepas = params.cdr_repas_complet * facteurRepas * nbPersonnes * choix.nombreNuits
+  const pvRepas  = params.pv_repas_complet  * facteurRepas * nbPersonnes * choix.nombreNuits
 
-  const cdrAdulte =
-    g('chambre_adulte', choix.typeChambreAdulte) * choix.nombreNuits +
-    (choix.transport ? g('transport_adulte') : 0) +
-    repasMontant * choix.nombreNuits +
-    supplements
+  // Transport
+  const cdrTransport = choix.transport ? (
+    params.cdr_transport_adulte * choix.nbAdultes +
+    params.cdr_transport_enfant * choix.nbEnfants +
+    params.cdr_transport_bebe   * choix.nbBebes
+  ) : 0
 
-  const cdrEnfant =
-    g('chambre_enfant', 'Triple') * choix.nombreNuits +
-    (choix.transport ? g('transport_enfant') : 0) +
-    repasMontant * choix.nombreNuits +
-    supplements
+  const pvTransport = choix.transport ? (
+    params.pv_transport_adulte * choix.nbAdultes +
+    params.pv_transport_enfant * choix.nbEnfants +
+    params.pv_transport_bebe   * choix.nbBebes
+  ) : 0
 
-  const cdrBebe = choix.transport ? g('transport_bebe') : 0
+  const cdrTotal = cdrHeberg + cdrRepas + cdrTransport
+  const pvTotal  = pvHeberg  + pvRepas  + pvTransport
+  const marge    = pvTotal - cdrTotal
 
-  const cdrTotal =
-    cdrAdulte * choix.nbAdultes +
-    cdrEnfant * choix.nbEnfants +
-    cdrBebe   * choix.nbBebes
-
-  const pvTotal = Math.round(cdrTotal * (1 + tauxMarge / 100))
-
-  return { cdrAdulte, cdrEnfant, cdrBebe, cdrTotal, pvTotal, marge: pvTotal - cdrTotal }
+  return {
+    chambres: ch.liste,
+    cdrAdulte: 0,
+    cdrEnfant: 0,
+    cdrBebe:   0,
+    cdrTotal,
+    pvTotal,
+    marge,
+    detail: {
+      hebergement_cdr: cdrHeberg,
+      hebergement_pv:  pvHeberg,
+      repas_cdr:       cdrRepas,
+      repas_pv:        pvRepas,
+      transport_cdr:   cdrTransport,
+      transport_pv:    pvTransport,
+    },
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
