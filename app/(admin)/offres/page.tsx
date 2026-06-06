@@ -71,6 +71,7 @@ function buildDraft(f: FormState, allCouts: MoteurCout[]): Offre {
     nombre_nuits: parseInt(f.nombre_nuits) || 0,
     nombre_jours: parseInt(f.nombre_jours) || 0,
     places_total: 0,
+    repas_type:   f.repas_type,
   } as unknown as Offre
 }
 
