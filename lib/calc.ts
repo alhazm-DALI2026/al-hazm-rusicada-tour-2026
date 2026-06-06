@@ -196,14 +196,15 @@ export function calculerFamille(
     ch.nbTriple    * params.pv_triple    * choix.nombreNuits +
     ch.nbQuadruple * params.pv_quadruple * choix.nombreNuits
 
-  // Repas
+  // Repas — par jour (nuits + 1) par personne
   const nbPersonnes = choix.nbAdultes + choix.nbEnfants
+  const nbJours     = choix.nombreNuits + 1
   const facteurRepas =
     choix.repas === 'sans' ? 0 :
     choix.repas === 'demi' ? (1 - params.taux_demi_pension / 100) : 1
 
-  const cdrRepas = params.cdr_repas_complet * facteurRepas * nbPersonnes * choix.nombreNuits
-  const pvRepas  = params.pv_repas_complet  * facteurRepas * nbPersonnes * choix.nombreNuits
+  const cdrRepas = params.cdr_repas_complet * facteurRepas * nbPersonnes * nbJours
+  const pvRepas  = params.pv_repas_complet  * facteurRepas * nbPersonnes * nbJours
 
   // Transport
   const cdrTransport = choix.transport ? (

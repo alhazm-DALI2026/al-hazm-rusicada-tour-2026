@@ -516,7 +516,7 @@ export default function ParametresPage() {
 
               {/* Repas */}
               <TarifTable
-                title="Repas (par personne / nuit)"
+                title="Repas (par personne / jour)"
                 form={form}
                 onChange={setField}
                 note={`Demi-pension = Pension complète × (1 − ${form.taux_demi_pension}%)`}
