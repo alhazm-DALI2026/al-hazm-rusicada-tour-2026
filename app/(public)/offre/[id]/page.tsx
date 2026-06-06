@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { getTransportSupplement } from '@/lib/calc'
 import type { Offre, RepasType } from '@/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -79,22 +80,26 @@ export default function OffrePage() {
     setSubmitting(true)
     setError(null)
 
+    const isOptional    = offre.transport_optionnel && !offre.transport_inclus
+    const supplement    = isOptional ? getTransportSupplement(offre) : 0
+    const avecTransport = form.transport && isOptional
+
     const payload = {
-      offre_id:    offre.id,
-      nom:         form.nom.trim(),
-      prenom:      form.prenom.trim(),
-      telephone:   form.telephone.trim(),
-      email:       form.email.trim() || null,
-      type:        'standard',
-      source:      'client',
-      statut:      'en_attente',
-      nb_adultes:  offre.type_public === 'enfant' ? 0 : 1,
-      nb_enfants:  offre.type_public === 'enfant' ? 1 : 0,
+      offre_id:     offre.id,
+      nom:          form.nom.trim(),
+      prenom:       form.prenom.trim(),
+      telephone:    form.telephone.trim(),
+      email:        form.email.trim() || null,
+      type:         'standard',
+      source:       'client',
+      statut:       'en_attente',
+      nb_adultes:   offre.type_public === 'enfant' ? 0 : 1,
+      nb_enfants:   offre.type_public === 'enfant' ? 1 : 0,
       nombre_nuits: offre.nombre_nuits,
-      transport:   form.transport,
-      repas_type:  form.repas_type,
-      cout_revient: offre.cout_revient,
-      prix_vente:  offre.prix_vente,
+      transport:    form.transport,
+      repas_type:   form.repas_type,
+      cout_revient: Number(offre.cout_revient) - (avecTransport ? 0 : supplement),
+      prix_vente:   Number(offre.prix_vente)   + (avecTransport ? supplement : 0),
     }
 
     const r = await fetch('/api/reservations', {
@@ -151,7 +156,10 @@ export default function OffrePage() {
     )
   }
 
-  const complet = offre.places_restantes === 0
+  const complet        = offre.places_restantes === 0
+  const isOptional     = offre.transport_optionnel && !offre.transport_inclus
+  const supplement     = isOptional ? getTransportSupplement(offre) : 0
+  const prixAffiche    = Number(offre.prix_vente) + (isOptional && form.transport ? supplement : 0)
 
   return (
     <div className="min-h-screen bg-[#f0f2f8]">
@@ -202,8 +210,15 @@ export default function OffrePage() {
 
           {/* Price card */}
           <div className="bg-[#003090] text-white rounded-2xl p-5">
-            <p className="text-[#fdbe11] text-xs font-semibold uppercase tracking-wide mb-1">Prix par personne</p>
-            <p className="text-3xl font-bold font-mono">{fmt(offre.prix_vente)}</p>
+            <p className="text-[#fdbe11] text-xs font-semibold uppercase tracking-wide mb-1">
+              {isOptional && supplement > 0 ? 'Prix de base (hors transport)' : 'Prix par personne'}
+            </p>
+            <p className="text-3xl font-bold font-mono">{fmt(Number(offre.prix_vente))}</p>
+            {isOptional && supplement > 0 && (
+              <p className="text-white/70 text-xs mt-1">
+                + {fmt(supplement)} si transport coché
+              </p>
+            )}
           </div>
         </div>
 
@@ -299,9 +314,23 @@ export default function OffrePage() {
                 )}
 
                 {/* Summary */}
-                <div className="bg-[#f0f2f8] rounded-xl p-4 flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">Total à payer</span>
-                  <span className="text-xl font-bold text-[#003090] font-mono">{fmt(offre.prix_vente)}</span>
+                <div className="bg-[#f0f2f8] rounded-xl p-4 space-y-1.5">
+                  {isOptional && supplement > 0 && (
+                    <>
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>Prix base</span>
+                        <span className="font-mono">{fmt(Number(offre.prix_vente))}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>Transport</span>
+                        <span className="font-mono">{form.transport ? `+ ${fmt(supplement)}` : '—'}</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Total à payer</span>
+                    <span className="text-xl font-bold text-[#003090] font-mono">{fmt(prixAffiche)}</span>
+                  </div>
                 </div>
 
                 <button

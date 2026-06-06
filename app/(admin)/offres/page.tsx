@@ -255,6 +255,22 @@ export default function OffresPage() {
   const marge       = prixVente - cdr
   const margeP      = prixVente > 0 ? (marge / prixVente) * 100 : 0
 
+  const transportSupplement = useMemo(() => {
+    if (!form.transport_optionnel) return 0
+    const sel = form.couts_inclus.find(s => allCouts.find(c => c.id === s.id)?.categorie === 'transport')
+    if (!sel) return 0
+    const c = allCouts.find(m => m.id === sel.id)
+    if (!c) return 0
+    const m = parseFloat(sel.montant) || 0
+    const nuits = parseInt(form.nombre_nuits) || 0
+    const jours = parseInt(form.nombre_jours) || 0
+    switch (c.type) {
+      case 'par_nuit': return m * nuits
+      case 'par_jour': return m * jours
+      default:         return m
+    }
+  }, [form, allCouts])
+
   // ── Form helpers ───────────────────────────────────────────────
   function setField<K extends keyof FormState>(k: K, v: FormState[K]) {
     setForm(f => ({ ...f, [k]: v }))
@@ -584,7 +600,7 @@ export default function OffresPage() {
                     <span className="font-mono">{fmt(cdr)}</span>
                   </div>
                   <div className="flex justify-between text-sm text-[#003090] dark:text-[#7a9de8]">
-                    <span>Prix vente</span>
+                    <span>Prix vente base</span>
                     <span className="font-mono">{fmt(prixVente)}</span>
                   </div>
                   <div className={`flex justify-between text-sm font-bold ${marge >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600'}`}>
@@ -592,6 +608,29 @@ export default function OffresPage() {
                     <span className="font-mono">{fmt(marge)} ({margeP.toFixed(1)}%)</span>
                   </div>
                 </div>
+                {form.transport_optionnel && transportSupplement > 0 && (
+                  <div className="border-t border-[#003090]/20 pt-2 mt-1 space-y-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#003090] dark:text-[#fdbe11]">
+                      Transport optionnel
+                    </p>
+                    <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                      <span>Prix vente base</span>
+                      <span className="font-mono">{fmt(prixVente)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                      <span>+ Transport (option)</span>
+                      <span className="font-mono">{fmt(transportSupplement)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs font-bold border-t border-gray-200 dark:border-white/10 pt-1 text-[#003090] dark:text-[#fdbe11]">
+                      <span>Prix avec transport</span>
+                      <span className="font-mono">{fmt(prixVente + transportSupplement)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                      <span>Prix sans transport</span>
+                      <span className="font-mono">{fmt(prixVente)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Prix vente + Ordre */}

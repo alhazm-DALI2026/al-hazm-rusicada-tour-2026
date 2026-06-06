@@ -158,7 +158,11 @@ function DrawerDetail({ r, onClose }: { r: ResWithOffre; onClose(): void }) {
             <DRow label="Composition"
               value={`${r.nb_adultes} adulte${r.nb_adultes !== 1 ? 's' : ''} + ${r.nb_enfants} enfant${r.nb_enfants !== 1 ? 's' : ''}`} />
             <DRow label="Nuits" value={String(r.nombre_nuits)} />
-            <DRow label="Transport" value={r.transport ? 'Oui' : 'Non'} />
+            <DRow label="Transport" value={
+              r.offre?.transport_inclus ? '✅ Inclus'
+              : r.transport             ? '➕ Optionnel ajouté'
+              : '❌ Non'
+            } />
             <DRow label="Repas" value={
               r.repas_type === 'complet' ? 'Pension complète'
               : r.repas_type === 'demi' ? 'Demi-pension'
@@ -581,7 +585,7 @@ export default function ReservationsPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-[#f0f2f8] dark:bg-white/5 text-left">
-                  {['Référence','Nom Prénom','Téléphone','Offre','Composition','CDR','Prix vente','Marge','Statut','Source','Date','Actions']
+                  {['Référence','Nom Prénom','Téléphone','Offre','Composition','Transport','CDR','Prix vente','Marge','Statut','Source','Date','Actions']
                     .map(h => (
                       <th key={h} className="px-3 py-3 font-semibold text-[#003090] dark:text-[#fdbe11] whitespace-nowrap">
                         {h}
@@ -611,6 +615,15 @@ export default function ReservationsPage() {
                       </td>
                       <td className="px-3 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                         {r.nb_adultes}A{r.nb_enfants > 0 ? ` + ${r.nb_enfants}E` : ''}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-xs">
+                        {r.offre?.transport_inclus ? (
+                          <span className="text-green-600">✅ Inclus</span>
+                        ) : r.transport ? (
+                          <span className="text-blue-600">➕ Ajouté</span>
+                        ) : (
+                          <span className="text-gray-400">❌ Non</span>
+                        )}
                       </td>
                       <td className="px-3 py-3 font-mono text-gray-700 dark:text-gray-300 whitespace-nowrap">
                         {Number(r.cout_revient).toLocaleString('fr-DZ')} DA

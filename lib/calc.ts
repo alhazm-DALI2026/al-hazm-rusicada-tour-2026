@@ -46,6 +46,23 @@ export function calculerCoutOffre(offre: Offre): number {
 }
 
 /**
+ * Supplément transport pour une offre (transport_optionnel).
+ * Lit le montant depuis couts_inclus embarqués, applique le type de calcul.
+ */
+export function getTransportSupplement(offre: Offre): number {
+  const raw = offre.couts_inclus as unknown as (CoutInclus | string)[]
+  const tc  = raw.find((item): item is CoutInclus =>
+    typeof item !== 'string' && item.categorie === 'transport'
+  )
+  if (!tc) return 0
+  switch (tc.type) {
+    case 'par_nuit': return tc.montant * offre.nombre_nuits
+    case 'par_jour': return tc.montant * offre.nombre_jours
+    default:         return tc.montant
+  }
+}
+
+/**
  * CDR total d'une réservation famille.
  * Chaque type de chambre porte son propre tarif hébergement :
  *   Triple → enfant, Double → adulte double, Single → adulte single.

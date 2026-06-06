@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { calculerCoutFamille } from '@/lib/calc'
+import { calculerCoutFamille, getTransportSupplement } from '@/lib/calc'
 import type { MoteurCout, Offre, RepasType } from '@/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -84,12 +84,16 @@ export default function FamillePage() {
     )
   }, [offreAdulte, offreEnfant, couts, form.nb_adultes, form.nb_enfants, form.transport, form.repas_type])
 
-  // Prix total estimate
+  // Prix total estimate (transport optionnel ajouté si coché)
   const prixTotal = useMemo(() => {
     if (!offreAdulte || !offreEnfant) return 0
-    return offreAdulte.prix_vente * (parseInt(form.nb_adultes) || 1)
-         + offreEnfant.prix_vente  * (parseInt(form.nb_enfants) || 1)
-  }, [offreAdulte, offreEnfant, form.nb_adultes, form.nb_enfants])
+    const nbAdultes   = parseInt(form.nb_adultes) || 1
+    const nbEnfants   = parseInt(form.nb_enfants) || 1
+    const suppAdulte  = form.transport ? getTransportSupplement(offreAdulte) : 0
+    const suppEnfant  = form.transport ? getTransportSupplement(offreEnfant) : 0
+    return (Number(offreAdulte.prix_vente) + suppAdulte) * nbAdultes
+         + (Number(offreEnfant.prix_vente) + suppEnfant) * nbEnfants
+  }, [offreAdulte, offreEnfant, form.nb_adultes, form.nb_enfants, form.transport])
 
   function setField<K extends keyof FamilleForm>(key: K, val: FamilleForm[K]) {
     setForm(f => ({ ...f, [key]: val }))
@@ -284,14 +288,30 @@ export default function FamillePage() {
               <div className="bg-[#003090] text-white rounded-2xl p-5">
                 <p className="text-[#fdbe11] text-xs font-semibold uppercase tracking-wide mb-3">Estimation du pack</p>
                 <div className="space-y-1.5 text-sm mb-3">
-                  <div className="flex justify-between">
-                    <span className="text-white/70">{parseInt(form.nb_adultes) || 1} adulte{(parseInt(form.nb_adultes) || 1) > 1 ? 's' : ''}</span>
-                    <span className="font-mono">{fmt(offreAdulte.prix_vente * (parseInt(form.nb_adultes) || 1))}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-white/70">{parseInt(form.nb_enfants) || 1} enfant{(parseInt(form.nb_enfants) || 1) > 1 ? 's' : ''}</span>
-                    <span className="font-mono">{fmt(offreEnfant.prix_vente * (parseInt(form.nb_enfants) || 1))}</span>
-                  </div>
+                  {(() => {
+                    const nbA = parseInt(form.nb_adultes) || 1
+                    const nbE = parseInt(form.nb_enfants) || 1
+                    const suppA = form.transport ? getTransportSupplement(offreAdulte) : 0
+                    const suppE = form.transport ? getTransportSupplement(offreEnfant) : 0
+                    return (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-white/70">{nbA} adulte{nbA > 1 ? 's' : ''}</span>
+                          <span className="font-mono">{fmt((Number(offreAdulte.prix_vente) + suppA) * nbA)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-white/70">{nbE} enfant{nbE > 1 ? 's' : ''}</span>
+                          <span className="font-mono">{fmt((Number(offreEnfant.prix_vente) + suppE) * nbE)}</span>
+                        </div>
+                        {form.transport && (suppA > 0 || suppE > 0) && (
+                          <div className="flex justify-between text-xs text-white/60">
+                            <span>dont transport</span>
+                            <span className="font-mono">+ {fmt(suppA * nbA + suppE * nbE)}</span>
+                          </div>
+                        )}
+                      </>
+                    )
+                  })()}
                 </div>
                 <div className="border-t border-white/20 pt-3 flex justify-between items-center">
                   <span className="font-bold">Total estimé</span>
