@@ -112,13 +112,14 @@ interface TarifRow {
 }
 
 function TarifTable({
-  title, rows, form, onChange, note,
+  title, rows, form, onChange, note, desc,
 }: {
   title:    string
   rows:     TarifRow[]
   form:     FormState
   onChange: <K extends keyof FormState>(key: K, val: string) => void
   note?:    string
+  desc?:    string
 }) {
   const hasInfo  = rows.some(r => r.info)
   const inputCls = 'w-full px-2 py-1.5 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090] text-right font-mono'
@@ -126,6 +127,11 @@ function TarifTable({
   return (
     <div>
       <p className="text-xs font-bold uppercase tracking-wide text-[#003090] dark:text-[#fdbe11] mb-2">{title}</p>
+      {desc && (
+        <div className="border-l-[3px] border-[#fdbe11] rounded-[4px] p-2 bg-[#f0f2f8] dark:bg-white/5 mb-3 whitespace-pre-line text-xs text-gray-500 dark:text-gray-400 italic">
+          {desc}
+        </div>
+      )}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -503,6 +509,7 @@ export default function ParametresPage() {
                 title="Chambres (par chambre / nuit)"
                 form={form}
                 onChange={setField}
+                desc={"💡 Calcul : Prix chambre × nb chambres × nb nuits\n Ex: Double 24 000 DA × 1 chambre × 5 nuits\n = 120 000 DA"}
                 note={`Ex : si Double = ${Number(form.cdr_double).toLocaleString('fr-DZ')} DA/chambre → ${(Number(form.cdr_double) / 2).toLocaleString('fr-DZ')} DA/pers pour 2 personnes/nuit`}
                 rows={[
                   { label: 'Single',    cdrKey: 'cdr_single',    pvKey: 'pv_single',    info: '1 pers. seule'   },
@@ -519,6 +526,7 @@ export default function ParametresPage() {
                 title="Repas (par personne / jour)"
                 form={form}
                 onChange={setField}
+                desc={"💡 Calcul : Prix repas × nb personnes × (nb nuits + 1)\n Ex: Pension 3 200 DA × 2 pers × 6 jours\n = 38 400 DA\n ⚠️ nb jours = nb nuits + 1\n (5 nuits = 6 jours de repas)"}
                 note={`Demi-pension = Pension complète × (1 − ${form.taux_demi_pension}%)`}
                 rows={[
                   { label: 'Pension complète',                           cdrKey: 'cdr_repas_complet', pvKey: 'pv_repas_complet' },
@@ -531,9 +539,10 @@ export default function ParametresPage() {
 
               {/* Transport */}
               <TarifTable
-                title="Transport (par personne — aller-retour)"
+                title="Transport (forfait par personne aller-retour)"
                 form={form}
                 onChange={setField}
+                desc={"💡 Calcul : Prix transport × nb personnes\n Ex: 7 000 DA × 2 adultes = 14 000 DA\n ⚠️ Forfait fixe — pas multiplié par les nuits"}
                 rows={[
                   { label: 'Adulte', cdrKey: 'cdr_transport_adulte', pvKey: 'pv_transport_adulte' },
                   { label: 'Enfant', cdrKey: 'cdr_transport_enfant', pvKey: 'pv_transport_enfant' },
@@ -558,7 +567,9 @@ export default function ParametresPage() {
                       />
                       <span className="text-sm text-gray-500">%</span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">Demi = Complet × (1 − taux%)</p>
+                    <div className="border-l-[3px] border-[#fdbe11] rounded-[4px] p-2 bg-[#f0f2f8] dark:bg-white/5 mt-2 whitespace-pre-line text-xs text-gray-500 dark:text-gray-400 italic">
+                      {"💡 Demi = Pension complète × (1 − taux%)\n Ex: 3 200 × (1 − 35%) = 2 080 DA/pers/jour"}
+                    </div>
                   </div>
                   <div>
                     <label className={labelCls}>Taux marge famille</label>
