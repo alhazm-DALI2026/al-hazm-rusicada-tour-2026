@@ -7,6 +7,8 @@ import { useCallback, useEffect, useState } from 'react'
 interface DashboardData {
   confirmes: {
     count:        number
+    standard:     number
+    famille:      number
     participants: number
     revenus:      number
     cdr:          number
@@ -14,6 +16,8 @@ interface DashboardData {
   }
   en_attente: {
     count:           number
+    standard:        number
+    famille:         number
     participants:    number
     revenus_estimes: number
   }
@@ -21,9 +25,15 @@ interface DashboardData {
     count:      number
     cout_total: number
   }
+  charges_fixes: {
+    total:  number
+    detail: { libelle: string; montant: number }[]
+  }
   bilan: {
     revenus_confirmes: number
     cdr_total:         number
+    marge_brute:       number
+    charges_fixes:     number
     charges_staff:     number
     benefice_net:      number
   }
@@ -35,63 +45,60 @@ function fmt(n: number) {
   return n.toLocaleString('fr-DZ') + ' DA'
 }
 
-function pct(part: number, total: number) {
+function pct(part: number, total: number, decimals = 1) {
   if (!total) return '—'
-  return (part / total * 100).toFixed(1) + ' %'
+  return (part / total * 100).toFixed(decimals) + ' %'
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function KpiCard({
-  icon, label, value, sub, accent, color,
+function Bloc({
+  icon, title, accent, children,
 }: {
-  icon: string; label: string; value: string | number
-  sub?: { label: string; value: string }[]
-  accent?: boolean; color?: string
+  icon: string; title: string; accent?: boolean; children: React.ReactNode
 }) {
-  const bg = accent ? 'bg-[#003090]' : 'bg-surface'
-  const textMain = accent ? 'text-white' : 'text-[#003090] dark:text-white'
-  const textLabel = accent ? 'text-[#fdbe11]' : 'text-gray-500'
-  const iconCls = color ?? (accent ? 'text-[#fdbe11]' : 'text-[#003090] dark:text-[#fdbe11]')
-
   return (
-    <div className={`rounded-xl p-5 shadow-sm ${bg}`}>
-      <div className="flex items-center gap-2 mb-3">
-        <i className={`ti ${icon} text-xl ${iconCls}`} aria-hidden="true" />
-        <span className={`text-xs font-semibold uppercase tracking-wide ${textLabel}`}>{label}</span>
+    <div className={`rounded-xl shadow-sm p-5 ${accent ? 'bg-[#003090]' : 'bg-surface'}`}>
+      <div className="flex items-center gap-2 mb-4">
+        <i className={`ti ${icon} text-xl ${accent ? 'text-[#fdbe11]' : 'text-[#003090] dark:text-[#fdbe11]'}`} aria-hidden="true" />
+        <span className={`text-xs font-semibold uppercase tracking-wide ${accent ? 'text-[#fdbe11]' : 'text-gray-500'}`}>
+          {title}
+        </span>
       </div>
-      <p className={`text-3xl font-bold font-mono mb-3 ${textMain}`}>{value}</p>
-      {sub && sub.length > 0 && (
-        <div className="space-y-1.5 border-t border-white/20 pt-3">
-          {sub.map(s => (
-            <div key={s.label} className="flex justify-between text-xs">
-              <span className={accent ? 'text-white/70' : 'text-gray-500'}>{s.label}</span>
-              <span className={`font-mono font-medium ${accent ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>{s.value}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      {children}
     </div>
   )
 }
 
-function BilanRow({
-  label, value, sign, highlight,
+function Row({
+  label, value, sub, accent, highlight, sign, color,
 }: {
-  label: string; value: number; sign?: '+' | '-'; highlight?: boolean
+  label: string
+  value: string
+  sub?: string
+  accent?: boolean
+  highlight?: boolean
+  sign?: '+' | '-'
+  color?: string
 }) {
-  const isPos = value >= 0
-  const color = highlight
-    ? (isPos ? 'text-green-600 dark:text-green-400' : 'text-red-500')
-    : 'text-gray-800 dark:text-gray-200'
+  const labelCls = accent
+    ? 'text-white/70'
+    : highlight
+      ? 'font-bold text-gray-900 dark:text-white'
+      : 'text-gray-600 dark:text-gray-400'
+
+  const valueCls = color ?? (accent
+    ? 'text-white font-mono'
+    : highlight
+      ? 'font-mono font-bold text-base'
+      : 'font-mono font-medium text-gray-800 dark:text-gray-200')
 
   return (
-    <div className={`flex items-center justify-between py-3 ${highlight ? 'border-t-2 border-gray-200 dark:border-white/20 mt-1' : 'border-b border-gray-100 dark:border-white/10'}`}>
-      <span className={`text-sm ${highlight ? 'font-bold text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
-        {label}
-      </span>
-      <span className={`font-mono font-bold text-base ${color}`}>
-        {sign === '-' ? '−' : sign === '+' ? '+' : ''}{Math.abs(value).toLocaleString('fr-DZ')} DA
+    <div className={`flex items-center justify-between py-2 ${highlight ? 'border-t-2 border-gray-200 dark:border-white/20 mt-1 pt-3' : 'border-b border-gray-100 dark:border-white/10'}`}>
+      <span className={`text-sm ${labelCls}`}>{label}</span>
+      <span className={`text-sm ${valueCls}`}>
+        {sign === '-' ? '− ' : sign === '+' ? '+ ' : ''}{value}
+        {sub && <span className="ml-1.5 text-xs opacity-60">{sub}</span>}
       </span>
     </div>
   )
@@ -123,14 +130,6 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])
-
-  const margeRatio = data
-    ? pct(data.confirmes.marge, data.confirmes.revenus)
-    : '—'
-
-  const txRemplissage = data && (data.confirmes.count + data.en_attente.count) > 0
-    ? pct(data.confirmes.count, data.confirmes.count + data.en_attente.count)
-    : '—'
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -167,7 +166,7 @@ export default function DashboardPage() {
       {/* ── Loading skeleton ─────────────────────────────────────── */}
       {loading && !data && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[1, 2, 3].map(i => (
+          {[1, 2, 3, 4, 5].map(i => (
             <div key={i} className="bg-surface rounded-xl p-5 shadow-sm animate-pulse h-40" />
           ))}
         </div>
@@ -175,102 +174,184 @@ export default function DashboardPage() {
 
       {data && (
         <>
-          {/* ── KPI row ────────────────────────────────────────────── */}
+          {/* ── Ligne 1 : 3 blocs ────────────────────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <KpiCard
-              icon="ti-calendar-check"
-              label="Réservations confirmées"
-              value={data.confirmes.count}
-              accent
-              sub={[
-                { label: 'Participants',  value: String(data.confirmes.participants) },
-                { label: 'Revenus',       value: fmt(data.confirmes.revenus) },
-                { label: 'Marge',         value: `${fmt(data.confirmes.marge)} (${margeRatio})` },
-              ]}
-            />
-            <KpiCard
-              icon="ti-clock"
-              label="En attente"
-              value={data.en_attente.count}
-              sub={[
-                { label: 'Participants',      value: String(data.en_attente.participants) },
-                { label: 'Revenus estimés',   value: fmt(data.en_attente.revenus_estimes) },
-                { label: 'Taux confirmation', value: txRemplissage },
-              ]}
-            />
-            <KpiCard
-              icon="ti-users"
-              label="Staff"
-              value={data.staff.count}
-              sub={[
-                { label: 'Charge totale', value: fmt(data.staff.cout_total) },
-              ]}
-            />
+
+            {/* Bloc 1 — Confirmées */}
+            <Bloc icon="ti-calendar-check" title="✅ Confirmées" accent>
+              <p className="text-4xl font-bold font-mono text-white mb-3">
+                {data.confirmes.count}
+                <span className="text-base font-normal text-white/60 ml-2">réservations</span>
+              </p>
+              <div className="space-y-1 border-t border-white/20 pt-3">
+                <Row label="Standard" value={String(data.confirmes.standard)} accent />
+                <Row label="Famille"  value={String(data.confirmes.famille)}  accent />
+                <Row label="Participants" value={`${data.confirmes.participants} pers.`} accent />
+                <Row label="Revenus PV"   value={fmt(data.confirmes.revenus)} accent />
+                <Row label="CDR"          value={fmt(data.confirmes.cdr)}     accent />
+                <Row
+                  label="Marge"
+                  value={fmt(data.confirmes.marge)}
+                  sub={`(${pct(data.confirmes.marge, data.confirmes.revenus)})`}
+                  accent
+                />
+              </div>
+            </Bloc>
+
+            {/* Bloc 2 — En attente */}
+            <Bloc icon="ti-clock" title="⏳ En attente">
+              <p className="text-4xl font-bold font-mono text-[#003090] dark:text-white mb-3">
+                {data.en_attente.count}
+                <span className="text-base font-normal text-gray-400 ml-2">réservations</span>
+              </p>
+              <div className="space-y-1 border-t border-gray-100 dark:border-white/10 pt-3">
+                <Row label="Standard"            value={String(data.en_attente.standard)} />
+                <Row label="Famille"             value={String(data.en_attente.famille)} />
+                <Row label="Participants estimés" value={`${data.en_attente.participants} pers.`} />
+                <Row label="Revenus estimés"      value={fmt(data.en_attente.revenus_estimes)} />
+                <Row
+                  label="Taux confirmation"
+                  value={pct(
+                    data.confirmes.count,
+                    data.confirmes.count + data.en_attente.count,
+                  )}
+                />
+              </div>
+            </Bloc>
+
+            {/* Bloc 3 — Staff */}
+            <Bloc icon="ti-users" title="👥 Staff">
+              <p className="text-4xl font-bold font-mono text-[#003090] dark:text-white mb-3">
+                {data.staff.count}
+                <span className="text-base font-normal text-gray-400 ml-2">membres</span>
+              </p>
+              <div className="border-t border-gray-100 dark:border-white/10 pt-3">
+                <Row label="Coût total" value={fmt(data.staff.cout_total)} />
+              </div>
+            </Bloc>
           </div>
 
-          {/* ── Bilan financier ────────────────────────────────────── */}
-          <div className="bg-surface rounded-xl shadow-sm p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <i className="ti ti-chart-bar text-xl text-[#003090] dark:text-[#fdbe11]" aria-hidden="true" />
-              <h2 className="text-base font-bold text-[#003090] dark:text-white">Bilan financier</h2>
-              <span className="text-xs text-gray-400 ml-2">(réservations confirmées uniquement)</span>
-            </div>
+          {/* ── Ligne 2 : 2 blocs ────────────────────────────────── */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-            <div className="max-w-lg">
-              <BilanRow label="Revenus confirmés"   value={data.bilan.revenus_confirmes} sign="+" />
-              <BilanRow label="CDR réservations"    value={data.bilan.cdr_total}         sign="-" />
-              <BilanRow label="Charges staff"       value={data.bilan.charges_staff}     sign="-" />
-              <BilanRow
-                label="Bénéfice net"
-                value={data.bilan.benefice_net}
-                highlight
-              />
-            </div>
-
-            {/* Gauge */}
-            {data.bilan.revenus_confirmes > 0 && (
-              <div className="mt-5 max-w-lg">
-                <div className="flex justify-between text-xs text-gray-500 mb-1.5">
-                  <span>Répartition des coûts</span>
-                  <span>{pct(data.bilan.cdr_total + data.bilan.charges_staff, data.bilan.revenus_confirmes)} de coûts</span>
-                </div>
-                <div className="h-3 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden flex">
-                  {/* CDR block */}
-                  <div
-                    className="h-full bg-[#003090] transition-all"
-                    style={{ width: `${Math.min((data.bilan.cdr_total / data.bilan.revenus_confirmes) * 100, 100)}%` }}
-                    title={`CDR: ${fmt(data.bilan.cdr_total)}`}
-                  />
-                  {/* Staff block */}
-                  <div
-                    className="h-full bg-[#fdbe11] transition-all"
-                    style={{ width: `${Math.min((data.bilan.charges_staff / data.bilan.revenus_confirmes) * 100, 100)}%` }}
-                    title={`Staff: ${fmt(data.bilan.charges_staff)}`}
-                  />
-                  {/* Bénéfice block */}
-                  {data.bilan.benefice_net > 0 && (
-                    <div
-                      className="h-full bg-green-400 transition-all"
-                      style={{ width: `${Math.min((data.bilan.benefice_net / data.bilan.revenus_confirmes) * 100, 100)}%` }}
-                      title={`Bénéfice: ${fmt(data.bilan.benefice_net)}`}
-                    />
-                  )}
-                </div>
-                {/* Legend */}
-                <div className="flex gap-4 mt-2">
-                  {[
-                    { color: 'bg-[#003090]', label: 'CDR réservations' },
-                    { color: 'bg-[#fdbe11]', label: 'Charges staff' },
-                    { color: 'bg-green-400',  label: 'Bénéfice' },
-                  ].map(l => (
-                    <div key={l.label} className="flex items-center gap-1.5 text-xs text-gray-500">
-                      <span className={`w-2.5 h-2.5 rounded-sm ${l.color}`} />
-                      {l.label}
-                    </div>
+            {/* Bloc 4 — Charges fixes */}
+            <Bloc icon="ti-building" title="🏢 Charges fixes">
+              {data.charges_fixes.detail.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-4">
+                  Aucune charge de type <code className="font-mono">fixe_global</code> dans le moteur.
+                </p>
+              ) : (
+                <div className="space-y-1 mb-4">
+                  {data.charges_fixes.detail.map((c, i) => (
+                    <Row key={i} label={c.libelle} value={fmt(c.montant)} />
                   ))}
                 </div>
+              )}
+
+              <div className="border-t border-gray-200 dark:border-white/10 pt-3 space-y-3">
+                <Row label="Total charges fixes" value={fmt(data.charges_fixes.total)} />
+
+                {/* Taux couverture */}
+                {data.charges_fixes.total > 0 && (() => {
+                  const taux = data.bilan.marge_brute / data.charges_fixes.total * 100
+                  const green = taux >= 100
+                  return (
+                    <div>
+                      <div className="flex justify-between text-xs mb-1.5">
+                        <span className="text-gray-500">Taux de couverture (marge / charges)</span>
+                        <span className={`font-bold font-mono ${green ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+                          {taux.toFixed(1)} %
+                        </span>
+                      </div>
+                      <div className="h-3 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${green ? 'bg-green-500' : 'bg-red-500'}`}
+                          style={{ width: `${Math.min(taux, 100)}%` }}
+                        />
+                      </div>
+                      {!green && (
+                        <p className="text-xs text-red-500 mt-1">
+                          Manque {fmt(data.charges_fixes.total - data.bilan.marge_brute)} de marge pour couvrir les charges.
+                        </p>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
-            )}
+            </Bloc>
+
+            {/* Bloc 5 — Bilan académie */}
+            <Bloc icon="ti-chart-bar" title="💰 Bilan académie">
+              <div className="space-y-0">
+                <Row label="Revenus confirmés"  value={fmt(data.bilan.revenus_confirmes)} sign="+" />
+                <Row label="CDR inscrits"       value={fmt(data.bilan.cdr_total)}         sign="-" />
+                <Row label="Charges staff"      value={fmt(data.bilan.charges_staff)}     sign="-" />
+                <Row label="Charges fixes"      value={fmt(data.bilan.charges_fixes)}     sign="-" />
+                <Row
+                  label="Bénéfice net"
+                  value={fmt(Math.abs(data.bilan.benefice_net))}
+                  highlight
+                  sign={data.bilan.benefice_net >= 0 ? '+' : '-'}
+                  color={
+                    data.bilan.benefice_net >= 0
+                      ? 'font-mono font-bold text-base text-green-600 dark:text-green-400'
+                      : 'font-mono font-bold text-base text-red-500'
+                  }
+                />
+              </div>
+
+              {/* Gauge répartition */}
+              {data.bilan.revenus_confirmes > 0 && (
+                <div className="mt-5">
+                  <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+                    <span>Répartition des coûts</span>
+                    <span>
+                      {pct(
+                        data.bilan.cdr_total + data.bilan.charges_staff + data.bilan.charges_fixes,
+                        data.bilan.revenus_confirmes,
+                      )} de coûts
+                    </span>
+                  </div>
+                  <div className="h-3 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden flex">
+                    <div
+                      className="h-full bg-[#003090] transition-all"
+                      style={{ width: `${Math.min((data.bilan.cdr_total / data.bilan.revenus_confirmes) * 100, 100)}%` }}
+                      title={`CDR: ${fmt(data.bilan.cdr_total)}`}
+                    />
+                    <div
+                      className="h-full bg-[#fdbe11] transition-all"
+                      style={{ width: `${Math.min((data.bilan.charges_staff / data.bilan.revenus_confirmes) * 100, 100)}%` }}
+                      title={`Staff: ${fmt(data.bilan.charges_staff)}`}
+                    />
+                    <div
+                      className="h-full bg-orange-400 transition-all"
+                      style={{ width: `${Math.min((data.bilan.charges_fixes / data.bilan.revenus_confirmes) * 100, 100)}%` }}
+                      title={`Fixes: ${fmt(data.bilan.charges_fixes)}`}
+                    />
+                    {data.bilan.benefice_net > 0 && (
+                      <div
+                        className="h-full bg-green-400 transition-all"
+                        style={{ width: `${Math.min((data.bilan.benefice_net / data.bilan.revenus_confirmes) * 100, 100)}%` }}
+                        title={`Bénéfice: ${fmt(data.bilan.benefice_net)}`}
+                      />
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-3 mt-2">
+                    {[
+                      { color: 'bg-[#003090]', label: 'CDR' },
+                      { color: 'bg-[#fdbe11]', label: 'Staff' },
+                      { color: 'bg-orange-400', label: 'Charges fixes' },
+                      { color: 'bg-green-400',  label: 'Bénéfice' },
+                    ].map(l => (
+                      <div key={l.label} className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <span className={`w-2.5 h-2.5 rounded-sm ${l.color}`} />
+                        {l.label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Bloc>
           </div>
 
           {/* ── Quick links ────────────────────────────────────────── */}

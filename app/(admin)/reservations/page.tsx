@@ -155,8 +155,12 @@ function DrawerDetail({ r, onClose }: { r: ResWithOffre; onClose(): void }) {
           <Section title="Séjour">
             <DRow label="Offre" value={r.offre?.nom ?? '—'} />
             <DRow label="Type" value={r.type === 'famille' ? 'Famille' : 'Standard'} />
-            <DRow label="Composition"
-              value={`${r.nb_adultes} adulte${r.nb_adultes !== 1 ? 's' : ''} + ${r.nb_enfants} enfant${r.nb_enfants !== 1 ? 's' : ''}`} />
+            <DRow label="Composition" value={(() => {
+                const nbB = r.type === 'famille'
+                  ? ((r.options_custom as { nb_bebes?: number } | null)?.nb_bebes ?? 0)
+                  : 0
+                return `${r.nb_adultes}A + ${r.nb_enfants}E${nbB > 0 ? ` + ${nbB}B` : ''}`
+              })()} />
             <DRow label="Nuits" value={String(r.nombre_nuits)} />
             <DRow label="Transport" value={
               r.offre?.transport_inclus ? '✅ Inclus'
@@ -614,7 +618,11 @@ export default function ReservationsPage() {
                         {r.offre?.nom ?? '—'}
                       </td>
                       <td className="px-3 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                        {r.nb_adultes}A{r.nb_enfants > 0 ? ` + ${r.nb_enfants}E` : ''}
+                        {r.nb_adultes}A
+                        {r.nb_enfants > 0 ? ` + ${r.nb_enfants}E` : ''}
+                        {r.type === 'famille' && ((r.options_custom as { nb_bebes?: number } | null)?.nb_bebes ?? 0) > 0
+                          ? ` + ${(r.options_custom as { nb_bebes?: number }).nb_bebes}B`
+                          : ''}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-xs">
                         {r.offre?.transport_inclus ? (
