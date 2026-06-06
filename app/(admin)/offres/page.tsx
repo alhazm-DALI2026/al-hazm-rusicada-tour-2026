@@ -384,8 +384,8 @@ export default function OffresPage() {
 
       {/* ── Form modal ──────────────────────────────────────────── */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
-          <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-2xl my-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50">
+          <div className="bg-[var(--color-surface)] rounded-xl shadow-xl w-full max-w-[680px] mx-auto my-8 max-h-[90vh] overflow-y-auto">
             {/* Modal header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/10">
               <h2 className="text-lg font-bold text-[#003090] dark:text-white">
