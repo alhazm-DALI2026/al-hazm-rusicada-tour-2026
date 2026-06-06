@@ -203,6 +203,15 @@ export default function MoteurPage() {
         </button>
       </div>
 
+      {/* ── Bandeau info ──────────────────────────────────── */}
+      <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl text-sm text-blue-700 dark:text-blue-300">
+        <i className="ti ti-info-circle text-lg shrink-0 mt-0.5" aria-hidden="true" />
+        <div>
+          <p className="font-semibold">Charges globales — offres standard uniquement</p>
+          <p className="mt-0.5">Les charges ici alimentent les offres standard uniquement. Pour les tarifs famille → <span className="font-semibold underline">Paramètres</span></p>
+        </div>
+      </div>
+
       {/* ── Table card ────────────────────────────────────── */}
       <div className="bg-[var(--color-surface)] rounded-xl shadow-sm overflow-hidden">
         {loading ? (

@@ -149,6 +149,11 @@ function calculerChambres(
 
 // ─── Calcul pack famille ─────────────────────────────────────────────────────
 
+/**
+ * SYSTÈME 2 — Réservation famille
+ * Source : parametres uniquement
+ * Indépendant des offres standard
+ */
 export function calculerFamille(
   params: Parametres,
   choix: {

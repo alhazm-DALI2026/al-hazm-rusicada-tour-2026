@@ -76,7 +76,8 @@ const EMPTY: FormState = {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function n(s: string) { return parseFloat(s) || 0 }
-function marge(cdr: string, pv: string) {
+
+function MargeCell({ cdr, pv }: { cdr: string; pv: string }) {
   const m = n(pv) - n(cdr)
   return (
     <span className={m >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
@@ -107,16 +108,19 @@ interface TarifRow {
   pvKey:    keyof FormState | null
   cdrAuto?: string
   pvAuto?:  string
+  info?:    string
 }
 
 function TarifTable({
-  title, rows, form, onChange,
+  title, rows, form, onChange, note,
 }: {
   title:    string
   rows:     TarifRow[]
   form:     FormState
   onChange: <K extends keyof FormState>(key: K, val: string) => void
+  note?:    string
 }) {
+  const hasInfo  = rows.some(r => r.info)
   const inputCls = 'w-full px-2 py-1.5 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090] text-right font-mono'
 
   return (
@@ -130,6 +134,7 @@ function TarifTable({
               <th className="px-3 py-2 font-semibold text-gray-600 dark:text-gray-300 w-36">CDR (DA)</th>
               <th className="px-3 py-2 font-semibold text-gray-600 dark:text-gray-300 w-36">PV (DA)</th>
               <th className="px-3 py-2 font-semibold text-gray-600 dark:text-gray-300">Marge</th>
+              {hasInfo && <th className="px-3 py-2 font-semibold text-gray-600 dark:text-gray-300">Info</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-white/10">
@@ -163,13 +168,23 @@ function TarifTable({
                       <span className="px-2 py-1.5 text-gray-400 font-mono text-sm">{row.pvAuto ?? '0'}</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 font-mono text-sm">{marge(cdrVal, pvVal)}</td>
+                  <td className="px-3 py-2 font-mono text-sm">
+                    <MargeCell cdr={cdrVal} pv={pvVal} />
+                  </td>
+                  {hasInfo && (
+                    <td className="px-3 py-2 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                      {row.info ?? ''}
+                    </td>
+                  )}
                 </tr>
               )
             })}
           </tbody>
         </table>
       </div>
+      {note && (
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">{note}</p>
+      )}
     </div>
   )
 }
@@ -177,13 +192,14 @@ function TarifTable({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ParametresPage() {
-  const [form, setForm]       = useState<FormState>(EMPTY)
-  const [saving, setSaving]   = useState(false)
-  const [testing, setTesting] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [form, setForm]           = useState<FormState>(EMPTY)
+  const [saving, setSaving]       = useState(false)
+  const [testing, setTesting]     = useState(false)
+  const [loading, setLoading]     = useState(true)
   const [updatedAt, setUpdatedAt] = useState<string | null>(null)
-  const [showKey, setShowKey] = useState(false)
-  const [toast, setToast]     = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [showKey, setShowKey]     = useState(false)
+  const [toast, setToast]         = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [activeTab, setActiveTab] = useState<'general' | 'famille'>('general')
 
   const notify = (message: string, type: 'success' | 'error') => setToast({ message, type })
 
@@ -286,7 +302,7 @@ export default function ParametresPage() {
   }
 
   // ── Demi-pension auto values ──────────────────────────────────
-  const tauxDP = n(form.taux_demi_pension) / 100
+  const tauxDP      = n(form.taux_demi_pension) / 100
   const cdrDemiAuto = (n(form.cdr_repas_complet) * (1 - tauxDP)).toFixed(0)
   const pvDemiAuto  = (n(form.pv_repas_complet)  * (1 - tauxDP)).toFixed(0)
 
@@ -318,195 +334,252 @@ export default function ParametresPage() {
         </div>
       </div>
 
+      {/* ── Tabs ──────────────────────────────────────────────── */}
+      <div className="flex gap-1 bg-[#f0f2f8] dark:bg-white/5 rounded-xl p-1 w-fit">
+        {([
+          ['general',  'Paramètres généraux', 'ti-settings'],
+          ['famille',  'Tarifs Famille',       'ti-users'],
+        ] as const).map(([tab, label, icon]) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === tab
+                ? 'bg-white dark:bg-[#1a1d2e] text-[#003090] dark:text-white shadow-sm'
+                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            <i className={`ti ${icon}`} aria-hidden="true" />
+            {label}
+          </button>
+        ))}
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-6">
 
-        {/* ── Informations événement ──────────────────────────── */}
-        <Section title="Événement" icon="ti-calendar-event">
-          <div>
-            <label className={labelCls}>
-              Nom de l&apos;événement <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text" required
-              value={form.nom_evenement}
-              onChange={e => setField('nom_evenement', e.target.value)}
-              placeholder="Ex: Rusica Park 2026"
-              className={inputCls}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>Date de départ</label>
-              <input
-                type="date"
-                value={form.date_depart}
-                onChange={e => setField('date_depart', e.target.value)}
-                className={inputCls}
-              />
-            </div>
-            <div>
-              <label className={labelCls}>Date de retour</label>
-              <input
-                type="date"
-                value={form.date_retour}
-                onChange={e => setField('date_retour', e.target.value)}
-                className={inputCls}
-              />
-            </div>
-          </div>
-        </Section>
-
-        {/* ── Tarification ───────────────────────────────────────── */}
-        <Section title="Tarification — Pack Famille" icon="ti-calculator">
-
-          {/* Taux */}
-          <div className="grid grid-cols-2 gap-4 pb-2 border-b border-gray-100 dark:border-white/10">
-            <div>
-              <label className={labelCls}>Taux demi-pension (%)</label>
-              <div className="flex items-center gap-2">
+        {/* ══════════════════════════════════════════════════════
+            ONGLET : PARAMÈTRES GÉNÉRAUX
+            ══════════════════════════════════════════════════ */}
+        {activeTab === 'general' && (
+          <>
+            {/* ── Informations événement ──────────────────────── */}
+            <Section title="Événement" icon="ti-calendar-event">
+              <div>
+                <label className={labelCls}>
+                  Nom de l&apos;événement <span className="text-red-500">*</span>
+                </label>
                 <input
-                  type="number" min="0" max="100" step="1"
-                  value={form.taux_demi_pension}
-                  onChange={e => setField('taux_demi_pension', e.target.value)}
-                  className="w-24 px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090] font-mono text-right"
+                  type="text" required
+                  value={form.nom_evenement}
+                  onChange={e => setField('nom_evenement', e.target.value)}
+                  placeholder="Ex: Rusica Park 2026"
+                  className={inputCls}
                 />
-                <span className="text-sm text-gray-500">%</span>
               </div>
-            </div>
-            <div>
-              <label className={labelCls}>Taux marge famille (%)</label>
-              <div className="flex items-center gap-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Date de départ</label>
+                  <input
+                    type="date"
+                    value={form.date_depart}
+                    onChange={e => setField('date_depart', e.target.value)}
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Date de retour</label>
+                  <input
+                    type="date"
+                    value={form.date_retour}
+                    onChange={e => setField('date_retour', e.target.value)}
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+            </Section>
+
+            {/* ── WhatsApp & CallMeBot ──────────────────────────── */}
+            <Section title="Notifications WhatsApp" icon="ti-brand-whatsapp">
+              <div>
+                <label className={labelCls}>Numéro WhatsApp admin</label>
                 <input
-                  type="number" min="0" max="100" step="1"
-                  value={form.taux_marge_famille}
-                  onChange={e => setField('taux_marge_famille', e.target.value)}
-                  className="w-24 px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090] font-mono text-right"
+                  type="tel"
+                  value={form.whatsapp_numero}
+                  onChange={e => setField('whatsapp_numero', e.target.value)}
+                  placeholder="+213XXXXXXXXX"
+                  className={inputCls}
                 />
-                <span className="text-sm text-gray-500">%</span>
+                <p className="text-xs text-gray-400 mt-1">
+                  Ce numéro doit avoir activé CallMeBot. Format international (+213…).
+                </p>
               </div>
-            </div>
-          </div>
 
-          {/* Chambres */}
-          <TarifTable
-            title="Chambres (par nuit)"
-            form={form}
-            onChange={setField}
-            rows={[
-              { label: 'Single',    cdrKey: 'cdr_single',    pvKey: 'pv_single'    },
-              { label: 'Double',    cdrKey: 'cdr_double',    pvKey: 'pv_double'    },
-              { label: 'Triple',    cdrKey: 'cdr_triple',    pvKey: 'pv_triple'    },
-              { label: 'Quadruple', cdrKey: 'cdr_quadruple', pvKey: 'pv_quadruple' },
-            ]}
-          />
+              <div>
+                <label className={labelCls}>Clé API CallMeBot</label>
+                <div className="relative">
+                  <input
+                    type={showKey ? 'text' : 'password'}
+                    value={form.callmebot_apikey}
+                    onChange={e => setField('callmebot_apikey', e.target.value)}
+                    placeholder="Votre clé CallMeBot"
+                    className={`${inputCls} pr-10`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKey(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    aria-label={showKey ? 'Masquer la clé' : 'Afficher la clé'}
+                  >
+                    <i className={`ti ${showKey ? 'ti-eye-off' : 'ti-eye'} text-base`} aria-hidden="true" />
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">
+                  Obtenez votre clé sur{' '}
+                  <span className="text-[#003090] dark:text-[#fdbe11]">callmebot.com</span>
+                  {' '}en envoyant &quot;I allow callmebot to send me messages&quot; au +34 644 597 101.
+                </p>
+              </div>
 
-          {/* Repas */}
-          <TarifTable
-            title="Repas (par personne / nuit)"
-            form={form}
-            onChange={setField}
-            rows={[
-              { label: 'Pension complète',                cdrKey: 'cdr_repas_complet', pvKey: 'pv_repas_complet' },
-              { label: `Demi-pension (−${form.taux_demi_pension}%)`, cdrKey: null, pvKey: null, cdrAuto: cdrDemiAuto, pvAuto: pvDemiAuto },
-              { label: 'Sans repas',                      cdrKey: null, pvKey: null, cdrAuto: '0', pvAuto: '0' },
-            ]}
-          />
-
-          {/* Transport */}
-          <TarifTable
-            title="Transport (par personne)"
-            form={form}
-            onChange={setField}
-            rows={[
-              { label: 'Adulte', cdrKey: 'cdr_transport_adulte', pvKey: 'pv_transport_adulte' },
-              { label: 'Enfant', cdrKey: 'cdr_transport_enfant', pvKey: 'pv_transport_enfant' },
-              { label: 'Bébé',   cdrKey: 'cdr_transport_bebe',   pvKey: 'pv_transport_bebe'   },
-            ]}
-          />
-        </Section>
-
-        {/* ── WhatsApp & CallMeBot ────────────────────────────── */}
-        <Section title="Notifications WhatsApp" icon="ti-brand-whatsapp">
-          <div>
-            <label className={labelCls}>Numéro WhatsApp admin</label>
-            <input
-              type="tel"
-              value={form.whatsapp_numero}
-              onChange={e => setField('whatsapp_numero', e.target.value)}
-              placeholder="+213XXXXXXXXX"
-              className={inputCls}
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              Ce numéro doit avoir activé CallMeBot. Format international (+213…).
-            </p>
-          </div>
-
-          <div>
-            <label className={labelCls}>Clé API CallMeBot</label>
-            <div className="relative">
-              <input
-                type={showKey ? 'text' : 'password'}
-                value={form.callmebot_apikey}
-                onChange={e => setField('callmebot_apikey', e.target.value)}
-                placeholder="Votre clé CallMeBot"
-                className={`${inputCls} pr-10`}
-              />
               <button
                 type="button"
-                onClick={() => setShowKey(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                aria-label={showKey ? 'Masquer la clé' : 'Afficher la clé'}
+                onClick={handleTestWhatsApp}
+                disabled={testing || !form.whatsapp_numero || !form.callmebot_apikey}
+                className="flex items-center gap-2 px-4 py-2 border border-[#003090] dark:border-[#fdbe11] text-[#003090] dark:text-[#fdbe11] rounded-lg text-sm font-medium hover:bg-[#e8ecf6] dark:hover:bg-white/5 disabled:opacity-40 transition-colors"
               >
-                <i className={`ti ${showKey ? 'ti-eye-off' : 'ti-eye'} text-base`} aria-hidden="true" />
+                <i className={`ti ${testing ? 'ti-loader-2 animate-spin' : 'ti-send'}`} aria-hidden="true" />
+                {testing ? 'Envoi en cours…' : 'Tester la notification'}
               </button>
+            </Section>
+
+            {/* ── Lien groupe WhatsApp ──────────────────────────── */}
+            <Section title="Lien groupe WhatsApp" icon="ti-link">
+              <div>
+                <label className={labelCls}>Lien d&apos;invitation au groupe</label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={form.lien_groupe_whatsapp}
+                    onChange={e => setField('lien_groupe_whatsapp', e.target.value)}
+                    placeholder="https://chat.whatsapp.com/..."
+                    className={`${inputCls} flex-1`}
+                  />
+                  <button
+                    type="button"
+                    onClick={copyLink}
+                    disabled={!form.lien_groupe_whatsapp}
+                    className="px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-40 transition-colors"
+                    aria-label="Copier le lien"
+                  >
+                    <i className="ti ti-copy text-base" aria-hidden="true" />
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">
+                  Affiché sur la page de confirmation publique.
+                </p>
+              </div>
+            </Section>
+          </>
+        )}
+
+        {/* ══════════════════════════════════════════════════════
+            ONGLET : TARIFS FAMILLE
+            ══════════════════════════════════════════════════ */}
+        {activeTab === 'famille' && (
+          <>
+            {/* Bandeau info */}
+            <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl text-sm text-blue-700 dark:text-blue-300">
+              <i className="ti ti-info-circle text-lg shrink-0 mt-0.5" aria-hidden="true" />
+              <div>
+                <p className="font-semibold">Système réservation famille — indépendant des offres standard</p>
+                <p className="mt-0.5">Ces tarifs sont utilisés UNIQUEMENT pour les réservations famille. Indépendants des offres standard.</p>
+              </div>
             </div>
-            <p className="text-xs text-gray-400 mt-1">
-              Obtenez votre clé sur{' '}
-              <span className="text-[#003090] dark:text-[#fdbe11]">callmebot.com</span>
-              {' '}en envoyant &quot;I allow callmebot to send me messages&quot; au +34 644 597 101.
-            </p>
-          </div>
 
-          <button
-            type="button"
-            onClick={handleTestWhatsApp}
-            disabled={testing || !form.whatsapp_numero || !form.callmebot_apikey}
-            className="flex items-center gap-2 px-4 py-2 border border-[#003090] dark:border-[#fdbe11] text-[#003090] dark:text-[#fdbe11] rounded-lg text-sm font-medium hover:bg-[#e8ecf6] dark:hover:bg-white/5 disabled:opacity-40 transition-colors"
-          >
-            <i className={`ti ${testing ? 'ti-loader-2 animate-spin' : 'ti-send'}`} aria-hidden="true" />
-            {testing ? 'Envoi en cours…' : 'Tester la notification'}
-          </button>
-        </Section>
+            <div className="bg-surface rounded-xl shadow-sm p-6 space-y-6">
 
-        {/* ── Lien groupe WhatsApp ────────────────────────────── */}
-        <Section title="Lien groupe WhatsApp" icon="ti-link">
-          <div>
-            <label className={labelCls}>Lien d&apos;invitation au groupe</label>
-            <div className="flex gap-2">
-              <input
-                type="url"
-                value={form.lien_groupe_whatsapp}
-                onChange={e => setField('lien_groupe_whatsapp', e.target.value)}
-                placeholder="https://chat.whatsapp.com/..."
-                className={`${inputCls} flex-1`}
+              {/* Chambres */}
+              <TarifTable
+                title="Chambres (par chambre / nuit)"
+                form={form}
+                onChange={setField}
+                note={`Ex : si Double = ${Number(form.cdr_double).toLocaleString('fr-DZ')} DA/chambre → ${(Number(form.cdr_double) / 2).toLocaleString('fr-DZ')} DA/pers pour 2 personnes/nuit`}
+                rows={[
+                  { label: 'Single',    cdrKey: 'cdr_single',    pvKey: 'pv_single',    info: '1 pers. seule'   },
+                  { label: 'Double',    cdrKey: 'cdr_double',    pvKey: 'pv_double',    info: '2 pers. / chambre' },
+                  { label: 'Triple',    cdrKey: 'cdr_triple',    pvKey: 'pv_triple',    info: '3 pers. / chambre' },
+                  { label: 'Quadruple', cdrKey: 'cdr_quadruple', pvKey: 'pv_quadruple', info: '4 pers. / chambre' },
+                ]}
               />
-              <button
-                type="button"
-                onClick={copyLink}
-                disabled={!form.lien_groupe_whatsapp}
-                className="px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 disabled:opacity-40 transition-colors"
-                aria-label="Copier le lien"
-              >
-                <i className="ti ti-copy text-base" aria-hidden="true" />
-              </button>
-            </div>
-            <p className="text-xs text-gray-400 mt-1">
-              Affiché sur la page de confirmation publique.
-            </p>
-          </div>
-        </Section>
 
-        {/* ── Save button ─────────────────────────────────────── */}
+              <div className="border-t border-gray-100 dark:border-white/10" />
+
+              {/* Repas */}
+              <TarifTable
+                title="Repas (par personne / nuit)"
+                form={form}
+                onChange={setField}
+                note={`Demi-pension = Pension complète × (1 − ${form.taux_demi_pension}%)`}
+                rows={[
+                  { label: 'Pension complète',                           cdrKey: 'cdr_repas_complet', pvKey: 'pv_repas_complet' },
+                  { label: `Demi-pension (−${form.taux_demi_pension}%)`, cdrKey: null, pvKey: null, cdrAuto: cdrDemiAuto, pvAuto: pvDemiAuto },
+                  { label: 'Sans repas',                                  cdrKey: null, pvKey: null, cdrAuto: '0',         pvAuto: '0'        },
+                ]}
+              />
+
+              <div className="border-t border-gray-100 dark:border-white/10" />
+
+              {/* Transport */}
+              <TarifTable
+                title="Transport (par personne — aller-retour)"
+                form={form}
+                onChange={setField}
+                rows={[
+                  { label: 'Adulte', cdrKey: 'cdr_transport_adulte', pvKey: 'pv_transport_adulte' },
+                  { label: 'Enfant', cdrKey: 'cdr_transport_enfant', pvKey: 'pv_transport_enfant' },
+                  { label: 'Bébé',   cdrKey: 'cdr_transport_bebe',   pvKey: 'pv_transport_bebe'   },
+                ]}
+              />
+
+              <div className="border-t border-gray-100 dark:border-white/10" />
+
+              {/* Taux */}
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-[#003090] dark:text-[#fdbe11] mb-3">Taux</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>Taux demi-pension</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number" min="0" max="100" step="1"
+                        value={form.taux_demi_pension}
+                        onChange={e => setField('taux_demi_pension', e.target.value)}
+                        className="w-24 px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090] font-mono text-right"
+                      />
+                      <span className="text-sm text-gray-500">%</span>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">Demi = Complet × (1 − taux%)</p>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Taux marge famille</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number" min="0" max="100" step="1"
+                        value={form.taux_marge_famille}
+                        onChange={e => setField('taux_marge_famille', e.target.value)}
+                        className="w-24 px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090] font-mono text-right"
+                      />
+                      <span className="text-sm text-gray-500">%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </>
+        )}
+
+        {/* ── Save button (commun aux deux onglets) ──────────── */}
         <div className="flex justify-end">
           <button
             type="submit"
