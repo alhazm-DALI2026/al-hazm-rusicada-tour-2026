@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 interface NavItem {
@@ -41,9 +41,10 @@ function ShieldLogo() {
 }
 
 export default function AdminNav() {
-  const pathname          = usePathname()
+  const pathname              = usePathname()
+  const router                = useRouter()
   const [pending, setPending] = useState(0)
-  const [dark, setDark]   = useState(false)
+  const [dark, setDark]       = useState(false)
 
   // Restore saved theme on mount
   useEffect(() => {
@@ -62,6 +63,11 @@ export default function AdminNav() {
       })
       .catch(() => {})
   }, [])
+
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.push('/')
+  }
 
   function toggleTheme() {
     const next = !dark
@@ -136,6 +142,16 @@ export default function AdminNav() {
             aria-label={dark ? 'Passer en mode clair' : 'Passer en mode sombre'}
           >
             <i className={`ti ${dark ? 'ti-sun' : 'ti-moon'}`} aria-hidden="true" />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            title="Déconnexion"
+          >
+            <span>🚪</span>
+            <span className="hidden lg:inline">Déconnexion</span>
           </button>
         </div>
 

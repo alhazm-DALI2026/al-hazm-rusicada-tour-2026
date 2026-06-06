@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { Offre, TypePublic } from '@/types'
 
@@ -128,8 +129,15 @@ function OfferCard({ offre }: { offre: Offre }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
-  const [offres, setOffres] = useState<Offre[]>([])
-  const [loading, setLoading] = useState(true)
+  const [offres, setOffres]       = useState<Offre[]>([])
+  const [loading, setLoading]     = useState(true)
+  const [showModal, setShowModal] = useState(false)
+  const [username, setUsername]   = useState('')
+  const [password, setPassword]   = useState('')
+  const [loginErr, setLoginErr]   = useState('')
+  const [loginBusy, setLoginBusy] = useState(false)
+  const usernameRef               = useRef<HTMLInputElement>(null)
+  const router                    = useRouter()
 
   const nomEvenement = process.env.NEXT_PUBLIC_NOM_EVENEMENT ?? 'Rusicada Park 2026'
   const lienGroupe   = process.env.NEXT_PUBLIC_LIEN_GROUPE_WHATSAPP ?? ''
@@ -140,6 +148,40 @@ export default function HomePage() {
       .then((data: Offre[]) => setOffres(data.filter(o => o.actif)))
       .finally(() => setLoading(false))
   }, [])
+
+  // Focus username when modal opens
+  useEffect(() => {
+    if (showModal) {
+      setLoginErr('')
+      setTimeout(() => usernameRef.current?.focus(), 50)
+    } else {
+      setUsername('')
+      setPassword('')
+    }
+  }, [showModal])
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault()
+    setLoginBusy(true)
+    setLoginErr('')
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      })
+      if (res.ok) {
+        router.push('/dashboard')
+      } else {
+        const d = await res.json().catch(() => ({}))
+        setLoginErr(d.error ?? 'Identifiants incorrects')
+      }
+    } catch {
+      setLoginErr('Erreur réseau')
+    } finally {
+      setLoginBusy(false)
+    }
+  }
 
   const offresAdulte  = offres.filter(o => o.type_public === 'adulte')
   const offresEnfant  = offres.filter(o => o.type_public === 'enfant')
@@ -282,6 +324,83 @@ export default function HomePage() {
           </a>
         )}
       </footer>
+
+      {/* ── Bouton admin discret ────────────────────────────────── */}
+      <button
+        type="button"
+        onClick={() => setShowModal(true)}
+        className="fixed bottom-4 right-4 w-10 h-10 rounded-full flex items-center justify-center text-base opacity-40 hover:opacity-100 transition-opacity z-50 cursor-pointer border-0 bg-transparent"
+        aria-label="Administration"
+        title=""
+      >
+        🔒
+      </button>
+
+      {/* ── Modal connexion ─────────────────────────────────────── */}
+      {showModal && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2 mb-5">
+              <Shield />
+              <div>
+                <h2 className="font-bold text-[#003090] text-base leading-tight">Administration</h2>
+                <p className="text-xs text-gray-400">Al Hazm Academy</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-3">
+              <input
+                ref={usernameRef}
+                type="text"
+                placeholder="Identifiant"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                autoComplete="username"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#003090]/30"
+                required
+              />
+              <input
+                type="password"
+                placeholder="Mot de passe"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                autoComplete="current-password"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#003090]/30"
+                required
+              />
+
+              {loginErr && (
+                <p className="text-red-500 text-sm bg-red-50 px-3 py-2 rounded-lg">
+                  {loginErr}
+                </p>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={loginBusy}
+                  className="flex-1 py-2.5 bg-[#003090] text-white rounded-xl text-sm font-semibold hover:bg-[#002070] transition-colors disabled:opacity-60"
+                >
+                  {loginBusy ? '…' : 'Connexion'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
