@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { getTransportSupplement } from '@/lib/calc'
-import type { Offre, RepasType } from '@/types'
+import type { MoteurCout, Offre, RepasType } from '@/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -40,8 +39,9 @@ export default function OffrePage() {
   const router   = useRouter()
   const id       = params.id
 
-  const [offre, setOffre]       = useState<Offre | null>(null)
-  const [loading, setLoading]   = useState(true)
+  const [offre, setOffre]           = useState<Offre | null>(null)
+  const [moteurCouts, setMoteurCouts] = useState<MoteurCout[]>([])
+  const [loading, setLoading]       = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError]       = useState<string | null>(null)
@@ -55,19 +55,20 @@ export default function OffrePage() {
   const adminNumero  = process.env.NEXT_PUBLIC_WHATSAPP_NUMERO ?? ''
 
   useEffect(() => {
-    fetch('/api/offres')
-      .then(r => r.json())
-      .then((data: Offre[]) => {
-        const found = data.find(o => o.id === id && o.actif)
-        if (!found) { setNotFound(true); return }
-        setOffre(found)
-        setForm(f => ({
-          ...f,
-          transport:  found.transport_inclus,
-          repas_type: found.repas_type,
-        }))
-      })
-      .finally(() => setLoading(false))
+    Promise.all([
+      fetch('/api/offres').then(r => r.json()),
+      fetch('/api/moteur').then(r => r.json()),
+    ]).then(([offresData, coutsData]: [Offre[], MoteurCout[]]) => {
+      setMoteurCouts(coutsData)
+      const found = offresData.find(o => o.id === id && o.actif)
+      if (!found) { setNotFound(true); return }
+      setOffre(found)
+      setForm(f => ({
+        ...f,
+        transport:  found.transport_inclus,
+        repas_type: found.repas_type,
+      }))
+    }).finally(() => setLoading(false))
   }, [id])
 
   function setField<K extends keyof BookingForm>(key: K, val: BookingForm[K]) {
@@ -80,9 +81,10 @@ export default function OffrePage() {
     setSubmitting(true)
     setError(null)
 
-    const isOptional    = offre.transport_optionnel && !offre.transport_inclus
-    const supplement    = isOptional ? getTransportSupplement(offre) : 0
-    const avecTransport = form.transport && isOptional
+    const isOptional       = offre.transport_optionnel && !offre.transport_inclus
+    const avecTransport    = form.transport && isOptional
+    const montantTransport = moteurCouts.find(c => c.categorie === 'transport' && c.actif)?.montant ?? 0
+    const prixFinal        = Number(offre.prix_vente) + (avecTransport ? montantTransport : 0)
 
     const payload = {
       offre_id:     offre.id,
@@ -98,8 +100,8 @@ export default function OffrePage() {
       nombre_nuits: offre.nombre_nuits,
       transport:    form.transport,
       repas_type:   form.repas_type,
-      cout_revient: Number(offre.cout_revient) - (avecTransport ? 0 : supplement),
-      prix_vente:   Number(offre.prix_vente)   + (avecTransport ? supplement : 0),
+      cout_revient: Number(offre.cout_revient) + (avecTransport ? montantTransport : 0),
+      prix_vente:   prixFinal,
     }
 
     const r = await fetch('/api/reservations', {
@@ -156,10 +158,10 @@ export default function OffrePage() {
     )
   }
 
-  const complet        = offre.places_restantes === 0
-  const isOptional     = offre.transport_optionnel && !offre.transport_inclus
-  const supplement     = isOptional ? getTransportSupplement(offre) : 0
-  const prixAffiche    = Number(offre.prix_vente) + (isOptional && form.transport ? supplement : 0)
+  const complet          = offre.places_restantes === 0
+  const isOptional       = offre.transport_optionnel && !offre.transport_inclus
+  const montantTransport = moteurCouts.find(c => c.categorie === 'transport' && c.actif)?.montant ?? 0
+  const prixFinal        = Number(offre.prix_vente) + (isOptional && form.transport ? montantTransport : 0)
 
   return (
     <div className="min-h-screen bg-[#f0f2f8]">
@@ -211,12 +213,12 @@ export default function OffrePage() {
           {/* Price card */}
           <div className="bg-[#003090] text-white rounded-2xl p-5">
             <p className="text-[#fdbe11] text-xs font-semibold uppercase tracking-wide mb-1">
-              {isOptional && supplement > 0 ? 'Prix de base (hors transport)' : 'Prix par personne'}
+              {isOptional && montantTransport > 0 ? 'Prix de base (hors transport)' : 'Prix par personne'}
             </p>
             <p className="text-3xl font-bold font-mono">{fmt(Number(offre.prix_vente))}</p>
-            {isOptional && supplement > 0 && (
+            {isOptional && montantTransport > 0 && (
               <p className="text-white/70 text-xs mt-1">
-                + {fmt(supplement)} si transport coché
+                + {fmt(montantTransport)} si transport coché
               </p>
             )}
           </div>
@@ -315,7 +317,7 @@ export default function OffrePage() {
 
                 {/* Summary */}
                 <div className="bg-[#f0f2f8] rounded-xl p-4 space-y-1.5">
-                  {isOptional && supplement > 0 && (
+                  {isOptional && montantTransport > 0 && (
                     <>
                       <div className="flex justify-between text-xs text-gray-500">
                         <span>Prix base</span>
@@ -323,13 +325,13 @@ export default function OffrePage() {
                       </div>
                       <div className="flex justify-between text-xs text-gray-500">
                         <span>Transport</span>
-                        <span className="font-mono">{form.transport ? `+ ${fmt(supplement)}` : '—'}</span>
+                        <span className="font-mono">{form.transport ? `+ ${fmt(montantTransport)}` : '—'}</span>
                       </div>
                     </>
                   )}
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">Total à payer</span>
-                    <span className="text-xl font-bold text-[#003090] font-mono">{fmt(prixAffiche)}</span>
+                    <span className="text-xl font-bold text-[#003090] font-mono">{fmt(prixFinal)}</span>
                   </div>
                 </div>
 
