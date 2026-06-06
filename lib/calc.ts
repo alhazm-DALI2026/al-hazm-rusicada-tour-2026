@@ -1,4 +1,4 @@
-import type { MoteurCout, Offre, RepasType } from '@/types';
+import type { CoutInclus, MoteurCout, Offre, RepasType } from '@/types';
 
 // ─── helpers internes ────────────────────────────────────────────────────────
 
@@ -29,30 +29,20 @@ export function calculerDemiPension(montantRepas: number, taux: number): number 
 }
 
 /**
- * CDR d'une offre : somme des coûts inclus selon leur type de calcul.
- * couts_inclus contient des IDs de moteur_cout.
+ * CDR d'une offre : utilise les montants embarqués dans chaque CoutInclus.
+ * Rétrocompat : les anciens enregistrements avec des IDs string sont ignorés.
  */
-export function calculerCoutOffre(
-  offre: Offre,
-  moteurCouts: MoteurCout[],
-): number {
-  const coutsMap = new Map(moteurCouts.map(c => [c.id, c]));
-
-  return offre.couts_inclus.reduce<number>((total, id) => {
-    const cout = coutsMap.get(id);
-    if (!cout?.actif) return total;
-
-    switch (cout.type) {
-      case 'par_nuit':
-        return total + cout.montant * offre.nombre_nuits;
-      case 'par_jour':
-        return total + cout.montant * offre.nombre_jours;
-      case 'par_personne':
-        return total + cout.montant;
-      default:
-        return total;
-    }
-  }, 0);
+export function calculerCoutOffre(offre: Offre): number {
+  return (offre.couts_inclus as unknown as (CoutInclus | string)[])
+    .reduce<number>((total, item) => {
+      if (typeof item === 'string') return total;
+      switch (item.type) {
+        case 'par_nuit':     return total + item.montant * offre.nombre_nuits;
+        case 'par_jour':     return total + item.montant * offre.nombre_jours;
+        case 'par_personne': return total + item.montant;
+        default:             return total;
+      }
+    }, 0);
 }
 
 /**
@@ -74,8 +64,8 @@ export function calculerCoutFamille(
   const montantRepas     = trouverMontant(moteurCouts, 'repas');
   const repas            = calculerRepas(montantRepas, repasType, taux_demi_pension);
 
-  const cdrAdulte = calculerCoutOffre(offreAdulte, moteurCouts) + montantTransport + repas;
-  const cdrEnfant = calculerCoutOffre(offreEnfant, moteurCouts) + montantTransport + repas;
+  const cdrAdulte = calculerCoutOffre(offreAdulte) + montantTransport + repas;
+  const cdrEnfant = calculerCoutOffre(offreEnfant) + montantTransport + repas;
 
   return cdrAdulte * nbAdultes + cdrEnfant * nbEnfants;
 }

@@ -18,6 +18,14 @@ export interface MoteurCout {
   created_at: string;
 }
 
+export interface CoutInclus {
+  id:        string;
+  libelle:   string;
+  montant:   number;
+  type:      MoteurCoutType;
+  categorie: MoteurCoutCategorie;
+}
+
 export interface Offre {
   id:                  string;
   nom:                 string;
@@ -29,7 +37,7 @@ export interface Offre {
   transport_inclus:    boolean;
   transport_optionnel: boolean;
   repas_type:          RepasType;
-  couts_inclus:        string[];   // tableau d'IDs moteur_cout
+  couts_inclus:        CoutInclus[];
   cout_revient:        number;
   prix_vente:          number;
   marge:               number;

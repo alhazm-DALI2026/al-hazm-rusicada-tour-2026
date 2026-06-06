@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Toast from '@/components/Toast'
 import { calculerCoutOffre } from '@/lib/calc'
 import type {
-  MoteurCout, MoteurCoutCategorie, Offre,
+  CoutInclus, MoteurCout, MoteurCoutCategorie, Offre,
   RepasType, TypeChambre, TypePublic,
 } from '@/types'
 
@@ -31,13 +31,15 @@ const CAT_LABEL: Record<MoteurCoutCategorie, string> = {
 
 // ── Form state ────────────────────────────────────────────────────────────────
 
+interface CoutFormItem { id: string; montant: string }
+
 interface FormState {
   nom: string; description: string
   type_public: TypePublic; type_chambre: TypeChambre
   nombre_nuits: string; nombre_jours: string
   transport_inclus: boolean; transport_optionnel: boolean
   repas_type: RepasType
-  couts_inclus: string[]; prix_vente: string; ordre_affichage: string
+  couts_inclus: CoutFormItem[]; prix_vente: string; ordre_affichage: string
 }
 
 const EMPTY: FormState = {
@@ -53,28 +55,39 @@ const EMPTY: FormState = {
 const fmt = (n: number) => n.toLocaleString('fr-DZ') + ' DA'
 const tpCfg = (tp: TypePublic) => TP_CFG.find(t => t.value === tp) ?? TP_CFG[0]
 
-function buildDraft(f: FormState): Offre {
+function buildDraft(f: FormState, allCouts: MoteurCout[]): Offre {
+  const coutsMap = new Map(allCouts.map(c => [c.id, c]))
   return {
-    couts_inclus: f.couts_inclus,
+    couts_inclus: f.couts_inclus.map(sel => {
+      const c = coutsMap.get(sel.id)
+      return {
+        id:        sel.id,
+        libelle:   c?.libelle   ?? '',
+        montant:   parseFloat(sel.montant) || 0,
+        type:      c?.type      ?? 'par_personne',
+        categorie: c?.categorie ?? 'autre',
+      } satisfies CoutInclus
+    }),
     nombre_nuits: parseInt(f.nombre_nuits) || 0,
     nombre_jours: parseInt(f.nombre_jours) || 0,
     places_total: 0,
   } as unknown as Offre
 }
 
-function calcBreakdown(f: FormState, couts: MoteurCout[]) {
-  const map   = new Map(couts.map(c => [c.id, c]))
-  const nuits = parseInt(f.nombre_nuits) || 0
-  const jours = parseInt(f.nombre_jours) || 0
-  const res   = new Map<MoteurCoutCategorie, number>()
-  for (const id of f.couts_inclus) {
-    const c = map.get(id)
+function calcBreakdown(f: FormState, allCouts: MoteurCout[]) {
+  const coutsMap = new Map(allCouts.map(c => [c.id, c]))
+  const nuits    = parseInt(f.nombre_nuits) || 0
+  const jours    = parseInt(f.nombre_jours) || 0
+  const res      = new Map<MoteurCoutCategorie, number>()
+  for (const sel of f.couts_inclus) {
+    const c = coutsMap.get(sel.id)
     if (!c?.actif) continue
+    const montant = parseFloat(sel.montant) || 0
     let v = 0
     switch (c.type) {
-      case 'par_nuit':     v = c.montant * nuits; break
-      case 'par_jour':     v = c.montant * jours; break
-      case 'par_personne': v = c.montant;          break
+      case 'par_nuit':     v = montant * nuits; break
+      case 'par_jour':     v = montant * jours; break
+      case 'par_personne': v = montant;          break
     }
     res.set(c.categorie, (res.get(c.categorie) ?? 0) + v)
   }
@@ -236,7 +249,7 @@ export default function OffresPage() {
 
   // ── Live CDR ───────────────────────────────────────────────────
   const activeCouts = useMemo(() => allCouts.filter(c => c.actif), [allCouts])
-  const cdr         = useMemo(() => calculerCoutOffre(buildDraft(form), allCouts), [form, allCouts])
+  const cdr         = useMemo(() => calculerCoutOffre(buildDraft(form, allCouts)), [form, allCouts])
   const breakdown   = useMemo(() => calcBreakdown(form, allCouts), [form, allCouts])
   const prixVente   = parseFloat(form.prix_vente) || 0
   const marge       = prixVente - cdr
@@ -247,12 +260,18 @@ export default function OffresPage() {
     setForm(f => ({ ...f, [k]: v }))
   }
 
-  function toggleCout(id: string) {
+  function toggleCout(c: MoteurCout) {
+    setForm(f => {
+      const exists = f.couts_inclus.find(x => x.id === c.id)
+      if (exists) return { ...f, couts_inclus: f.couts_inclus.filter(x => x.id !== c.id) }
+      return { ...f, couts_inclus: [...f.couts_inclus, { id: c.id, montant: String(c.montant) }] }
+    })
+  }
+
+  function updateCoutMontant(id: string, montant: string) {
     setForm(f => ({
       ...f,
-      couts_inclus: f.couts_inclus.includes(id)
-        ? f.couts_inclus.filter(x => x !== id)
-        : [...f.couts_inclus, id],
+      couts_inclus: f.couts_inclus.map(x => x.id === id ? { ...x, montant } : x),
     }))
   }
 
@@ -260,6 +279,12 @@ export default function OffresPage() {
 
   function openEdit(o: Offre) {
     setEditItem(o)
+    const raw = o.couts_inclus as unknown as (CoutInclus | string)[]
+    const coutsInclus: CoutFormItem[] = raw.map(item =>
+      typeof item === 'string'
+        ? { id: item, montant: String(allCouts.find(m => m.id === item)?.montant ?? 0) }
+        : { id: item.id, montant: String(item.montant) }
+    )
     setForm({
       nom:                 o.nom,
       description:         o.description ?? '',
@@ -270,7 +295,7 @@ export default function OffresPage() {
       transport_inclus:    o.transport_inclus,
       transport_optionnel: o.transport_optionnel,
       repas_type:          o.repas_type,
-      couts_inclus:        o.couts_inclus,
+      couts_inclus:        coutsInclus,
       prix_vente:          String(o.prix_vente),
       ordre_affichage:     String(o.ordre_affichage),
     })
@@ -283,6 +308,17 @@ export default function OffresPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
+    const coutsMap = new Map(allCouts.map(c => [c.id, c]))
+    const coutsPayload: CoutInclus[] = form.couts_inclus.map(sel => {
+      const c = coutsMap.get(sel.id)
+      return {
+        id:        sel.id,
+        libelle:   c?.libelle   ?? '',
+        montant:   parseFloat(sel.montant) || 0,
+        type:      c?.type      ?? 'par_personne',
+        categorie: c?.categorie ?? 'autre',
+      }
+    })
     const payload = {
       ...(editItem ? { id: editItem.id } : {}),
       nom:                 form.nom.trim(),
@@ -296,7 +332,7 @@ export default function OffresPage() {
       repas_type:          form.repas_type,
       places_total:        editItem?.places_total ?? 100,
       places_restantes:    editItem ? editItem.places_restantes : 100,
-      couts_inclus:        form.couts_inclus,
+      couts_inclus:        coutsPayload,
       cout_revient:        cdr,
       prix_vente:          prixVente,
       actif:               editItem?.actif ?? true,
@@ -487,26 +523,42 @@ export default function OffresPage() {
                 {activeCouts.length === 0 ? (
                   <p className="text-sm text-gray-400 italic">Aucun coût actif dans le moteur.</p>
                 ) : (
-                  <div className="border border-gray-200 dark:border-white/10 rounded-lg divide-y divide-gray-100 dark:divide-white/10 max-h-48 overflow-y-auto">
-                    {activeCouts.map(c => (
-                      <label key={c.id}
-                        className="flex items-center justify-between px-3 py-2.5 hover:bg-[#f8f9fd] dark:hover:bg-white/5 cursor-pointer">
-                        <div className="flex items-center gap-2 min-w-0">
+                  <div className="border border-gray-200 dark:border-white/10 rounded-lg divide-y divide-gray-100 dark:divide-white/10 max-h-60 overflow-y-auto">
+                    {activeCouts.map(c => {
+                      const sel = form.couts_inclus.find(x => x.id === c.id)
+                      return (
+                        <div key={c.id}
+                          className="flex items-center gap-2 px-3 py-2.5 hover:bg-[#f8f9fd] dark:hover:bg-white/5">
                           <input type="checkbox"
-                            checked={form.couts_inclus.includes(c.id)}
-                            onChange={() => toggleCout(c.id)}
-                            className="w-4 h-4 rounded accent-[#003090]"
+                            checked={!!sel}
+                            onChange={() => toggleCout(c)}
+                            className="w-4 h-4 rounded accent-[#003090] shrink-0 cursor-pointer"
                           />
-                          <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{c.libelle}</span>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0 ml-2">
-                          <span className="text-xs text-gray-400">{CAT_LABEL[c.categorie]}</span>
-                          <span className="text-xs font-mono font-medium text-gray-600 dark:text-gray-400">
-                            {Number(c.montant).toLocaleString('fr-DZ')} DA
+                          <span
+                            className="text-sm text-gray-700 dark:text-gray-300 flex-1 truncate cursor-pointer select-none"
+                            onClick={() => toggleCout(c)}
+                          >
+                            {c.libelle}
                           </span>
+                          <span className="text-xs text-gray-400 shrink-0">{CAT_LABEL[c.categorie]}</span>
+                          {sel ? (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <input
+                                type="number" min="0" step="1"
+                                value={sel.montant}
+                                onChange={e => updateCoutMontant(c.id, e.target.value)}
+                                className="w-24 px-2 py-1 text-xs font-mono border border-[#003090]/40 rounded bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#003090]"
+                              />
+                              <span className="text-xs text-gray-400">DA</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs font-mono text-gray-400 shrink-0">
+                              {Number(c.montant).toLocaleString('fr-DZ')} DA
+                            </span>
+                          )}
                         </div>
-                      </label>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>

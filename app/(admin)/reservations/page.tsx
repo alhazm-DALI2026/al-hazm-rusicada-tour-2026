@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import StatutBadge from '@/components/StatutBadge'
 import Toast from '@/components/Toast'
-import { calculerCoutFamille, calculerCoutOffre } from '@/lib/calc'
+import { calculerCoutFamille } from '@/lib/calc'
 import type {
   MoteurCout, Offre, Parametres, Reservation,
   RepasType, SourceReservation, TypeReservation,
