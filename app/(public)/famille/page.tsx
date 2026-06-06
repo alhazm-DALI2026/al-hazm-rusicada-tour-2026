@@ -3,28 +3,29 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { calculerCoutFamille, getTransportSupplement } from '@/lib/calc'
-import type { MoteurCout, Offre, RepasType } from '@/types'
+import { calculerFamille } from '@/lib/calc'
+import type { FamilleGrille } from '@/lib/calc'
+import type { Parametres, RepasType } from '@/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface FamilleForm {
-  offre_adulte_id: string
-  offre_enfant_id: string
-  nb_adultes:      string
-  nb_enfants:      string
-  transport:       boolean
-  repas_type:      RepasType
-  nom:             string
-  prenom:          string
-  telephone:       string
-  email:           string
+  nb_adultes:          string
+  nb_enfants:          string
+  nb_bebes:            string
+  nombre_nuits:        string
+  type_chambre_adulte: 'Single' | 'Double'
+  transport:           boolean
+  repas:               RepasType
+  nom:                 string
+  prenom:              string
+  telephone:           string
+  email:               string
 }
 
 const EMPTY: FamilleForm = {
-  offre_adulte_id: '', offre_enfant_id: '',
-  nb_adultes: '1', nb_enfants: '1',
-  transport: false, repas_type: 'complet',
+  nb_adultes: '2', nb_enfants: '0', nb_bebes: '0', nombre_nuits: '5',
+  type_chambre_adulte: 'Double', transport: false, repas: 'complet',
   nom: '', prenom: '', telephone: '', email: '',
 }
 
@@ -39,94 +40,75 @@ function fmt(n: number) {
 export default function FamillePage() {
   const router = useRouter()
 
-  const [offres, setOffres]     = useState<Offre[]>([])
-  const [couts, setCouts]       = useState<MoteurCout[]>([])
-  const [loading, setLoading]   = useState(true)
+  const [grille, setGrille]         = useState<FamilleGrille[]>([])
+  const [params, setParams]         = useState<Parametres | null>(null)
+  const [loading, setLoading]       = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError]       = useState<string | null>(null)
-  const [form, setForm]         = useState<FamilleForm>(EMPTY)
+  const [error, setError]           = useState<string | null>(null)
+  const [form, setForm]             = useState<FamilleForm>(EMPTY)
 
   const nomEvenement = process.env.NEXT_PUBLIC_NOM_EVENEMENT ?? 'Rusicada Park 2026'
   const adminNumero  = process.env.NEXT_PUBLIC_WHATSAPP_NUMERO ?? ''
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/offres').then(r => r.json()),
-      fetch('/api/moteur').then(r => r.json()),
-    ]).then(([o, m]: [Offre[], MoteurCout[]]) => {
-      setOffres(o.filter(x => x.actif))
-      setCouts(m)
+      fetch('/api/famille-grille').then(r => r.json()),
+      fetch('/api/parametres').then(r => r.json()),
+    ]).then(([g, p]: [FamilleGrille[], Parametres]) => {
+      setGrille(g)
+      setParams(p)
     }).finally(() => setLoading(false))
   }, [])
 
-  const offresAdulte = offres.filter(o => o.type_public === 'adulte')
-  const offresEnfant = offres.filter(o => o.type_public === 'enfant')
-
-  // Resolve selected offre objects
-  const offreAdulte = useMemo(
-    () => offres.find(o => o.id === form.offre_adulte_id) ?? null,
-    [offres, form.offre_adulte_id],
-  )
-  const offreEnfant = useMemo(
-    () => offres.find(o => o.id === form.offre_enfant_id) ?? null,
-    [offres, form.offre_enfant_id],
-  )
-
-  // CDR calculation
-  const cdr = useMemo(() => {
-    if (!offreAdulte || !offreEnfant) return 0
-    return calculerCoutFamille(
-      offreAdulte, offreEnfant, couts,
-      parseInt(form.nb_adultes) || 1,
-      parseInt(form.nb_enfants) || 1,
-      form.transport, form.repas_type,
-      30, // taux demi-pension default
+  const result = useMemo(() => {
+    if (!grille.length) return null
+    return calculerFamille(
+      grille,
+      {
+        nbAdultes:         parseInt(form.nb_adultes)  || 0,
+        nbEnfants:         parseInt(form.nb_enfants)  || 0,
+        nbBebes:           parseInt(form.nb_bebes)    || 0,
+        nombreNuits:       parseInt(form.nombre_nuits) || 0,
+        typeChambreAdulte: form.type_chambre_adulte,
+        transport:         form.transport,
+        repas:             form.repas,
+      },
+      params?.taux_demi_pension  ?? 35,
+      params?.taux_marge_famille ?? 23,
     )
-  }, [offreAdulte, offreEnfant, couts, form.nb_adultes, form.nb_enfants, form.transport, form.repas_type])
-
-  // Prix total estimate (transport optionnel ajouté si coché)
-  const prixTotal = useMemo(() => {
-    if (!offreAdulte || !offreEnfant) return 0
-    const nbAdultes   = parseInt(form.nb_adultes) || 1
-    const nbEnfants   = parseInt(form.nb_enfants) || 1
-    const suppAdulte  = form.transport ? getTransportSupplement(offreAdulte) : 0
-    const suppEnfant  = form.transport ? getTransportSupplement(offreEnfant) : 0
-    return (Number(offreAdulte.prix_vente) + suppAdulte) * nbAdultes
-         + (Number(offreEnfant.prix_vente) + suppEnfant) * nbEnfants
-  }, [offreAdulte, offreEnfant, form.nb_adultes, form.nb_enfants, form.transport])
+  }, [grille, form, params])
 
   function setField<K extends keyof FamilleForm>(key: K, val: FamilleForm[K]) {
     setForm(f => ({ ...f, [key]: val }))
   }
 
-  const canSubmit = form.offre_adulte_id && form.offre_enfant_id
-    && form.nom && form.prenom && form.telephone
+  const canSubmit = form.nom && form.prenom && form.telephone && (parseInt(form.nb_adultes) || 0) >= 1
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!offreAdulte || !offreEnfant) return
     setSubmitting(true)
     setError(null)
 
-    const nbAdultes = parseInt(form.nb_adultes) || 1
-    const nbEnfants = parseInt(form.nb_enfants) || 1
-
     const payload = {
-      offre_id:     null,
-      nom:          form.nom.trim(),
-      prenom:       form.prenom.trim(),
-      telephone:    form.telephone.trim(),
-      email:        form.email.trim() || null,
-      type:         'famille',
-      source:       'client',
-      statut:       'en_attente',
-      nb_adultes:   nbAdultes,
-      nb_enfants:   nbEnfants,
-      nombre_nuits: offreAdulte.nombre_nuits,
-      transport:    form.transport,
-      repas_type:   form.repas_type,
-      cout_revient: cdr,
-      prix_vente:   prixTotal,
+      offre_id:       null,
+      nom:            form.nom.trim(),
+      prenom:         form.prenom.trim(),
+      telephone:      form.telephone.trim(),
+      email:          form.email.trim() || null,
+      type:           'famille',
+      source:         'client',
+      statut:         'en_attente',
+      nb_adultes:     parseInt(form.nb_adultes)   || 0,
+      nb_enfants:     parseInt(form.nb_enfants)   || 0,
+      nombre_nuits:   parseInt(form.nombre_nuits) || 0,
+      transport:      form.transport,
+      repas_type:     form.repas,
+      cout_revient:   result?.cdrTotal ?? 0,
+      prix_vente:     result?.pvTotal  ?? 0,
+      options_custom: {
+        nb_bebes:            parseInt(form.nb_bebes) || 0,
+        type_chambre_adulte: form.type_chambre_adulte,
+      },
     }
 
     const r = await fetch('/api/reservations', {
@@ -145,12 +127,15 @@ export default function FamillePage() {
     const reservation = await r.json()
 
     if (adminNumero) {
+      const nbA = parseInt(form.nb_adultes) || 0
+      const nbE = parseInt(form.nb_enfants) || 0
+      const nbB = parseInt(form.nb_bebes)   || 0
       await fetch('/api/notify', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           telephone: adminNumero,
-          message:   `👨‍👩‍👧 Pack Famille ${reservation.reference}\n${form.prenom} ${form.nom} · ${nbAdultes}A + ${nbEnfants}E\nTél: ${form.telephone}`,
+          message:   `👨‍👩‍👧 Pack Famille ${reservation.reference}\n${form.prenom} ${form.nom} · ${nbA}A + ${nbE}E${nbB > 0 ? ` + ${nbB}B` : ''}\nTél: ${form.telephone}`,
         }),
       }).catch(() => {})
     }
@@ -158,8 +143,8 @@ export default function FamillePage() {
     router.push(`/merci?ref=${reservation.reference}&nom=${encodeURIComponent(form.prenom)}`)
   }
 
-  const inputCls = 'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#003090] focus:border-transparent'
-  const labelCls = 'block text-sm font-medium text-gray-700 mb-1'
+  const inputCls  = 'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#003090] focus:border-transparent'
+  const labelCls  = 'block text-sm font-medium text-gray-700 mb-1'
   const selectCls = `${inputCls} cursor-pointer`
 
   return (
@@ -183,11 +168,11 @@ export default function FamillePage() {
           <div className="flex justify-center py-16 text-[#003090]">
             <i className="ti ti-loader-2 animate-spin text-4xl" aria-hidden="true" />
           </div>
-        ) : offresAdulte.length === 0 || offresEnfant.length === 0 ? (
+        ) : !grille.length ? (
           <div className="bg-white rounded-2xl shadow-sm p-8 text-center text-gray-500">
             <i className="ti ti-users-off text-4xl mb-3 block" aria-hidden="true" />
             <p className="font-medium mb-1">Pack Famille non disponible</p>
-            <p className="text-sm mb-4">Il faut des formules adulte et enfant actives.</p>
+            <p className="text-sm mb-4">La grille tarifaire n&apos;est pas encore configurée.</p>
             <Link href="/" className="px-5 py-2.5 bg-[#003090] text-white rounded-xl text-sm font-semibold hover:bg-[#002070] transition-colors">
               Voir les formules disponibles
             </Link>
@@ -204,55 +189,54 @@ export default function FamillePage() {
                 Composition du pack
               </h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Nb personnes */}
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className={labelCls}>Formule adulte <span className="text-red-500">*</span></label>
-                  <select
-                    required value={form.offre_adulte_id}
-                    onChange={e => setField('offre_adulte_id', e.target.value)}
-                    className={selectCls}
-                  >
-                    <option value="">Choisir…</option>
-                    {offresAdulte.map(o => (
-                      <option key={o.id} value={o.id} disabled={o.places_restantes === 0}>
-                        {o.nom} — {fmt(o.prix_vente)}{o.places_restantes === 0 ? ' (complet)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelCls}>Formule enfant <span className="text-red-500">*</span></label>
-                  <select
-                    required value={form.offre_enfant_id}
-                    onChange={e => setField('offre_enfant_id', e.target.value)}
-                    className={selectCls}
-                  >
-                    <option value="">Choisir…</option>
-                    {offresEnfant.map(o => (
-                      <option key={o.id} value={o.id} disabled={o.places_restantes === 0}>
-                        {o.nom} — {fmt(o.prix_vente)}{o.places_restantes === 0 ? ' (complet)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Nombre d&apos;adultes</label>
-                  <input type="number" min="1" max="10"
+                  <label className={labelCls}>Adultes <span className="text-red-500">*</span></label>
+                  <input type="number" min="1" max="20" required
                     value={form.nb_adultes}
                     onChange={e => setField('nb_adultes', e.target.value)}
                     className={inputCls}
                   />
                 </div>
                 <div>
-                  <label className={labelCls}>Nombre d&apos;enfants</label>
-                  <input type="number" min="1" max="10"
+                  <label className={labelCls}>Enfants</label>
+                  <input type="number" min="0" max="20"
                     value={form.nb_enfants}
                     onChange={e => setField('nb_enfants', e.target.value)}
                     className={inputCls}
                   />
+                </div>
+                <div>
+                  <label className={labelCls}>Bébés (0-2 ans)</label>
+                  <input type="number" min="0" max="10"
+                    value={form.nb_bebes}
+                    onChange={e => setField('nb_bebes', e.target.value)}
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+
+              {/* Nuits + chambre adulte */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Nombre de nuits</label>
+                  <input type="number" min="1" max="30"
+                    value={form.nombre_nuits}
+                    onChange={e => setField('nombre_nuits', e.target.value)}
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Chambre adulte</label>
+                  <select
+                    value={form.type_chambre_adulte}
+                    onChange={e => setField('type_chambre_adulte', e.target.value as 'Single' | 'Double')}
+                    className={selectCls}
+                  >
+                    <option value="Double">Double</option>
+                    <option value="Single">Single</option>
+                  </select>
                 </div>
               </div>
 
@@ -271,8 +255,8 @@ export default function FamillePage() {
                 </div>
                 <div>
                   <select
-                    value={form.repas_type}
-                    onChange={e => setField('repas_type', e.target.value as RepasType)}
+                    value={form.repas}
+                    onChange={e => setField('repas', e.target.value as RepasType)}
                     className={`${selectCls} h-full`}
                   >
                     <option value="complet">Pension complète</option>
@@ -283,39 +267,13 @@ export default function FamillePage() {
               </div>
             </div>
 
-            {/* ── CDR / Price preview ────────────────────────────── */}
-            {offreAdulte && offreEnfant && (
+            {/* ── Prix ──────────────────────────────────────────── */}
+            {result && (
               <div className="bg-[#003090] text-white rounded-2xl p-5">
-                <p className="text-[#fdbe11] text-xs font-semibold uppercase tracking-wide mb-3">Estimation du pack</p>
-                <div className="space-y-1.5 text-sm mb-3">
-                  {(() => {
-                    const nbA = parseInt(form.nb_adultes) || 1
-                    const nbE = parseInt(form.nb_enfants) || 1
-                    const suppA = form.transport ? getTransportSupplement(offreAdulte) : 0
-                    const suppE = form.transport ? getTransportSupplement(offreEnfant) : 0
-                    return (
-                      <>
-                        <div className="flex justify-between">
-                          <span className="text-white/70">{nbA} adulte{nbA > 1 ? 's' : ''}</span>
-                          <span className="font-mono">{fmt((Number(offreAdulte.prix_vente) + suppA) * nbA)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-white/70">{nbE} enfant{nbE > 1 ? 's' : ''}</span>
-                          <span className="font-mono">{fmt((Number(offreEnfant.prix_vente) + suppE) * nbE)}</span>
-                        </div>
-                        {form.transport && (suppA > 0 || suppE > 0) && (
-                          <div className="flex justify-between text-xs text-white/60">
-                            <span>dont transport</span>
-                            <span className="font-mono">+ {fmt(suppA * nbA + suppE * nbE)}</span>
-                          </div>
-                        )}
-                      </>
-                    )
-                  })()}
-                </div>
+                <p className="text-[#fdbe11] text-xs font-semibold uppercase tracking-wide mb-3">Prix du pack</p>
                 <div className="border-t border-white/20 pt-3 flex justify-between items-center">
-                  <span className="font-bold">Total estimé</span>
-                  <span className="text-2xl font-bold font-mono">{fmt(prixTotal)}</span>
+                  <span className="font-bold">Total</span>
+                  <span className="text-2xl font-bold font-mono">{fmt(result.pvTotal)}</span>
                 </div>
               </div>
             )}

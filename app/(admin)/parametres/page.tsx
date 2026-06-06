@@ -14,6 +14,7 @@ interface FormState {
   callmebot_apikey:     string
   lien_groupe_whatsapp: string
   taux_demi_pension:    string
+  taux_marge_famille:   string
 }
 
 function toForm(p: Parametres): FormState {
@@ -24,14 +25,15 @@ function toForm(p: Parametres): FormState {
     whatsapp_numero:      p.whatsapp_numero      ?? '',
     callmebot_apikey:     p.callmebot_apikey      ?? '',
     lien_groupe_whatsapp: p.lien_groupe_whatsapp ?? '',
-    taux_demi_pension:    String(p.taux_demi_pension ?? 30),
+    taux_demi_pension:    String(p.taux_demi_pension   ?? 30),
+    taux_marge_famille:   String(p.taux_marge_famille  ?? 23),
   }
 }
 
 const EMPTY: FormState = {
   nom_evenement: '', date_depart: '', date_retour: '',
   whatsapp_numero: '', callmebot_apikey: '', lien_groupe_whatsapp: '',
-  taux_demi_pension: '30',
+  taux_demi_pension: '30', taux_marge_famille: '23',
 }
 
 // ── Section wrapper ───────────────────────────────────────────────────────────
@@ -93,7 +95,8 @@ export default function ParametresPage() {
       whatsapp_numero:      form.whatsapp_numero.trim()      || null,
       callmebot_apikey:     form.callmebot_apikey.trim()     || null,
       lien_groupe_whatsapp: form.lien_groupe_whatsapp.trim() || null,
-      taux_demi_pension:    parseFloat(form.taux_demi_pension) || 30,
+      taux_demi_pension:    parseFloat(form.taux_demi_pension)  || 30,
+      taux_marge_famille:   parseFloat(form.taux_marge_famille) || 23,
     }
     const r = await fetch('/api/parametres', {
       method:  'POST',
@@ -225,6 +228,23 @@ export default function ParametresPage() {
               <span className="text-sm text-gray-500">
                 Réduction appliquée sur le tarif repas en demi-pension.
                 Actuellement : <strong>{form.taux_demi_pension} %</strong>
+              </span>
+            </div>
+          </div>
+          <div>
+            <label className={labelCls}>
+              Taux marge famille (%)
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="number" min="0" max="100" step="1"
+                value={form.taux_marge_famille}
+                onChange={e => setField('taux_marge_famille', e.target.value)}
+                className="w-32 px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+              />
+              <span className="text-sm text-gray-500">
+                Marge appliquée sur le coût de revient du pack famille pour calculer le prix de vente.
+                Actuellement : <strong>{form.taux_marge_famille} %</strong>
               </span>
             </div>
           </div>

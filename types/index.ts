@@ -69,6 +69,7 @@ export interface Reservation {
   marge:                      number;
   notif_soumission_envoyee:   boolean;
   notif_confirmation_envoyee: boolean;
+  options_custom:             Record<string, unknown> | null;
   created_at:                 string;
   confirmed_at:               string | null;
 }
@@ -92,13 +93,16 @@ export interface Parametres {
   callmebot_apikey:     string | null;
   lien_groupe_whatsapp: string | null;
   taux_demi_pension:    number;
+  taux_marge_famille:   number;
   updated_at:           string;
 }
 
 export interface ChoixFamille {
-  nbAdultes:    number;
-  nbEnfants:    number;
-  nombreNuits:  number;
-  transport:    boolean;
-  repas:        RepasType;
+  nbAdultes:          number;
+  nbEnfants:          number;
+  nbBebes:            number;
+  nombreNuits:        number;
+  typeChambreAdulte:  'Single' | 'Double';
+  transport:          boolean;
+  repas:              RepasType;
 }

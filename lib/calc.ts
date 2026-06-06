@@ -30,18 +30,28 @@ export function calculerDemiPension(montantRepas: number, taux: number): number 
 
 /**
  * CDR d'une offre : utilise les montants embarqués dans chaque CoutInclus.
+ * Applique la réduction demi-pension sur la catégorie "repas".
  * Rétrocompat : les anciens enregistrements avec des IDs string sont ignorés.
  */
-export function calculerCoutOffre(offre: Offre): number {
+export function calculerCoutOffre(offre: Offre, tauxDemiPension = 35): number {
   return (offre.couts_inclus as unknown as (CoutInclus | string)[])
     .reduce<number>((total, item) => {
       if (typeof item === 'string') return total;
+
+      let v: number;
       switch (item.type) {
-        case 'par_nuit':     return total + item.montant * offre.nombre_nuits;
-        case 'par_jour':     return total + item.montant * offre.nombre_jours;
-        case 'par_personne': return total + item.montant;
+        case 'par_nuit':     v = item.montant * offre.nombre_nuits; break;
+        case 'par_jour':     v = item.montant * offre.nombre_jours; break;
+        case 'par_personne': v = item.montant;                      break;
         default:             return total;
       }
+
+      if (item.categorie === 'repas') {
+        if (offre.repas_type === 'sans') return total;
+        if (offre.repas_type === 'demi') return total + calculerDemiPension(v, tauxDemiPension);
+      }
+
+      return total + v;
     }, 0);
 }
 
@@ -61,6 +71,81 @@ export function getTransportSupplement(offre: Offre): number {
     default:         return tc.montant
   }
 }
+
+// ─── Grille famille ──────────────────────────────────────────────────────────
+
+export type FamilleGrille = {
+  id:           string
+  libelle:      string
+  categorie:    string
+  type_chambre: string | null
+  montant:      number
+  actif:        boolean
+}
+
+export function calculerFamille(
+  grille: FamilleGrille[],
+  choix: {
+    nbAdultes:         number
+    nbEnfants:         number
+    nbBebes:           number
+    nombreNuits:       number
+    typeChambreAdulte: 'Single' | 'Double'
+    transport:         boolean
+    repas:             'sans' | 'demi' | 'complet'
+  },
+  tauxDemiPension: number,
+  tauxMarge: number,
+): {
+  cdrAdulte: number
+  cdrEnfant: number
+  cdrBebe:   number
+  cdrTotal:  number
+  pvTotal:   number
+  marge:     number
+} {
+  const g = (cat: string, chambre?: string) =>
+    grille.find(x =>
+      x.actif &&
+      x.categorie === cat &&
+      (!chambre || x.type_chambre === chambre),
+    )?.montant ?? 0
+
+  const repasBase = g('repas')
+  const repasMontant =
+    choix.repas === 'sans' ? 0 :
+    choix.repas === 'demi' ? repasBase * (1 - tauxDemiPension / 100) :
+    repasBase
+
+  const supplements = grille
+    .filter(x => x.actif && x.categorie === 'supplement')
+    .reduce((s, x) => s + x.montant, 0)
+
+  const cdrAdulte =
+    g('chambre_adulte', choix.typeChambreAdulte) * choix.nombreNuits +
+    (choix.transport ? g('transport_adulte') : 0) +
+    repasMontant * choix.nombreNuits +
+    supplements
+
+  const cdrEnfant =
+    g('chambre_enfant', 'Triple') * choix.nombreNuits +
+    (choix.transport ? g('transport_enfant') : 0) +
+    repasMontant * choix.nombreNuits +
+    supplements
+
+  const cdrBebe = choix.transport ? g('transport_bebe') : 0
+
+  const cdrTotal =
+    cdrAdulte * choix.nbAdultes +
+    cdrEnfant * choix.nbEnfants +
+    cdrBebe   * choix.nbBebes
+
+  const pvTotal = Math.round(cdrTotal * (1 + tauxMarge / 100))
+
+  return { cdrAdulte, cdrEnfant, cdrBebe, cdrTotal, pvTotal, marge: pvTotal - cdrTotal }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * CDR total d'une réservation famille.
