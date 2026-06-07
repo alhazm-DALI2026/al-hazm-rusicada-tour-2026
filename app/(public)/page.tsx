@@ -19,20 +19,75 @@ function fmt(n: number) {
 }
 
 function getJours(): number {
-  return Math.ceil(
-    (new Date('2026-06-23').getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
+  const dateDepart = new Date('2026-06-23')
+  const now        = new Date()
+  const diffMs     = dateDepart.getTime() - now.getTime()
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+}
+
+// ── Countdown badge ───────────────────────────────────────────────────────────
+
+function CountdownBadge({ jours }: { jours: number }) {
+  if (jours < 0) return null
+
+  if (jours === 0) {
+    return (
+      <div style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: '#22c55e',
+        color: '#ffffff',
+        fontSize: 14,
+        fontWeight: 800,
+        padding: '10px 22px',
+        borderRadius: 14,
+        marginBottom: 14,
+      }}>
+        <i className="ti ti-clock" style={{ fontSize: 18, color: '#ffffff' }} aria-hidden="true" />
+        C'est aujourd'hui ! Le camp commence !
+      </div>
+    )
+  }
+
+  const label = jours > 30
+    ? `Le camp commence dans ${jours} jours`
+    : `Plus que ${jours} jour${jours > 1 ? 's' : ''} avant le camp !`
+
+  return (
+    <div style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: '#fdbe11',
+      color: '#003090',
+      fontSize: 14,
+      fontWeight: 800,
+      padding: '10px 22px',
+      borderRadius: 14,
+      marginBottom: 14,
+    }}>
+      <i className="ti ti-clock" style={{ fontSize: 18, color: '#003090' }} aria-hidden="true" />
+      {jours <= 30
+        ? <span className="animate-pulse">{label}</span>
+        : label
+      }
+    </div>
   )
 }
 
 // ── OfferCard ─────────────────────────────────────────────────────────────────
 
 function OfferCard({ offre }: { offre: Offre }) {
-  const cfg    = TYPE_PUBLIC_CFG[offre.type_public]
-  const pct    = offre.places_total > 0 ? Math.round((offre.places_restantes / offre.places_total) * 100) : 0
+  const cfg     = TYPE_PUBLIC_CFG[offre.type_public]
+  const pct     = offre.places_total > 0 ? Math.round((offre.places_restantes / offre.places_total) * 100) : 0
   const complet = offre.places_restantes === 0
 
   return (
-    <div className={`bg-white rounded-2xl shadow-md overflow-hidden flex flex-col ${complet ? 'opacity-60' : ''}`}>
+    <div
+      className={`bg-white rounded-2xl shadow-md overflow-hidden flex flex-col ${complet ? 'opacity-60' : ''}`}
+      style={{ width: '100%', maxWidth: 320 }}
+    >
       <div className="h-1.5 bg-[#003090]" />
       <div className="p-5 flex flex-col gap-4 flex-1">
         <div className="flex items-start justify-between gap-2">
@@ -170,13 +225,13 @@ export default function HomePage() {
       <section style={{ position: 'relative', minHeight: 420, overflow: 'hidden' }}>
         <Image
           src="/images/aquapark.jpg"
-          alt=""
+          alt="Rusicada Park"
           fill
           priority
           sizes="100vw"
           style={{ objectFit: 'cover', objectPosition: 'center' }}
         />
-        <div style={{ position: 'absolute', inset: 0, backgroundColor: '#003090', opacity: 0.68 }} />
+        <div style={{ position: 'absolute', inset: 0, backgroundColor: '#003090', opacity: 0.65 }} />
 
         <div style={{
           position: 'relative',
@@ -188,7 +243,7 @@ export default function HomePage() {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 16,
+          gap: 14,
         }}>
 
           {/* Badge animé */}
@@ -250,17 +305,7 @@ export default function HomePage() {
           </p>
 
           {/* Compte à rebours */}
-          <div style={{
-            backgroundColor: '#fdbe11',
-            color: '#003090',
-            fontWeight: 800,
-            fontSize: 17,
-            padding: '10px 28px',
-            borderRadius: 999,
-            letterSpacing: '-0.3px',
-          }}>
-            {jours > 0 ? `J-${jours} avant le camp !` : 'Le camp a commencé !'}
-          </div>
+          <CountdownBadge jours={jours} />
 
           {/* Date */}
           <div style={{
@@ -284,11 +329,11 @@ export default function HomePage() {
               style={{
                 flex: '1 1 150px',
                 maxWidth: 210,
-                padding: '13px 20px',
-                backgroundColor: '#ffffff',
+                padding: '13px 28px',
+                backgroundColor: '#fdbe11',
                 color: '#003090',
-                borderRadius: 12,
-                fontWeight: 700,
+                borderRadius: 14,
+                fontWeight: 800,
                 fontSize: 15,
                 textDecoration: 'none',
                 textAlign: 'center',
@@ -302,11 +347,11 @@ export default function HomePage() {
               style={{
                 flex: '1 1 150px',
                 maxWidth: 210,
-                padding: '13px 20px',
+                padding: '13px 28px',
                 backgroundColor: '#fdbe11',
                 color: '#003090',
-                borderRadius: 12,
-                fontWeight: 700,
+                borderRadius: 14,
+                fontWeight: 800,
                 fontSize: 15,
                 textDecoration: 'none',
                 textAlign: 'center',
@@ -333,13 +378,13 @@ export default function HomePage() {
           textAlign: 'center',
         }}>
           {[
-            { icon: '⚽', val: '5',   label: 'Nuits'       },
-            { icon: '☀️', val: '6',   label: 'Jours'       },
-            { icon: '👦', val: '50+', label: 'Places'      },
-            { icon: '👨‍🏫', val: '6',  label: 'Encadrants' },
+            { icon: 'ti-moon-stars', val: '5',   label: 'Nuits'       },
+            { icon: 'ti-sun',        val: '6',   label: 'Jours'       },
+            { icon: 'ti-users',      val: '50+', label: 'Places'      },
+            { icon: 'ti-whistle',    val: '6',   label: 'Encadrants'  },
           ].map(s => (
             <div key={s.label} style={{ padding: '8px 4px' }}>
-              <div style={{ fontSize: 20, marginBottom: 2 }}>{s.icon}</div>
+              <i className={`ti ${s.icon}`} style={{ fontSize: 24, color: '#003090', display: 'block', marginBottom: 6 }} aria-hidden="true" />
               <div style={{ color: '#003090', fontWeight: 800, fontSize: 22, fontFamily: 'monospace', lineHeight: 1.1 }}>{s.val}</div>
               <div style={{ color: '#666666', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 2 }}>{s.label}</div>
             </div>
@@ -348,7 +393,105 @@ export default function HomePage() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════
-          3. SECTION CHOIX INSCRIPTION
+          3. GALERIE PHOTOS
+      ══════════════════════════════════════════════════════════ */}
+      <section style={{ backgroundColor: '#003090', padding: 'clamp(40px, 6vw, 64px) 24px' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <Image
+              src="/images/icon-white.png"
+              alt=""
+              width={56}
+              height={56}
+              style={{ objectFit: 'contain', margin: '0 auto 14px', display: 'block' }}
+            />
+            <h2 style={{ color: '#ffffff', fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, margin: '0 0 8px' }}>
+              Ils l'ont vécu.
+            </h2>
+            <p style={{ color: '#fdbe11', fontSize: 16, fontWeight: 600, margin: 0 }}>
+              Votre enfant aussi.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+            {[
+              { src: '/images/enfants-marche.jpg',  caption: 'Amitié & complicité'   },
+              { src: '/images/football-action.jpg', caption: 'Formation & technique' },
+              { src: '/images/repas-hotel.jpg',     caption: 'Confort & hébergement' },
+            ].map(photo => (
+              <div key={photo.src} style={{ position: 'relative', height: 280, borderRadius: 14, overflow: 'hidden', width: '100%' }}>
+                <Image
+                  src={photo.src}
+                  alt={photo.caption}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  style={{ objectFit: 'cover', objectPosition: 'center top' }}
+                />
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'rgba(0,0,0,0.6)',
+                  padding: '8px 12px',
+                  color: '#ffffff',
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}>
+                  {photo.caption}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════
+          4. INCLUS
+      ══════════════════════════════════════════════════════════ */}
+      <section style={{ backgroundColor: '#ffffff', padding: 'clamp(40px, 6vw, 60px) 24px' }}>
+        <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ color: '#1c1c1e', fontSize: 'clamp(22px, 4vw, 28px)', fontWeight: 800, margin: '0 0 32px' }}>
+            Tout est inclus dans votre pack
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
+            {[
+              { icon: 'ti-ball-football',   label: 'Football & Formation'   },
+              { icon: 'ti-building',        label: 'Hébergement hôtel'      },
+              { icon: 'ti-tools-kitchen-2', label: 'Repas pension complète' },
+              { icon: 'ti-pool',            label: 'Aqua Park Rusicada'     },
+            ].map(item => (
+              <div key={item.label} style={{
+                backgroundColor: '#f5f5f7',
+                borderRadius: 14,
+                padding: '24px 16px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 10,
+              }}>
+                <div style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  backgroundColor: '#003090',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 10px',
+                  flexShrink: 0,
+                }}>
+                  <i className={`ti ${item.icon}`} style={{ color: '#ffffff', fontSize: 24 }} aria-hidden="true" />
+                </div>
+                <span style={{ color: '#3c3c43', fontSize: 13, fontWeight: 600, textAlign: 'center', lineHeight: 1.3 }}>{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════
+          5. CHOIX INSCRIPTION
       ══════════════════════════════════════════════════════════ */}
       <section style={{ backgroundColor: '#f5f5f7', padding: 'clamp(40px, 6vw, 60px) 24px' }}>
         <div style={{ maxWidth: 820, margin: '0 auto' }}>
@@ -373,67 +516,38 @@ export default function HomePage() {
             }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <div style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 12,
+                  width: 46, height: 46, borderRadius: 12,
                   backgroundColor: '#003090',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 22,
-                  flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
                   <i className="ti ti-shirt-sport" style={{ color: '#fdbe11', fontSize: 22 }} aria-hidden="true" />
                 </div>
                 <div>
                   <span style={{
-                    display: 'inline-block',
-                    padding: '3px 10px',
-                    borderRadius: 999,
-                    backgroundColor: '#e8f4fd',
-                    color: '#003090',
-                    fontSize: 11,
-                    fontWeight: 700,
-                    marginBottom: 4,
+                    display: 'inline-block', padding: '3px 10px', borderRadius: 999,
+                    backgroundColor: '#e8f4fd', color: '#003090', fontSize: 11, fontWeight: 700, marginBottom: 4,
                   }}>
                     Le plus choisi
                   </span>
                   <h3 style={{ color: '#1c1c1e', fontWeight: 800, fontSize: 18, margin: 0, lineHeight: 1.2 }}>Offres Standard</h3>
                 </div>
               </div>
-
               <p style={{ color: '#666666', fontSize: 14, margin: 0, lineHeight: 1.5 }}>
                 Tarif fixe selon votre profil. Simple, rapide, sans surprise.
               </p>
-
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {[
-                  'Pack Enfant Triple — 78 000 DA',
-                  'Pack Adulte Double — 88 000 DA',
-                  'Transport optionnel',
-                ].map(item => (
+                {['Pack Enfant Triple — 78 000 DA', 'Pack Adulte Double — 88 000 DA', 'Transport optionnel'].map(item => (
                   <li key={item} style={{ color: '#3c3c43', fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ color: '#003090', fontWeight: 700, flexShrink: 0 }}>✓</span>
                     {item}
                   </li>
                 ))}
               </ul>
-
-              <Link
-                href="#offres"
-                style={{
-                  display: 'block',
-                  textAlign: 'center',
-                  padding: '12px',
-                  backgroundColor: '#003090',
-                  color: '#ffffff',
-                  borderRadius: 10,
-                  fontWeight: 700,
-                  fontSize: 15,
-                  textDecoration: 'none',
-                  marginTop: 'auto',
-                }}
-              >
+              <Link href="#offres" style={{
+                display: 'block', textAlign: 'center', padding: '12px',
+                backgroundColor: '#003090', color: '#ffffff',
+                borderRadius: 10, fontWeight: 700, fontSize: 15, textDecoration: 'none', marginTop: 'auto',
+              }}>
                 Voir les offres
               </Link>
             </div>
@@ -450,66 +564,38 @@ export default function HomePage() {
             }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <div style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 12,
+                  width: 46, height: 46, borderRadius: 12,
                   backgroundColor: '#fdbe11',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
                   <i className="ti ti-users" style={{ color: '#003090', fontSize: 22 }} aria-hidden="true" />
                 </div>
                 <div>
                   <span style={{
-                    display: 'inline-block',
-                    padding: '3px 10px',
-                    borderRadius: 999,
-                    backgroundColor: '#fff8e6',
-                    color: '#7a5c00',
-                    fontSize: 11,
-                    fontWeight: 700,
-                    marginBottom: 4,
+                    display: 'inline-block', padding: '3px 10px', borderRadius: 999,
+                    backgroundColor: '#fff8e6', color: '#7a5c00', fontSize: 11, fontWeight: 700, marginBottom: 4,
                   }}>
                     Sur mesure
                   </span>
                   <h3 style={{ color: '#1c1c1e', fontWeight: 800, fontSize: 18, margin: 0, lineHeight: 1.2 }}>Pack Famille</h3>
                 </div>
               </div>
-
               <p style={{ color: '#666666', fontSize: 14, margin: 0, lineHeight: 1.5 }}>
                 Calculez votre pack sur mesure. Adultes, enfants, bébés — prix en temps réel.
               </p>
-
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {[
-                  'Chambres attribuées automatiquement',
-                  'Transport et repas au choix',
-                  'Prix calculé instantanément',
-                ].map(item => (
+                {['Chambres attribuées automatiquement', 'Transport et repas au choix', 'Prix calculé instantanément'].map(item => (
                   <li key={item} style={{ color: '#3c3c43', fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ color: '#fdbe11', fontWeight: 700, flexShrink: 0 }}>✓</span>
                     {item}
                   </li>
                 ))}
               </ul>
-
-              <Link
-                href="/famille"
-                style={{
-                  display: 'block',
-                  textAlign: 'center',
-                  padding: '12px',
-                  backgroundColor: '#fdbe11',
-                  color: '#003090',
-                  borderRadius: 10,
-                  fontWeight: 700,
-                  fontSize: 15,
-                  textDecoration: 'none',
-                  marginTop: 'auto',
-                }}
-              >
+              <Link href="/famille" style={{
+                display: 'block', textAlign: 'center', padding: '12px',
+                backgroundColor: '#fdbe11', color: '#003090',
+                borderRadius: 10, fontWeight: 700, fontSize: 15, textDecoration: 'none', marginTop: 'auto',
+              }}>
                 Configurer mon pack
               </Link>
             </div>
@@ -518,95 +604,9 @@ export default function HomePage() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════
-          4. GALERIE PHOTOS
-      ══════════════════════════════════════════════════════════ */}
-      <section style={{ backgroundColor: '#003090', padding: 'clamp(40px, 6vw, 64px) 24px' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            <Image
-              src="/images/icon-white.png"
-              alt=""
-              width={56}
-              height={56}
-              style={{ objectFit: 'contain', margin: '0 auto 14px', display: 'block' }}
-            />
-            <h2 style={{ color: '#ffffff', fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, margin: '0 0 8px' }}>
-              Ils l'ont vécu.
-            </h2>
-            <p style={{ color: '#fdbe11', fontSize: 16, fontWeight: 600, margin: 0 }}>
-              Votre enfant aussi.
-            </p>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
-            {[
-              { src: '/images/enfants-marche.jpg',   caption: 'Amitié & complicité'    },
-              { src: '/images/football-action.jpg',  caption: 'Formation & technique'  },
-              { src: '/images/repas-hotel.jpg',      caption: 'Confort & hébergement'  },
-            ].map(photo => (
-              <div key={photo.src} style={{ position: 'relative', height: 200, borderRadius: 14, overflow: 'hidden' }}>
-                <Image
-                  src={photo.src}
-                  alt={photo.caption}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                  style={{ objectFit: 'cover' }}
-                />
-                <div style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  backgroundColor: 'rgba(0,0,0,0.6)',
-                  padding: '8px 12px',
-                  color: '#ffffff',
-                  fontSize: 12,
-                  fontWeight: 600,
-                }}>
-                  {photo.caption}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════════
-          5. INCLUS
-      ══════════════════════════════════════════════════════════ */}
-      <section style={{ backgroundColor: '#ffffff', padding: 'clamp(40px, 6vw, 60px) 24px' }}>
-        <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ color: '#1c1c1e', fontSize: 'clamp(22px, 4vw, 28px)', fontWeight: 800, margin: '0 0 32px' }}>
-            Tout est inclus dans votre pack
-          </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
-            {[
-              { icon: '⚽', label: 'Football & Formation'    },
-              { icon: '🏨', label: 'Hébergement hôtel'       },
-              { icon: '🍽️', label: 'Repas pension complète'  },
-              { icon: '🌊', label: 'Aqua Park Rusicada'      },
-            ].map(item => (
-              <div key={item.label} style={{
-                backgroundColor: '#f5f5f7',
-                borderRadius: 14,
-                padding: '24px 16px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 10,
-              }}>
-                <span style={{ fontSize: 34 }}>{item.icon}</span>
-                <span style={{ color: '#3c3c43', fontSize: 13, fontWeight: 600, textAlign: 'center', lineHeight: 1.3 }}>{item.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════════
           6. OFFRES (dynamiques)
       ══════════════════════════════════════════════════════════ */}
-      <section id="offres" style={{ backgroundColor: '#f5f5f7', padding: 'clamp(40px, 6vw, 64px) 24px' }}>
+      <section id="offres" style={{ backgroundColor: '#f0f2f8', padding: 'clamp(40px, 6vw, 64px) 24px 80px' }}>
         <div style={{ maxWidth: 960, margin: '0 auto' }}>
           <h2 style={{ color: '#1c1c1e', fontSize: 'clamp(22px, 4vw, 28px)', fontWeight: 800, textAlign: 'center', margin: '0 0 8px' }}>
             Choisissez votre formule
@@ -626,55 +626,63 @@ export default function HomePage() {
               <p style={{ fontSize: 13 }}>Revenez bientôt !</p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              gap: 16,
+              maxWidth: 900,
+              margin: '0 auto',
+            }}>
               {offresEnfant.map(o  => <OfferCard key={o.id} offre={o} />)}
               {offresAdulte.map(o  => <OfferCard key={o.id} offre={o} />)}
               {offresFamille.map(o => <OfferCard key={o.id} offre={o} />)}
             </div>
           )}
-
-          {!loading && offresAdulte.length > 0 && offresEnfant.length > 0 && (
-            <div style={{
-              backgroundColor: '#003090',
-              borderRadius: 16,
-              padding: 'clamp(20px, 3vw, 28px)',
-              color: '#ffffff',
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 16,
-              marginTop: 24,
-            }}>
-              <div>
-                <h3 style={{ fontWeight: 700, fontSize: 17, margin: '0 0 4px' }}>Pack Famille personnalisé</h3>
-                <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, margin: 0 }}>
-                  Composez votre pack avec adultes et enfants. Tarification dédiée.
-                </p>
-              </div>
-              <Link
-                href="/famille"
-                style={{
-                  padding: '11px 24px',
-                  backgroundColor: '#ffffff',
-                  color: '#fdbe11',
-                  border: '2px solid #fdbe11',
-                  borderRadius: 10,
-                  fontWeight: 800,
-                  fontSize: 15,
-                  textDecoration: 'none',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                Créer mon pack famille
-              </Link>
-            </div>
-          )}
         </div>
       </section>
 
+      {/* Barre famille sticky */}
+      {!loading && offresAdulte.length > 0 && offresEnfant.length > 0 && (
+        <div style={{
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 40,
+          backgroundColor: '#003090',
+          borderTop: '3px solid #fdbe11',
+          padding: '14px 24px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}>
+          <div>
+            <p style={{ color: '#ffffff', fontWeight: 700, fontSize: 15, margin: 0 }}>Pack Famille personnalisé</p>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, margin: 0 }}>
+              Composez votre pack · prix en temps réel
+            </p>
+          </div>
+          <Link
+            href="/famille"
+            style={{
+              padding: '11px 24px',
+              backgroundColor: '#fdbe11',
+              color: '#003090',
+              borderRadius: 10,
+              fontWeight: 800,
+              fontSize: 15,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Créer mon pack →
+          </Link>
+        </div>
+      )}
+
       {/* ══════════════════════════════════════════════════════════
-          7. FOOTER
+          FOOTER
       ══════════════════════════════════════════════════════════ */}
       <footer style={{
         backgroundColor: '#003090',
@@ -732,10 +740,9 @@ export default function HomePage() {
       <button
         type="button"
         onClick={() => setShowModal(true)}
-        className="group"
         style={{
           position: 'fixed',
-          bottom: 16,
+          bottom: 72,
           right: 16,
           width: 40,
           height: 40,
@@ -808,13 +815,8 @@ export default function HomePage() {
                 autoComplete="username"
                 required
                 style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: 10,
-                  border: '1px solid #e0e0e0',
-                  fontSize: 14,
-                  outline: 'none',
-                  boxSizing: 'border-box',
+                  width: '100%', padding: '10px 14px', borderRadius: 10,
+                  border: '1px solid #e0e0e0', fontSize: 14, outline: 'none', boxSizing: 'border-box',
                 }}
               />
               <input
@@ -825,23 +827,14 @@ export default function HomePage() {
                 autoComplete="current-password"
                 required
                 style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: 10,
-                  border: '1px solid #e0e0e0',
-                  fontSize: 14,
-                  outline: 'none',
-                  boxSizing: 'border-box',
+                  width: '100%', padding: '10px 14px', borderRadius: 10,
+                  border: '1px solid #e0e0e0', fontSize: 14, outline: 'none', boxSizing: 'border-box',
                 }}
               />
               {loginErr && (
                 <p style={{
-                  color: '#ef4444',
-                  fontSize: 13,
-                  backgroundColor: '#fef2f2',
-                  padding: '8px 12px',
-                  borderRadius: 8,
-                  margin: 0,
+                  color: '#ef4444', fontSize: 13, backgroundColor: '#fef2f2',
+                  padding: '8px 12px', borderRadius: 8, margin: 0,
                 }}>
                   {loginErr}
                 </p>
@@ -851,14 +844,9 @@ export default function HomePage() {
                   type="button"
                   onClick={() => setShowModal(false)}
                   style={{
-                    flex: 1,
-                    padding: '10px',
-                    borderRadius: 10,
-                    border: '1px solid #e0e0e0',
-                    fontSize: 14,
-                    color: '#666666',
-                    backgroundColor: '#ffffff',
-                    cursor: 'pointer',
+                    flex: 1, padding: '10px', borderRadius: 10,
+                    border: '1px solid #e0e0e0', fontSize: 14,
+                    color: '#666666', backgroundColor: '#ffffff', cursor: 'pointer',
                   }}
                 >
                   Annuler
@@ -867,16 +855,9 @@ export default function HomePage() {
                   type="submit"
                   disabled={loginBusy}
                   style={{
-                    flex: 1,
-                    padding: '10px',
-                    borderRadius: 10,
-                    border: 'none',
-                    fontSize: 14,
-                    fontWeight: 700,
-                    backgroundColor: '#003090',
-                    color: '#ffffff',
-                    cursor: loginBusy ? 'not-allowed' : 'pointer',
-                    opacity: loginBusy ? 0.6 : 1,
+                    flex: 1, padding: '10px', borderRadius: 10, border: 'none',
+                    fontSize: 14, fontWeight: 700, backgroundColor: '#003090', color: '#ffffff',
+                    cursor: loginBusy ? 'not-allowed' : 'pointer', opacity: loginBusy ? 0.6 : 1,
                   }}
                 >
                   {loginBusy ? '…' : 'Connexion'}
