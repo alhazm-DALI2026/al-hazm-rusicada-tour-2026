@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import type { Offre, TypePublic } from '@/types'
+import Image from 'next/image'
+import type { Offre, Parametres, TypePublic } from '@/types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -17,101 +18,66 @@ function fmt(n: number) {
   return n.toLocaleString('fr-DZ') + ' DA'
 }
 
-// ── Shield SVG ────────────────────────────────────────────────────────────────
-
-function Shield() {
-  return (
-    <svg width="36" height="40" viewBox="0 0 36 40" fill="none" aria-hidden="true">
-      <path
-        d="M18 2L4 8v12c0 9 6.2 17.4 14 20 7.8-2.6 14-11 14-20V8L18 2z"
-        fill="#003090"
-        stroke="#fdbe11"
-        strokeWidth="2"
-      />
-      <path
-        d="M11 20l5 5 9-9"
-        stroke="#fdbe11"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+function getJours(): number {
+  return Math.ceil(
+    (new Date('2026-06-23').getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
   )
 }
 
-// ── Offer card ────────────────────────────────────────────────────────────────
+// ── OfferCard ─────────────────────────────────────────────────────────────────
 
 function OfferCard({ offre }: { offre: Offre }) {
-  const cfg = TYPE_PUBLIC_CFG[offre.type_public]
-  const pct = offre.places_total > 0
-    ? Math.round((offre.places_restantes / offre.places_total) * 100)
-    : 0
+  const cfg    = TYPE_PUBLIC_CFG[offre.type_public]
+  const pct    = offre.places_total > 0 ? Math.round((offre.places_restantes / offre.places_total) * 100) : 0
   const complet = offre.places_restantes === 0
 
   return (
-    <div className={`bg-white rounded-2xl shadow-md overflow-hidden flex flex-col transition-transform hover:-translate-y-0.5 hover:shadow-lg ${complet ? 'opacity-60' : ''}`}>
-      {/* Color top bar */}
+    <div className={`bg-white rounded-2xl shadow-md overflow-hidden flex flex-col ${complet ? 'opacity-60' : ''}`}>
       <div className="h-1.5 bg-[#003090]" />
-
       <div className="p-5 flex flex-col gap-4 flex-1">
-        {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <div>
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.badge} mb-2`}>
               {cfg.label}
             </span>
-            <h3 className="font-bold text-gray-900 text-base leading-snug">{offre.nom}</h3>
-            {offre.description && (
-              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{offre.description}</p>
-            )}
+            <h3 className="font-bold text-[#1c1c1e] text-base">{offre.nom}</h3>
+            {offre.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{offre.description}</p>}
           </div>
-          <span className="shrink-0 text-xs font-medium bg-[#f0f2f8] text-[#003090] px-2 py-1 rounded-lg">
-            {offre.type_chambre}
+          <span className="shrink-0 text-xs bg-[#f0f2f8] text-[#003090] px-2 py-1 rounded-lg font-medium">{offre.type_chambre}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5 text-xs text-gray-600">
+          <span className="flex items-center gap-1">
+            <i className="ti ti-moon text-[#003090]" aria-hidden="true" />
+            {offre.nombre_nuits}N / {offre.nombre_jours}J
+          </span>
+          <span className="flex items-center gap-1">
+            <i className={`ti ti-bus ${offre.transport_inclus ? 'text-green-600' : offre.transport_optionnel ? 'text-[#003090]' : 'text-gray-400'}`} aria-hidden="true" />
+            {offre.transport_inclus ? 'Transport inclus' : offre.transport_optionnel ? 'Optionnel' : 'Sans transport'}
+          </span>
+          <span className="flex items-center gap-1">
+            <i className="ti ti-soup text-[#003090]" aria-hidden="true" />
+            {offre.repas_type === 'complet' ? 'Pension complète' : offre.repas_type === 'demi' ? 'Demi-pension' : 'Sans repas'}
           </span>
         </div>
-
-        {/* Details */}
-        <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-          <div className="flex items-center gap-1.5">
-            <i className="ti ti-moon text-[#003090]" aria-hidden="true" />
-            {offre.nombre_nuits} nuit{offre.nombre_nuits > 1 ? 's' : ''} / {offre.nombre_jours} j
-          </div>
-          <div className="flex items-center gap-1.5">
-            <i className={`ti ${offre.transport_inclus ? 'ti-bus text-green-600' : 'ti-bus text-gray-400'}`} aria-hidden="true" />
-            {offre.transport_inclus ? 'Transport inclus' : offre.transport_optionnel ? 'Transport optionnel' : 'Sans transport'}
-          </div>
-          <div className="flex items-center gap-1.5">
-            <i className="ti ti-soup text-[#003090]" aria-hidden="true" />
-            {offre.repas_type === 'complet' ? 'Pension complète'
-              : offre.repas_type === 'demi' ? 'Demi-pension'
-              : 'Sans repas'}
-          </div>
-        </div>
-
-        {/* Places */}
         <div>
           <div className="flex justify-between text-xs text-gray-500 mb-1">
-            <span>{complet ? 'Complet' : `${offre.places_restantes} place${offre.places_restantes > 1 ? 's' : ''} disponible${offre.places_restantes > 1 ? 's' : ''}`}</span>
+            <span>{complet ? 'Complet' : `${offre.places_restantes} place${offre.places_restantes > 1 ? 's' : ''}`}</span>
             <span>{offre.places_total} total</span>
           </div>
           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all ${pct < 20 ? 'bg-red-400' : pct < 60 ? 'bg-amber-400' : 'bg-green-400'}`}
+              className={`h-full rounded-full ${pct < 20 ? 'bg-red-400' : pct < 60 ? 'bg-amber-400' : 'bg-green-400'}`}
               style={{ width: `${pct}%` }}
             />
           </div>
         </div>
-
-        {/* Price + CTA */}
         <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-100">
           <div>
             <p className="text-xs text-gray-400">Prix</p>
             <p className="text-xl font-bold text-[#003090] font-mono">{fmt(offre.prix_vente)}</p>
           </div>
           {complet ? (
-            <span className="px-4 py-2 bg-gray-200 text-gray-500 rounded-xl text-sm font-medium cursor-not-allowed">
-              Complet
-            </span>
+            <span className="px-4 py-2 bg-gray-200 text-gray-500 rounded-xl text-sm cursor-not-allowed">Complet</span>
           ) : (
             <Link
               href={`/offre/${offre.id}`}
@@ -129,27 +95,29 @@ function OfferCard({ offre }: { offre: Offre }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
-  const [offres, setOffres]       = useState<Offre[]>([])
-  const [loading, setLoading]     = useState(true)
-  const [showModal, setShowModal] = useState(false)
-  const [username, setUsername]   = useState('')
-  const [password, setPassword]   = useState('')
-  const [loginErr, setLoginErr]   = useState('')
-  const [loginBusy, setLoginBusy] = useState(false)
-  const usernameRef               = useRef<HTMLInputElement>(null)
-  const router                    = useRouter()
+  const [offres, setOffres]         = useState<Offre[]>([])
+  const [parametres, setParametres] = useState<Parametres | null>(null)
+  const [loading, setLoading]       = useState(true)
+  const [showModal, setShowModal]   = useState(false)
+  const [username, setUsername]     = useState('')
+  const [password, setPassword]     = useState('')
+  const [loginErr, setLoginErr]     = useState('')
+  const [loginBusy, setLoginBusy]   = useState(false)
+  const usernameRef                 = useRef<HTMLInputElement>(null)
+  const router                      = useRouter()
 
-  const nomEvenement = process.env.NEXT_PUBLIC_NOM_EVENEMENT ?? 'Rusicada Park 2026'
-  const lienGroupe   = process.env.NEXT_PUBLIC_LIEN_GROUPE_WHATSAPP ?? ''
+  const jours = getJours()
 
   useEffect(() => {
-    fetch('/api/offres')
-      .then(r => r.json())
-      .then((data: Offre[]) => setOffres(data.filter(o => o.actif)))
-      .finally(() => setLoading(false))
+    Promise.all([
+      fetch('/api/offres').then(r => r.json()),
+      fetch('/api/parametres').then(r => r.ok ? r.json() : null),
+    ]).then(([offresData, paramsData]: [Offre[], Parametres | null]) => {
+      setOffres((offresData ?? []).filter((o: Offre) => o.actif))
+      setParametres(paramsData)
+    }).finally(() => setLoading(false))
   }, [])
 
-  // Focus username when modal opens
   useEffect(() => {
     if (showModal) {
       setLoginErr('')
@@ -173,7 +141,7 @@ export default function HomePage() {
       if (res.ok) {
         router.push('/dashboard')
       } else {
-        const d = await res.json().catch(() => ({}))
+        const d = await res.json().catch(() => ({})) as { error?: string }
         setLoginErr(d.error ?? 'Identifiants incorrects')
       }
     } catch {
@@ -186,175 +154,650 @@ export default function HomePage() {
   const offresAdulte  = offres.filter(o => o.type_public === 'adulte')
   const offresEnfant  = offres.filter(o => o.type_public === 'enfant')
   const offresFamille = offres.filter(o => o.type_public === 'famille')
-  const hasFamille    = offresAdulte.length > 0 && offresEnfant.length > 0
+
+  const rawTel = parametres?.whatsapp_numero
+  const waHref = parametres?.lien_groupe_whatsapp
+    || (rawTel ? `https://wa.me/${rawTel.replace(/\D/g, '')}` : '')
+    || process.env.NEXT_PUBLIC_LIEN_GROUPE_WHATSAPP
+    || ''
 
   return (
-    <div className="min-h-screen bg-[#f0f2f8]">
+    <div>
 
-      {/* ── Header ─────────────────────────────────────────────── */}
-      <header className="bg-white border-b-[3px] border-[#fdbe11] sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Shield />
-            <div>
-              <p className="font-bold text-[#003090] text-base leading-tight">Al Hazm Academy</p>
-              <p className="text-xs text-gray-500 leading-tight" dir="rtl">أكاديمية الحزم</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="font-semibold text-[#003090] text-sm">{nomEvenement}</p>
-            {lienGroupe && (
-              <a
-                href={lienGroupe}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-[#25D366] hover:underline flex items-center justify-end gap-1 mt-0.5"
-              >
-                <i className="ti ti-brand-whatsapp" aria-hidden="true" />
-                Rejoindre le groupe
-              </a>
-            )}
-          </div>
-        </div>
-      </header>
+      {/* ══════════════════════════════════════════════════════════
+          1. HERO
+      ══════════════════════════════════════════════════════════ */}
+      <section style={{ position: 'relative', minHeight: 420, overflow: 'hidden' }}>
+        <Image
+          src="/images/aquapark.jpg"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          style={{ objectFit: 'cover', objectPosition: 'center' }}
+        />
+        <div style={{ position: 'absolute', inset: 0, backgroundColor: '#003090', opacity: 0.68 }} />
 
-      {/* ── Hero ───────────────────────────────────────────────── */}
-      <section className="bg-[#003090] text-white py-12 px-4">
-        <div className="max-w-5xl mx-auto text-center">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-3">{nomEvenement}</h1>
-          <p className="text-[#fdbe11] text-lg font-medium mb-2">Al Hazm Academy</p>
-          <p className="text-white/80 text-sm max-w-xl mx-auto">
-            Inscrivez votre enfant ou participez vous-même à une expérience sportive et éducative exceptionnelle.
-            Choisissez votre formule et réservez votre place dès maintenant.
+        <div style={{
+          position: 'relative',
+          zIndex: 2,
+          textAlign: 'center',
+          padding: 'clamp(40px, 7vw, 80px) clamp(20px, 5vw, 40px)',
+          maxWidth: 680,
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 16,
+        }}>
+
+          {/* Badge animé */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '6px 18px',
+            borderRadius: 999,
+            border: '1px solid rgba(253,190,17,0.45)',
+            backgroundColor: 'rgba(253,190,17,0.18)',
+            color: '#fdbe11',
+            fontSize: 13,
+            fontWeight: 600,
+          }}>
+            <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 10, height: 10 }}>
+              <span className="animate-ping" style={{
+                position: 'absolute',
+                borderRadius: '50%',
+                width: 10,
+                height: 10,
+                backgroundColor: '#fdbe11',
+                opacity: 0.75,
+              }} />
+              <span style={{ position: 'relative', borderRadius: '50%', width: 8, height: 8, backgroundColor: '#fdbe11', display: 'inline-block' }} />
+            </span>
+            Inscriptions ouvertes
+          </div>
+
+          {/* Logo officiel blanc */}
+          <Image
+            src="/images/logo-white.png"
+            alt="Al Hazm Football Academy"
+            width={110}
+            height={110}
+            style={{ objectFit: 'contain', margin: '0 auto' }}
+          />
+
+          {/* Sous-titre académie */}
+          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, margin: 0, fontWeight: 500 }}>
+            Al Hazm Football Academy · أكاديمية الحزم
           </p>
+
+          {/* Titre événement */}
+          <h1 style={{
+            color: '#ffffff',
+            fontWeight: 900,
+            fontSize: 'clamp(30px, 5.5vw, 48px)',
+            lineHeight: 1.1,
+            margin: 0,
+            letterSpacing: '-0.5px',
+          }}>
+            <span style={{ color: '#fdbe11' }}>Rusicada</span> Tour 2026
+          </h1>
+
+          {/* Slogan */}
+          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 16, margin: 0, fontStyle: 'italic' }}>
+            L'été du football, l'été de ta vie
+          </p>
+
+          {/* Compte à rebours */}
+          <div style={{
+            backgroundColor: '#fdbe11',
+            color: '#003090',
+            fontWeight: 800,
+            fontSize: 17,
+            padding: '10px 28px',
+            borderRadius: 999,
+            letterSpacing: '-0.3px',
+          }}>
+            {jours > 0 ? `J-${jours} avant le camp !` : 'Le camp a commencé !'}
+          </div>
+
+          {/* Date */}
+          <div style={{
+            display: 'inline-block',
+            padding: '8px 20px',
+            borderRadius: 999,
+            border: '1px solid rgba(255,255,255,0.25)',
+            backgroundColor: 'rgba(255,255,255,0.12)',
+            color: '#ffffff',
+            fontSize: 13,
+            fontWeight: 500,
+            letterSpacing: '0.01em',
+          }}>
+            23 — 28 Juin 2026 · Rusicada Park · Skikda
+          </div>
+
+          {/* Boutons */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', width: '100%' }}>
+            <Link
+              href="#offres"
+              style={{
+                flex: '1 1 150px',
+                maxWidth: 210,
+                padding: '13px 20px',
+                backgroundColor: '#ffffff',
+                color: '#003090',
+                borderRadius: 12,
+                fontWeight: 700,
+                fontSize: 15,
+                textDecoration: 'none',
+                textAlign: 'center',
+                display: 'block',
+              }}
+            >
+              Voir les offres →
+            </Link>
+            <Link
+              href="/famille"
+              style={{
+                flex: '1 1 150px',
+                maxWidth: 210,
+                padding: '13px 20px',
+                backgroundColor: '#fdbe11',
+                color: '#003090',
+                borderRadius: 12,
+                fontWeight: 700,
+                fontSize: 15,
+                textDecoration: 'none',
+                textAlign: 'center',
+                display: 'block',
+              }}
+            >
+              Pack Famille →
+            </Link>
+          </div>
         </div>
       </section>
 
-      <main className="max-w-5xl mx-auto px-4 py-10 space-y-10">
+      {/* ══════════════════════════════════════════════════════════
+          2. STATS BAR
+      ══════════════════════════════════════════════════════════ */}
+      <section style={{ backgroundColor: '#ffffff', borderBottom: '3px solid #fdbe11' }}>
+        <div style={{
+          maxWidth: 720,
+          margin: '0 auto',
+          padding: '20px 24px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
+          gap: 8,
+          textAlign: 'center',
+        }}>
+          {[
+            { icon: '⚽', val: '5',   label: 'Nuits'       },
+            { icon: '☀️', val: '6',   label: 'Jours'       },
+            { icon: '👦', val: '50+', label: 'Places'      },
+            { icon: '👨‍🏫', val: '6',  label: 'Encadrants' },
+          ].map(s => (
+            <div key={s.label} style={{ padding: '8px 4px' }}>
+              <div style={{ fontSize: 20, marginBottom: 2 }}>{s.icon}</div>
+              <div style={{ color: '#003090', fontWeight: 800, fontSize: 22, fontFamily: 'monospace', lineHeight: 1.1 }}>{s.val}</div>
+              <div style={{ color: '#666666', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 2 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-        {loading && (
-          <div className="flex justify-center py-16 text-[#003090]">
-            <i className="ti ti-loader-2 animate-spin text-4xl" aria-hidden="true" />
+      {/* ══════════════════════════════════════════════════════════
+          3. SECTION CHOIX INSCRIPTION
+      ══════════════════════════════════════════════════════════ */}
+      <section style={{ backgroundColor: '#f5f5f7', padding: 'clamp(40px, 6vw, 60px) 24px' }}>
+        <div style={{ maxWidth: 820, margin: '0 auto' }}>
+          <h2 style={{ color: '#1c1c1e', fontSize: 'clamp(22px, 4vw, 28px)', fontWeight: 800, textAlign: 'center', margin: '0 0 8px' }}>
+            Comment vous inscrire ?
+          </h2>
+          <p style={{ color: '#666666', textAlign: 'center', fontSize: 15, margin: '0 0 32px' }}>
+            Choisissez la formule qui correspond à votre situation
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+
+            {/* Card Offres Standard */}
+            <div style={{
+              backgroundColor: '#ffffff',
+              borderRadius: 16,
+              borderTop: '5px solid #003090',
+              padding: '28px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 12,
+                  backgroundColor: '#003090',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 22,
+                  flexShrink: 0,
+                }}>
+                  <i className="ti ti-shirt-sport" style={{ color: '#fdbe11', fontSize: 22 }} aria-hidden="true" />
+                </div>
+                <div>
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '3px 10px',
+                    borderRadius: 999,
+                    backgroundColor: '#e8f4fd',
+                    color: '#003090',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    marginBottom: 4,
+                  }}>
+                    Le plus choisi
+                  </span>
+                  <h3 style={{ color: '#1c1c1e', fontWeight: 800, fontSize: 18, margin: 0, lineHeight: 1.2 }}>Offres Standard</h3>
+                </div>
+              </div>
+
+              <p style={{ color: '#666666', fontSize: 14, margin: 0, lineHeight: 1.5 }}>
+                Tarif fixe selon votre profil. Simple, rapide, sans surprise.
+              </p>
+
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[
+                  'Pack Enfant Triple — 78 000 DA',
+                  'Pack Adulte Double — 88 000 DA',
+                  'Transport optionnel',
+                ].map(item => (
+                  <li key={item} style={{ color: '#3c3c43', fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ color: '#003090', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+
+              <Link
+                href="#offres"
+                style={{
+                  display: 'block',
+                  textAlign: 'center',
+                  padding: '12px',
+                  backgroundColor: '#003090',
+                  color: '#ffffff',
+                  borderRadius: 10,
+                  fontWeight: 700,
+                  fontSize: 15,
+                  textDecoration: 'none',
+                  marginTop: 'auto',
+                }}
+              >
+                Voir les offres
+              </Link>
+            </div>
+
+            {/* Card Pack Famille */}
+            <div style={{
+              backgroundColor: '#ffffff',
+              borderRadius: 16,
+              borderTop: '5px solid #fdbe11',
+              padding: '28px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 12,
+                  backgroundColor: '#fdbe11',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <i className="ti ti-users" style={{ color: '#003090', fontSize: 22 }} aria-hidden="true" />
+                </div>
+                <div>
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '3px 10px',
+                    borderRadius: 999,
+                    backgroundColor: '#fff8e6',
+                    color: '#7a5c00',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    marginBottom: 4,
+                  }}>
+                    Sur mesure
+                  </span>
+                  <h3 style={{ color: '#1c1c1e', fontWeight: 800, fontSize: 18, margin: 0, lineHeight: 1.2 }}>Pack Famille</h3>
+                </div>
+              </div>
+
+              <p style={{ color: '#666666', fontSize: 14, margin: 0, lineHeight: 1.5 }}>
+                Calculez votre pack sur mesure. Adultes, enfants, bébés — prix en temps réel.
+              </p>
+
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[
+                  'Chambres attribuées automatiquement',
+                  'Transport et repas au choix',
+                  'Prix calculé instantanément',
+                ].map(item => (
+                  <li key={item} style={{ color: '#3c3c43', fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ color: '#fdbe11', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+
+              <Link
+                href="/famille"
+                style={{
+                  display: 'block',
+                  textAlign: 'center',
+                  padding: '12px',
+                  backgroundColor: '#fdbe11',
+                  color: '#003090',
+                  borderRadius: 10,
+                  fontWeight: 700,
+                  fontSize: 15,
+                  textDecoration: 'none',
+                  marginTop: 'auto',
+                }}
+              >
+                Configurer mon pack
+              </Link>
+            </div>
           </div>
-        )}
+        </div>
+      </section>
 
-        {/* ── Offres adultes ────────────────────────────────────── */}
-        {!loading && offresAdulte.length > 0 && (
-          <section>
-            <h2 className="text-xl font-bold text-[#003090] mb-4 flex items-center gap-2">
-              <i className="ti ti-user" aria-hidden="true" />
-              Formules Adultes
+      {/* ══════════════════════════════════════════════════════════
+          4. GALERIE PHOTOS
+      ══════════════════════════════════════════════════════════ */}
+      <section style={{ backgroundColor: '#003090', padding: 'clamp(40px, 6vw, 64px) 24px' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <Image
+              src="/images/icon-white.png"
+              alt=""
+              width={56}
+              height={56}
+              style={{ objectFit: 'contain', margin: '0 auto 14px', display: 'block' }}
+            />
+            <h2 style={{ color: '#ffffff', fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, margin: '0 0 8px' }}>
+              Ils l'ont vécu.
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {offresAdulte.map(o => <OfferCard key={o.id} offre={o} />)}
+            <p style={{ color: '#fdbe11', fontSize: 16, fontWeight: 600, margin: 0 }}>
+              Votre enfant aussi.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+            {[
+              { src: '/images/enfants-marche.jpg',   caption: 'Amitié & complicité'    },
+              { src: '/images/football-action.jpg',  caption: 'Formation & technique'  },
+              { src: '/images/repas-hotel.jpg',      caption: 'Confort & hébergement'  },
+            ].map(photo => (
+              <div key={photo.src} style={{ position: 'relative', height: 200, borderRadius: 14, overflow: 'hidden' }}>
+                <Image
+                  src={photo.src}
+                  alt={photo.caption}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  style={{ objectFit: 'cover' }}
+                />
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'rgba(0,0,0,0.6)',
+                  padding: '8px 12px',
+                  color: '#ffffff',
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}>
+                  {photo.caption}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════
+          5. INCLUS
+      ══════════════════════════════════════════════════════════ */}
+      <section style={{ backgroundColor: '#ffffff', padding: 'clamp(40px, 6vw, 60px) 24px' }}>
+        <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ color: '#1c1c1e', fontSize: 'clamp(22px, 4vw, 28px)', fontWeight: 800, margin: '0 0 32px' }}>
+            Tout est inclus dans votre pack
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
+            {[
+              { icon: '⚽', label: 'Football & Formation'    },
+              { icon: '🏨', label: 'Hébergement hôtel'       },
+              { icon: '🍽️', label: 'Repas pension complète'  },
+              { icon: '🌊', label: 'Aqua Park Rusicada'      },
+            ].map(item => (
+              <div key={item.label} style={{
+                backgroundColor: '#f5f5f7',
+                borderRadius: 14,
+                padding: '24px 16px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 10,
+              }}>
+                <span style={{ fontSize: 34 }}>{item.icon}</span>
+                <span style={{ color: '#3c3c43', fontSize: 13, fontWeight: 600, textAlign: 'center', lineHeight: 1.3 }}>{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════
+          6. OFFRES (dynamiques)
+      ══════════════════════════════════════════════════════════ */}
+      <section id="offres" style={{ backgroundColor: '#f5f5f7', padding: 'clamp(40px, 6vw, 64px) 24px' }}>
+        <div style={{ maxWidth: 960, margin: '0 auto' }}>
+          <h2 style={{ color: '#1c1c1e', fontSize: 'clamp(22px, 4vw, 28px)', fontWeight: 800, textAlign: 'center', margin: '0 0 8px' }}>
+            Choisissez votre formule
+          </h2>
+          <p style={{ color: '#666666', textAlign: 'center', fontSize: 15, margin: '0 0 32px' }}>
+            Réservez votre place dès maintenant
+          </p>
+
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#003090' }}>
+              <i className="ti ti-loader-2 animate-spin" style={{ fontSize: 36 }} aria-hidden="true" />
             </div>
-          </section>
-        )}
-
-        {/* ── Offres enfants ────────────────────────────────────── */}
-        {!loading && offresEnfant.length > 0 && (
-          <section>
-            <h2 className="text-xl font-bold text-[#003090] mb-4 flex items-center gap-2">
-              <i className="ti ti-star" aria-hidden="true" />
-              Formules Enfants
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {offresEnfant.map(o => <OfferCard key={o.id} offre={o} />)}
+          ) : offres.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#999999' }}>
+              <i className="ti ti-ticket-off" style={{ fontSize: 44, display: 'block', marginBottom: 12 }} aria-hidden="true" />
+              <p style={{ fontWeight: 600 }}>Aucune formule disponible pour le moment.</p>
+              <p style={{ fontSize: 13 }}>Revenez bientôt !</p>
             </div>
-          </section>
-        )}
-
-        {/* ── Offres famille directes ───────────────────────────── */}
-        {!loading && offresFamille.length > 0 && (
-          <section>
-            <h2 className="text-xl font-bold text-[#003090] mb-4 flex items-center gap-2">
-              <i className="ti ti-users" aria-hidden="true" />
-              Formules Famille
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+              {offresEnfant.map(o  => <OfferCard key={o.id} offre={o} />)}
+              {offresAdulte.map(o  => <OfferCard key={o.id} offre={o} />)}
               {offresFamille.map(o => <OfferCard key={o.id} offre={o} />)}
             </div>
-          </section>
-        )}
+          )}
 
-        {/* ── Pack Famille CTA ──────────────────────────────────── */}
-        {!loading && hasFamille && (
-          <section className="bg-[#003090] rounded-2xl p-6 text-white flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-bold mb-1 flex items-center gap-2">
-                <i className="ti ti-heart" aria-hidden="true" />
-                Pack Famille personnalisé
-              </h2>
-              <p className="text-white/80 text-sm">
-                Composez votre pack famille avec adultes et enfants. Tarification dédiée.
-              </p>
+          {!loading && offresAdulte.length > 0 && offresEnfant.length > 0 && (
+            <div style={{
+              backgroundColor: '#003090',
+              borderRadius: 16,
+              padding: 'clamp(20px, 3vw, 28px)',
+              color: '#ffffff',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 16,
+              marginTop: 24,
+            }}>
+              <div>
+                <h3 style={{ fontWeight: 700, fontSize: 17, margin: '0 0 4px' }}>Pack Famille personnalisé</h3>
+                <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, margin: 0 }}>
+                  Composez votre pack avec adultes et enfants. Tarification dédiée.
+                </p>
+              </div>
+              <Link
+                href="/famille"
+                style={{
+                  padding: '11px 24px',
+                  backgroundColor: '#fdbe11',
+                  color: '#003090',
+                  borderRadius: 10,
+                  fontWeight: 700,
+                  fontSize: 15,
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Créer mon pack famille
+              </Link>
             </div>
-            <Link
-              href="/famille"
-              className="shrink-0 px-5 py-2.5 bg-[#fdbe11] text-[#003090] font-bold rounded-xl hover:bg-yellow-300 transition-colors whitespace-nowrap"
-            >
-              Créer mon pack famille
-            </Link>
-          </section>
-        )}
+          )}
+        </div>
+      </section>
 
-        {/* ── Empty state ───────────────────────────────────────── */}
-        {!loading && offres.length === 0 && (
-          <div className="text-center py-16 text-gray-500">
-            <i className="ti ti-ticket-off text-5xl mb-3 block" aria-hidden="true" />
-            <p className="font-medium">Aucune formule disponible pour le moment.</p>
-            <p className="text-sm mt-1">Revenez bientôt !</p>
-          </div>
-        )}
+      {/* ══════════════════════════════════════════════════════════
+          7. FOOTER
+      ══════════════════════════════════════════════════════════ */}
+      <footer style={{
+        backgroundColor: '#003090',
+        borderTop: '4px solid #fdbe11',
+        padding: 'clamp(40px, 6vw, 56px) 24px',
+        textAlign: 'center',
+      }}>
+        <Image
+          src="/images/logo-white.png"
+          alt="Al Hazm Football Academy"
+          width={100}
+          height={100}
+          style={{ objectFit: 'contain', margin: '0 auto 12px', display: 'block' }}
+        />
+        <p style={{ color: '#fdbe11', fontWeight: 700, fontSize: 18, margin: '0 0 4px' }}>
+          Rusicada Tour 2026
+        </p>
+        <p style={{ color: '#ffffff', fontSize: 15, margin: '0 0 4px' }}>
+          Al Hazm Football Academy
+        </p>
+        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, margin: '0 0 24px' }}>
+          23 — 28 Juin 2026 · Rusicada Park · Skikda
+        </p>
 
-      </main>
-
-      {/* ── Footer ─────────────────────────────────────────────── */}
-      <footer className="border-t border-gray-200 bg-white mt-10 py-6 px-4 text-center text-xs text-gray-400">
-        <p>© 2026 Al Hazm Academy · أكاديمية الحزم</p>
-        {lienGroupe && (
+        {waHref && (
           <a
-            href={lienGroupe}
+            href={waHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-[#25D366] hover:underline mt-1"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '11px 24px',
+              backgroundColor: '#25d366',
+              color: '#ffffff',
+              borderRadius: 10,
+              fontWeight: 600,
+              fontSize: 15,
+              textDecoration: 'none',
+              marginBottom: 24,
+            }}
           >
-            <i className="ti ti-brand-whatsapp" aria-hidden="true" />
+            <i className="ti ti-brand-whatsapp" style={{ fontSize: 18 }} aria-hidden="true" />
             Rejoindre le groupe WhatsApp
           </a>
         )}
+
+        <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, margin: 0 }}>
+          © 2026 Al Hazm Football Academy
+        </p>
       </footer>
 
-      {/* ── Bouton admin discret ────────────────────────────────── */}
+      {/* ══ BOUTON ADMIN DISCRET ══════════════════════════════════ */}
       <button
         type="button"
         onClick={() => setShowModal(true)}
-        className="fixed bottom-4 right-4 w-10 h-10 rounded-full flex items-center justify-center text-base opacity-40 hover:opacity-100 transition-opacity z-50 cursor-pointer border-0 bg-transparent"
+        className="group"
+        style={{
+          position: 'fixed',
+          bottom: 16,
+          right: 16,
+          width: 40,
+          height: 40,
+          borderRadius: '50%',
+          backgroundColor: 'rgba(0,0,0,0.35)',
+          border: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: 0.3,
+          cursor: 'pointer',
+          zIndex: 50,
+          transition: 'opacity 0.2s',
+          padding: 0,
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.opacity = '1' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.3' }}
         aria-label="Administration"
-        title=""
       >
-        🔒
+        <i className="ti ti-lock" style={{ color: '#ffffff', fontSize: 16 }} aria-hidden="true" />
       </button>
 
-      {/* ── Modal connexion ─────────────────────────────────────── */}
+      {/* ══ MODAL CONNEXION ═══════════════════════════════════════ */}
       {showModal && (
         <div
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            zIndex: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
           onClick={() => setShowModal(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6"
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: 20,
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              width: '100%',
+              maxWidth: 360,
+              padding: 24,
+            }}
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center gap-2 mb-5">
-              <Shield />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+              <Image
+                src="/images/logo-color.png"
+                alt="Al Hazm"
+                width={48}
+                height={48}
+                style={{ objectFit: 'contain', flexShrink: 0 }}
+              />
               <div>
-                <h2 className="font-bold text-[#003090] text-base leading-tight">Administration</h2>
-                <p className="text-xs text-gray-400">Al Hazm Academy</p>
+                <p style={{ fontWeight: 700, color: '#003090', fontSize: 16, margin: 0 }}>Administration</p>
+                <p style={{ color: '#999999', fontSize: 12, margin: 0 }}>Al Hazm Football Academy</p>
               </div>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-3">
+            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <input
                 ref={usernameRef}
                 type="text"
@@ -362,8 +805,16 @@ export default function HomePage() {
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 autoComplete="username"
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#003090]/30"
                 required
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  border: '1px solid #e0e0e0',
+                  fontSize: 14,
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
               />
               <input
                 type="password"
@@ -371,28 +822,61 @@ export default function HomePage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 autoComplete="current-password"
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#003090]/30"
                 required
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  border: '1px solid #e0e0e0',
+                  fontSize: 14,
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
               />
-
               {loginErr && (
-                <p className="text-red-500 text-sm bg-red-50 px-3 py-2 rounded-lg">
+                <p style={{
+                  color: '#ef4444',
+                  fontSize: 13,
+                  backgroundColor: '#fef2f2',
+                  padding: '8px 12px',
+                  borderRadius: 8,
+                  margin: 0,
+                }}>
                   {loginErr}
                 </p>
               )}
-
-              <div className="flex gap-2 pt-1">
+              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: 10,
+                    border: '1px solid #e0e0e0',
+                    fontSize: 14,
+                    color: '#666666',
+                    backgroundColor: '#ffffff',
+                    cursor: 'pointer',
+                  }}
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={loginBusy}
-                  className="flex-1 py-2.5 bg-[#003090] text-white rounded-xl text-sm font-semibold hover:bg-[#002070] transition-colors disabled:opacity-60"
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: 10,
+                    border: 'none',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    backgroundColor: '#003090',
+                    color: '#ffffff',
+                    cursor: loginBusy ? 'not-allowed' : 'pointer',
+                    opacity: loginBusy ? 0.6 : 1,
+                  }}
                 >
                   {loginBusy ? '…' : 'Connexion'}
                 </button>
