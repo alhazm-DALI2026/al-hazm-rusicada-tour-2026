@@ -6,6 +6,10 @@ import Link from 'next/link'
 import Image from 'next/image'
 import type { Offre, Parametres, TypePublic } from '@/types'
 
+// ── Video slider ──────────────────────────────────────────────────────────────
+
+const VIDEOS = ['/videos/video1.mp4', '/videos/video2.mp4']
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const TYPE_PUBLIC_CFG: Record<TypePublic, { label: string; badge: string }> = {
@@ -153,6 +157,14 @@ export default function HomePage() {
   const [offres, setOffres]         = useState<Offre[]>([])
   const [parametres, setParametres] = useState<Parametres | null>(null)
   const [loading, setLoading]       = useState(true)
+  const [currentVideo, setCurrentVideo] = useState(0)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentVideo(prev => (prev === VIDEOS.length - 1 ? 0 : prev + 1))
+    }, 8000)
+    return () => clearInterval(interval)
+  }, [])
   const [showModal, setShowModal]   = useState(false)
   const [username, setUsername]     = useState('')
   const [password, setPassword]     = useState('')
@@ -222,16 +234,33 @@ export default function HomePage() {
       {/* ══════════════════════════════════════════════════════════
           1. HERO
       ══════════════════════════════════════════════════════════ */}
-      <section style={{ position: 'relative', minHeight: 420, overflow: 'hidden' }}>
-        <Image
-          src="/images/aquapark.jpg"
-          alt="Rusicada Park"
-          fill
-          priority
-          sizes="100vw"
-          style={{ objectFit: 'cover', objectPosition: 'center' }}
-        />
-        <div style={{ position: 'absolute', inset: 0, backgroundColor: '#003090', opacity: 0.65 }} />
+      <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+
+        {/* Vidéos en fond */}
+        {VIDEOS.map((src, index) => (
+          <video
+            key={src}
+            src={src}
+            autoPlay
+            muted
+            loop
+            playsInline
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center',
+              opacity: index === currentVideo ? 1 : 0,
+              transition: 'opacity 1.2s ease-in-out',
+              zIndex: 0,
+            }}
+          />
+        ))}
+
+        {/* Overlay sombre */}
+        <div style={{ position: 'absolute', inset: 0, backgroundColor: '#003090', opacity: 0.60, zIndex: 1 }} />
 
         <div style={{
           position: 'relative',
