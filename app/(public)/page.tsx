@@ -67,15 +67,15 @@ function CountdownBadge({ jours }: { jours: number }) {
       display: 'inline-flex',
       alignItems: 'center',
       gap: 8,
-      backgroundColor: '#fdbe11',
-      color: '#003090',
+      backgroundColor: '#001a5e',
+      color: '#fdbe11',
       fontSize: 14,
       fontWeight: 800,
       padding: '10px 22px',
       borderRadius: 14,
-      marginBottom: 14,
+      border: '1px solid #fdbe11',
     }}>
-      <i className="ti ti-clock" style={{ fontSize: 18, color: '#003090' }} aria-hidden="true" />
+      <i className="ti ti-clock" style={{ fontSize: 18, color: '#fdbe11' }} aria-hidden="true" />
       {jours <= 30
         ? <span className="animate-pulse">{label}</span>
         : label
@@ -226,12 +226,6 @@ export default function HomePage() {
   const offresEnfant  = offres.filter(o => o.type_public === 'enfant')
   const offresFamille = offres.filter(o => o.type_public === 'famille')
 
-  const rawTel = parametres?.whatsapp_numero
-  const waHref = parametres?.lien_groupe_whatsapp
-    || (rawTel ? `https://wa.me/${rawTel.replace(/\D/g, '')}` : '')
-    || process.env.NEXT_PUBLIC_LIEN_GROUPE_WHATSAPP
-    || ''
-
   return (
     <div>
 
@@ -309,11 +303,6 @@ export default function HomePage() {
             style={{ objectFit: 'contain', margin: '0 auto' }}
           />
 
-          {/* Sous-titre académie */}
-          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, margin: 0, fontWeight: 500 }}>
-            Al Hazm Football Academy · أكاديمية الحزم
-          </p>
-
           {/* Titre événement */}
           <h1 style={{
             color: '#ffffff',
@@ -346,48 +335,9 @@ export default function HomePage() {
             fontWeight: 500,
             letterSpacing: '0.01em',
           }}>
-            23 — 28 Juin 2026 · Rusicada Park · Skikda
+            Du 23 au 28 Juin 2026 · RUSICA PARK · Skikda
           </div>
 
-          {/* Boutons */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', width: '100%' }}>
-            <Link
-              href="#offres"
-              style={{
-                flex: '1 1 150px',
-                maxWidth: 210,
-                padding: '13px 28px',
-                backgroundColor: '#fdbe11',
-                color: '#003090',
-                borderRadius: 14,
-                fontWeight: 800,
-                fontSize: 15,
-                textDecoration: 'none',
-                textAlign: 'center',
-                display: 'block',
-              }}
-            >
-              Voir les offres →
-            </Link>
-            <Link
-              href="/famille"
-              style={{
-                flex: '1 1 150px',
-                maxWidth: 210,
-                padding: '13px 28px',
-                backgroundColor: '#fdbe11',
-                color: '#003090',
-                borderRadius: 14,
-                fontWeight: 800,
-                fontSize: 15,
-                textDecoration: 'none',
-                textAlign: 'center',
-                display: 'block',
-              }}
-            >
-              Pack Famille →
-            </Link>
-          </div>
         </div>
       </section>
 
@@ -518,120 +468,7 @@ export default function HomePage() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════
-          5. CHOIX INSCRIPTION
-      ══════════════════════════════════════════════════════════ */}
-      <section style={{ backgroundColor: '#f5f5f7', padding: 'clamp(40px, 6vw, 60px) 24px' }}>
-        <div style={{ maxWidth: 820, margin: '0 auto' }}>
-          <h2 style={{ color: '#1c1c1e', fontSize: 'clamp(22px, 4vw, 28px)', fontWeight: 800, textAlign: 'center', margin: '0 0 8px' }}>
-            Comment vous inscrire ?
-          </h2>
-          <p style={{ color: '#666666', textAlign: 'center', fontSize: 15, margin: '0 0 32px' }}>
-            Choisissez la formule qui correspond à votre situation
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-
-            {/* Card Offres Standard */}
-            <div style={{
-              backgroundColor: '#ffffff',
-              borderRadius: 16,
-              borderTop: '5px solid #003090',
-              padding: '28px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 16,
-            }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{
-                  width: 46, height: 46, borderRadius: 12,
-                  backgroundColor: '#003090',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                }}>
-                  <i className="ti ti-shirt-sport" style={{ color: '#fdbe11', fontSize: 22 }} aria-hidden="true" />
-                </div>
-                <div>
-                  <span style={{
-                    display: 'inline-block', padding: '3px 10px', borderRadius: 999,
-                    backgroundColor: '#e8f4fd', color: '#003090', fontSize: 11, fontWeight: 700, marginBottom: 4,
-                  }}>
-                    Le plus choisi
-                  </span>
-                  <h3 style={{ color: '#1c1c1e', fontWeight: 800, fontSize: 18, margin: 0, lineHeight: 1.2 }}>Offres Standard</h3>
-                </div>
-              </div>
-              <p style={{ color: '#666666', fontSize: 14, margin: 0, lineHeight: 1.5 }}>
-                Tarif fixe selon votre profil. Simple, rapide, sans surprise.
-              </p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {['Pack Enfant Triple — 78 000 DA', 'Pack Adulte Double — 88 000 DA', 'Transport optionnel'].map(item => (
-                  <li key={item} style={{ color: '#3c3c43', fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ color: '#003090', fontWeight: 700, flexShrink: 0 }}>✓</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Link href="#offres" style={{
-                display: 'block', textAlign: 'center', padding: '12px',
-                backgroundColor: '#003090', color: '#ffffff',
-                borderRadius: 10, fontWeight: 700, fontSize: 15, textDecoration: 'none', marginTop: 'auto',
-              }}>
-                Voir les offres
-              </Link>
-            </div>
-
-            {/* Card Pack Famille */}
-            <div style={{
-              backgroundColor: '#ffffff',
-              borderRadius: 16,
-              borderTop: '5px solid #fdbe11',
-              padding: '28px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 16,
-            }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{
-                  width: 46, height: 46, borderRadius: 12,
-                  backgroundColor: '#fdbe11',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                }}>
-                  <i className="ti ti-users" style={{ color: '#003090', fontSize: 22 }} aria-hidden="true" />
-                </div>
-                <div>
-                  <span style={{
-                    display: 'inline-block', padding: '3px 10px', borderRadius: 999,
-                    backgroundColor: '#fff8e6', color: '#7a5c00', fontSize: 11, fontWeight: 700, marginBottom: 4,
-                  }}>
-                    Sur mesure
-                  </span>
-                  <h3 style={{ color: '#1c1c1e', fontWeight: 800, fontSize: 18, margin: 0, lineHeight: 1.2 }}>Pack Famille</h3>
-                </div>
-              </div>
-              <p style={{ color: '#666666', fontSize: 14, margin: 0, lineHeight: 1.5 }}>
-                Calculez votre pack sur mesure. Adultes, enfants, bébés — prix en temps réel.
-              </p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {['Chambres attribuées automatiquement', 'Transport et repas au choix', 'Prix calculé instantanément'].map(item => (
-                  <li key={item} style={{ color: '#3c3c43', fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ color: '#fdbe11', fontWeight: 700, flexShrink: 0 }}>✓</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/famille" style={{
-                display: 'block', textAlign: 'center', padding: '12px',
-                backgroundColor: '#fdbe11', color: '#003090',
-                borderRadius: 10, fontWeight: 700, fontSize: 15, textDecoration: 'none', marginTop: 'auto',
-              }}>
-                Configurer mon pack
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════════
-          6. OFFRES (dynamiques)
+          5. OFFRES (dynamiques)
       ══════════════════════════════════════════════════════════ */}
       <section id="offres" style={{ backgroundColor: '#f0f2f8', padding: 'clamp(40px, 6vw, 64px) 24px 80px' }}>
         <div style={{ maxWidth: 960, margin: '0 auto' }}>
@@ -669,44 +506,64 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Barre famille sticky */}
-      {!loading && offresAdulte.length > 0 && offresEnfant.length > 0 && (
-        <div style={{
-          position: 'sticky',
-          bottom: 0,
-          zIndex: 40,
-          backgroundColor: '#003090',
-          borderTop: '3px solid #fdbe11',
-          padding: '14px 24px',
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-        }}>
-          <div>
-            <p style={{ color: '#ffffff', fontWeight: 700, fontSize: 15, margin: 0 }}>Pack Famille personnalisé</p>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, margin: 0 }}>
-              Composez votre pack · prix en temps réel
-            </p>
-          </div>
-          <Link
-            href="/famille"
-            style={{
-              padding: '11px 24px',
-              backgroundColor: '#fdbe11',
-              color: '#003090',
-              borderRadius: 10,
-              fontWeight: 800,
-              fontSize: 15,
-              textDecoration: 'none',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Créer mon pack →
-          </Link>
-        </div>
-      )}
+      {/* Barre sticky 2 boutons */}
+      <div style={{
+        position: 'sticky',
+        bottom: 0,
+        background: '#003090',
+        borderTop: '3px solid #fdbe11',
+        padding: '12px 20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px',
+        zIndex: 100,
+      }}>
+        <button
+          type="button"
+          onClick={() => router.push('/formules')}
+          style={{
+            flex: 1,
+            background: '#fdbe11',
+            color: '#003090',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '12px',
+            fontSize: '13px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+          }}
+        >
+          <i className="ti ti-ticket" aria-hidden="true" />
+          Voir les offres
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push('/famille')}
+          style={{
+            flex: 1,
+            background: '#ffffff',
+            color: '#fdbe11',
+            border: '2px solid #fdbe11',
+            borderRadius: '12px',
+            padding: '12px',
+            fontSize: '13px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+          }}
+        >
+          <i className="ti ti-users" aria-hidden="true" />
+          Réservation famille
+        </button>
+      </div>
 
       {/* ══════════════════════════════════════════════════════════
           FOOTER
@@ -734,29 +591,26 @@ export default function HomePage() {
           23 — 28 Juin 2026 · Rusicada Park · Skikda
         </p>
 
-        {waHref && (
-          <a
-            href={waHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '11px 24px',
-              backgroundColor: '#25d366',
-              color: '#ffffff',
-              borderRadius: 10,
-              fontWeight: 600,
-              fontSize: 15,
-              textDecoration: 'none',
-              marginBottom: 24,
-            }}
-          >
-            <i className="ti ti-brand-whatsapp" style={{ fontSize: 18 }} aria-hidden="true" />
-            Rejoindre le groupe WhatsApp
+        <p style={{ color: '#ffffff', fontSize: 14, fontWeight: 600, margin: '0 0 16px' }}>
+          Nous contacter
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginBottom: 12 }}>
+          <a href="https://wa.me/213781608480" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, backgroundColor: '#25d366', color: '#ffffff', borderRadius: 12, padding: '10px 16px', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+            <i className="ti ti-brand-whatsapp" aria-hidden="true" /> WhatsApp
           </a>
-        )}
+          <a href="#" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, backgroundColor: '#1877f2', color: '#ffffff', borderRadius: 12, padding: '10px 16px', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+            <i className="ti ti-brand-facebook" aria-hidden="true" /> Facebook
+          </a>
+          <a href="#" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, backgroundColor: '#e1306c', color: '#ffffff', borderRadius: 12, padding: '10px 16px', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+            <i className="ti ti-brand-instagram" aria-hidden="true" /> Instagram
+          </a>
+          <a href="#" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.15)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 12, padding: '10px 16px', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+            <i className="ti ti-world" aria-hidden="true" /> Notre site
+          </a>
+        </div>
+        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, margin: '0 0 24px' }}>
+          ⚠️ Le lien WhatsApp groupe sera partagé uniquement après confirmation de votre inscription.
+        </p>
 
         <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, margin: 0 }}>
           © 2026 Al Hazm Football Academy
