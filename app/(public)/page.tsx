@@ -370,6 +370,34 @@ export default function HomePage() {
           <StickyButton onClick={() => router.push('/formules')} />
         </div>
       </div>
+
+      {/* Bouton admin discret */}
+      <button
+        type="button"
+        onClick={() => router.push('/login')}
+        style={{
+          position: 'fixed',
+          bottom: '80px',
+          right: '16px',
+          width: '40px',
+          height: '40px',
+          borderRadius: '50%',
+          background: 'rgba(0,0,0,0.4)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          opacity: 0.3,
+          transition: 'opacity .2s',
+          zIndex: 150,
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.opacity = '1' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.3' }}
+        aria-label="Administration"
+      >
+        <i className="ti ti-lock" style={{ color: '#fff', fontSize: '16px' }} aria-hidden="true" />
+      </button>
     </div>
   )
 }
