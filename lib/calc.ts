@@ -1,4 +1,4 @@
-import type { CoutInclus, MoteurCout, Offre, Parametres, RepasType } from '@/types';
+import type { ChargeStaff, CoutInclus, MoteurCout, Offre, Parametres, RepasType } from '@/types';
 
 // ─── helpers internes ────────────────────────────────────────────────────────
 
@@ -240,6 +240,50 @@ export function calculerFamille(
       transport_pv:    pvTransport,
     },
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── Calcul charges staff (SYSTÈME 3) ───────────────────────────────────────
+
+export function calculerCDRStaff(
+  charges: ChargeStaff[],
+  nombreNuits: number,
+): {
+  total:  number
+  detail: { libelle: string; montant: number; calcul: string; categorie: string }[]
+} {
+  const nombreJours = nombreNuits + 1
+  const detail: { libelle: string; montant: number; calcul: string; categorie: string }[] = []
+  let total = 0
+
+  charges
+    .filter(c => c.actif)
+    .forEach(c => {
+      let montantCalcule = 0
+      let calcul = ''
+
+      switch (c.type) {
+        case 'par_nuit':
+          montantCalcule = c.montant * nombreNuits
+          calcul = `${c.montant.toLocaleString('fr-DZ')} × ${nombreNuits} nuits`
+          break
+        case 'par_jour':
+          montantCalcule = c.montant * nombreJours
+          calcul = `${c.montant.toLocaleString('fr-DZ')} × ${nombreJours} jours`
+          break
+        case 'par_personne':
+        case 'fixe_global':
+          montantCalcule = c.montant
+          calcul = `${c.montant.toLocaleString('fr-DZ')} (forfait)`
+          break
+      }
+
+      detail.push({ libelle: c.libelle, montant: montantCalcule, calcul, categorie: c.categorie })
+      total += montantCalcule
+    })
+
+  return { total, detail }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

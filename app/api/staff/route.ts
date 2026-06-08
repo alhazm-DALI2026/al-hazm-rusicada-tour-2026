@@ -14,9 +14,18 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const body = await request.json()
 
+  const payload = {
+    nom:            body.nom,
+    fonction:       body.fonction,
+    type_chambre:   body.type_chambre,
+    cout_revient:   body.cout_revient,
+    prime:          body.prime,
+    charges_custom: body.charges_custom ?? [],
+  }
+
   const { data, error } = await supabaseAdmin
     .from('staff')
-    .insert(body)
+    .insert(payload)
     .select()
     .single()
 
@@ -26,12 +35,21 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   const body = await request.json()
-  const { id, ...fields } = body
+  const { id } = body
   if (!id) return Response.json({ error: 'id requis' }, { status: 400 })
+
+  const payload = {
+    nom:            body.nom,
+    fonction:       body.fonction,
+    type_chambre:   body.type_chambre,
+    cout_revient:   body.cout_revient,
+    prime:          body.prime,
+    charges_custom: body.charges_custom ?? [],
+  }
 
   const { data, error } = await supabaseAdmin
     .from('staff')
-    .update(fields)
+    .update(payload)
     .eq('id', id)
     .select()
     .single()

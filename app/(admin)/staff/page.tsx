@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Toast from '@/components/Toast'
-import type { MoteurCout, MoteurCoutCategorie, Staff, TypeChambre } from '@/types'
+import { calculerCDRStaff } from '@/lib/calc'
+import type { ChargeStaff, MoteurCout, Parametres, Staff, TypeChambre } from '@/types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -13,25 +14,29 @@ const FONCTIONS_SUGGEREES = [
   'Animateur', 'Coordinateur', 'Chauffeur', 'Logisticien',
 ]
 
-const EMPTY: FormState = {
-  nom: '', fonction: '', type_chambre: '', cout_revient: '', prime: '0',
-}
-
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface FormState {
-  nom:          string
-  fonction:     string
-  type_chambre: TypeChambre | ''
-  cout_revient: string
-  prime:        string
+  nom:            string
+  fonction:       string
+  type_chambre:   TypeChambre | ''
+  prime:          string
+  charges_custom: ChargeStaff[]
 }
 
-interface CdrBreakdown {
-  hebergement: number
-  repas:       number
-  transport:   number
-  total:       number
+interface ChargeModalForm {
+  libelle:   string
+  montant:   string
+  type:      'par_nuit' | 'par_jour' | 'par_personne' | 'fixe_global'
+  categorie: string
+}
+
+const EMPTY: FormState = {
+  nom: '', fonction: '', type_chambre: '', prime: '0', charges_custom: [],
+}
+
+const EMPTY_CHARGE: ChargeModalForm = {
+  libelle: '', montant: '', type: 'par_nuit', categorie: 'hebergement',
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -44,19 +49,43 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('fr-DZ', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-function firstActive(couts: MoteurCout[], cat: MoteurCoutCategorie): number {
-  return couts.find(c => c.categorie === cat && c.actif)?.montant ?? 0
+function catIcon(cat: string) {
+  switch (cat) {
+    case 'hebergement': return 'ti-bed'
+    case 'repas':       return 'ti-tools-kitchen-2'
+    case 'transport':   return 'ti-bus'
+    default:            return 'ti-star'
+  }
 }
 
-function calcCDR(chambre: TypeChambre | '', couts: MoteurCout[]): CdrBreakdown {
-  const hebergs = couts.filter(c => c.categorie === 'hebergement' && c.actif)
-  const matched = chambre
-    ? (hebergs.find(c => c.libelle.toLowerCase().includes(chambre.toLowerCase())) ?? hebergs[0])
-    : hebergs[0]
-  const h = matched?.montant ?? 0
-  const r = firstActive(couts, 'repas')
-  const t = firstActive(couts, 'transport')
-  return { hebergement: h, repas: r, transport: t, total: h + r + t }
+function catColor(cat: string) {
+  switch (cat) {
+    case 'hebergement': return 'text-blue-400'
+    case 'repas':       return 'text-green-400'
+    default:            return 'text-[#fdbe11]'
+  }
+}
+
+function chargeCalc(c: ChargeStaff, nombreNuits: number): { formule: string; montant: number } {
+  const nombreJours = nombreNuits + 1
+  switch (c.type) {
+    case 'par_nuit':
+      return {
+        formule: `${c.montant.toLocaleString('fr-DZ')} × ${nombreNuits} nuits`,
+        montant: c.montant * nombreNuits,
+      }
+    case 'par_jour':
+      return {
+        formule: `${c.montant.toLocaleString('fr-DZ')} × ${nombreJours} jours`,
+        montant: c.montant * nombreJours,
+      }
+    case 'par_personne':
+    case 'fixe_global':
+      return {
+        formule: `${c.montant.toLocaleString('fr-DZ')} (forfait)`,
+        montant: c.montant,
+      }
+  }
 }
 
 // ── Summary card ──────────────────────────────────────────────────────────────
@@ -82,29 +111,45 @@ function SummaryCard({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function StaffPage() {
-  const [staff, setStaff]           = useState<Staff[]>([])
-  const [couts, setCouts]           = useState<MoteurCout[]>([])
-  const [loading, setLoading]       = useState(true)
-  const [showForm, setShowForm]     = useState(false)
-  const [editItem, setEditItem]     = useState<Staff | null>(null)
-  const [deleteId, setDeleteId]     = useState<string | null>(null)
-  const [deleteName, setDeleteName] = useState('')
-  const [form, setForm]             = useState<FormState>(EMPTY)
-  const [saving, setSaving]         = useState(false)
-  const [toast, setToast]           = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [staff, setStaff]                     = useState<Staff[]>([])
+  const [moteurCouts, setMoteurCouts]          = useState<MoteurCout[]>([])
+  const [params, setParams]                   = useState<Parametres | null>(null)
+  const [loading, setLoading]                 = useState(true)
+  const [showForm, setShowForm]               = useState(false)
+  const [editItem, setEditItem]               = useState<Staff | null>(null)
+  const [deleteId, setDeleteId]               = useState<string | null>(null)
+  const [deleteName, setDeleteName]           = useState('')
+  const [form, setForm]                       = useState<FormState>(EMPTY)
+  const [saving, setSaving]                   = useState(false)
+  const [toast, setToast]                     = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [chargeModalOpen, setChargeModalOpen] = useState(false)
+  const [editingChargeId, setEditingChargeId] = useState<string | null>(null)
+  const [chargeModal, setChargeModal]         = useState<ChargeModalForm>(EMPTY_CHARGE)
 
   const notify = (message: string, type: 'success' | 'error') => setToast({ message, type })
 
-  // ── Data ──────────────────────────────────────────────────────
+  // ── nombreNuits depuis params ──────────────────────────────────
+  const nombreNuits = useMemo(() => {
+    if (params?.date_depart && params?.date_retour) {
+      return Math.round(
+        (new Date(params.date_retour).getTime() - new Date(params.date_depart).getTime()) / 86400000,
+      )
+    }
+    return 5
+  }, [params])
+
+  // ── Fetch ──────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [rs, rc] = await Promise.all([
+      const [rs, rc, rp] = await Promise.all([
         fetch('/api/staff').then(r => r.json()),
         fetch('/api/moteur').then(r => r.json()),
+        fetch('/api/parametres').then(r => r.json()),
       ])
-      setStaff(rs)
-      setCouts(rc)
+      setStaff(Array.isArray(rs) ? rs : [])
+      setMoteurCouts(Array.isArray(rc) ? rc : [])
+      if (rp && !rp.error) setParams(rp)
     } finally {
       setLoading(false)
     }
@@ -112,10 +157,39 @@ export default function StaffPage() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
-  // ── CDR suggestion (memo) ──────────────────────────────────────
-  const cdrSuggestion = useMemo(
-    () => calcCDR(form.type_chambre, couts),
-    [form.type_chambre, couts],
+  // ── initCharges depuis moteur ──────────────────────────────────
+  function initCharges(typeChambre: string): ChargeStaff[] {
+    return moteurCouts
+      .filter(c => c.actif)
+      .filter(c => {
+        if (c.categorie !== 'hebergement') return true
+        return typeChambre
+          ? c.libelle.toLowerCase().includes(typeChambre.toLowerCase())
+          : false
+      })
+      .map(c => ({
+        id:        c.id,
+        libelle:   c.libelle,
+        categorie: c.categorie,
+        type:      c.type,
+        montant:   c.montant,
+        actif:     true,
+        custom:    false,
+      }))
+  }
+
+  // ── CDR temps réel ─────────────────────────────────────────────
+  const cdrCalc = useMemo(
+    () => calculerCDRStaff(form.charges_custom, nombreNuits),
+    [form.charges_custom, nombreNuits],
+  )
+
+  const cdrByCategory = useMemo(
+    () => cdrCalc.detail.reduce((acc, d) => {
+      acc[d.categorie] = (acc[d.categorie] ?? 0) + d.montant
+      return acc
+    }, {} as Record<string, number>),
+    [cdrCalc],
   )
 
   // ── Summary totals ─────────────────────────────────────────────
@@ -133,32 +207,90 @@ export default function StaffPage() {
   function openEdit(m: Staff) {
     setEditItem(m)
     setForm({
-      nom:          m.nom,
-      fonction:     m.fonction,
-      type_chambre: m.type_chambre ?? '',
-      cout_revient: String(m.cout_revient),
-      prime:        String(m.prime),
+      nom:            m.nom,
+      fonction:       m.fonction,
+      type_chambre:   m.type_chambre ?? '',
+      prime:          String(m.prime),
+      charges_custom: m.charges_custom ?? [],
     })
     setShowForm(true)
   }
 
   function closeForm() { setShowForm(false); setEditItem(null); setForm(EMPTY) }
 
-  function setField<K extends keyof FormState>(key: K, val: FormState[K]) {
+  function onTypeChambreChange(newChambre: TypeChambre | '') {
     setForm(f => {
-      const next = { ...f, [key]: val }
-      // Auto-fill cout_revient when chambre changes on new form
-      if (key === 'type_chambre' && !editItem) {
-        const bdg = calcCDR(val as TypeChambre | '', couts)
-        next.cout_revient = String(bdg.total)
-      }
-      return next
+      const newHeberg  = newChambre ? initCharges(newChambre).filter(c => c.categorie === 'hebergement') : []
+      const keepOthers = f.charges_custom.filter(c => c.categorie !== 'hebergement')
+      return { ...f, type_chambre: newChambre, charges_custom: [...newHeberg, ...keepOthers] }
     })
   }
 
-  function applySuggestion() {
-    setForm(f => ({ ...f, cout_revient: String(cdrSuggestion.total) }))
+  function initFormCharges() {
+    setForm(f => ({ ...f, charges_custom: initCharges(f.type_chambre) }))
   }
+
+  function toggleCharge(id: string) {
+    setForm(f => ({
+      ...f,
+      charges_custom: f.charges_custom.map(c => c.id === id ? { ...c, actif: !c.actif } : c),
+    }))
+  }
+
+  function removeCharge(id: string) {
+    setForm(f => ({ ...f, charges_custom: f.charges_custom.filter(c => c.id !== id) }))
+  }
+
+  // ── Charge modal ───────────────────────────────────────────────
+  function openAddCharge() {
+    setEditingChargeId(null)
+    setChargeModal(EMPTY_CHARGE)
+    setChargeModalOpen(true)
+  }
+
+  function openEditCharge(c: ChargeStaff) {
+    setEditingChargeId(c.id)
+    setChargeModal({ libelle: c.libelle, montant: String(c.montant), type: c.type, categorie: c.categorie })
+    setChargeModalOpen(true)
+  }
+
+  function saveCharge() {
+    const montant = parseFloat(chargeModal.montant) || 0
+    if (!chargeModal.libelle.trim() || montant <= 0) return
+
+    if (editingChargeId) {
+      setForm(f => ({
+        ...f,
+        charges_custom: f.charges_custom.map(c =>
+          c.id === editingChargeId
+            ? { ...c, libelle: chargeModal.libelle.trim(), montant, type: chargeModal.type, categorie: chargeModal.categorie }
+            : c,
+        ),
+      }))
+    } else {
+      const newCharge: ChargeStaff = {
+        id:        `custom_${Date.now()}`,
+        libelle:   chargeModal.libelle.trim(),
+        categorie: chargeModal.categorie,
+        type:      chargeModal.type,
+        montant,
+        actif:     true,
+        custom:    true,
+      }
+      setForm(f => ({ ...f, charges_custom: [...f.charges_custom, newCharge] }))
+    }
+    setChargeModalOpen(false)
+  }
+
+  const chargeModalPreview = useMemo(() => {
+    const m = parseFloat(chargeModal.montant) || 0
+    const nombreJours = nombreNuits + 1
+    switch (chargeModal.type) {
+      case 'par_nuit': return m * nombreNuits
+      case 'par_jour': return m * nombreJours
+      default:         return m
+    }
+  }, [chargeModal.montant, chargeModal.type, nombreNuits])
 
   // ── Submit ─────────────────────────────────────────────────────
   async function handleSubmit(e: React.FormEvent) {
@@ -166,11 +298,12 @@ export default function StaffPage() {
     setSaving(true)
     const payload = {
       ...(editItem ? { id: editItem.id } : {}),
-      nom:          form.nom.trim(),
-      fonction:     form.fonction.trim(),
-      type_chambre: form.type_chambre || null,
-      cout_revient: parseFloat(form.cout_revient) || 0,
-      prime:        parseFloat(form.prime) || 0,
+      nom:            form.nom.trim(),
+      fonction:       form.fonction.trim(),
+      type_chambre:   form.type_chambre || null,
+      cout_revient:   form.charges_custom.length > 0 ? cdrCalc.total : (editItem?.cout_revient ?? 0),
+      prime:          parseFloat(form.prime) || 0,
+      charges_custom: form.charges_custom,
     }
     const r = await fetch('/api/staff', {
       method:  editItem ? 'PUT' : 'POST',
@@ -201,6 +334,23 @@ export default function StaffPage() {
     setDeleteId(null)
   }
 
+  // ── Recalcul depuis moteur (table action) ──────────────────────
+  async function recalcFromMoteur(m: Staff) {
+    const charges = initCharges(m.type_chambre ?? '')
+    const { total } = calculerCDRStaff(charges, nombreNuits)
+    const r = await fetch('/api/staff', {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        id: m.id, nom: m.nom, fonction: m.fonction,
+        type_chambre: m.type_chambre, cout_revient: total,
+        prime: m.prime, charges_custom: charges,
+      }),
+    })
+    if (r.ok) { notify('Charges initialisées.', 'success'); fetchAll() }
+    else        notify('Erreur recalcul.', 'error')
+  }
+
   // ── Render ─────────────────────────────────────────────────────
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -211,6 +361,9 @@ export default function StaffPage() {
           <h1 className="text-2xl font-bold text-[#003090] dark:text-white">Staff</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {staff.length} membre{staff.length !== 1 ? 's' : ''}
+            {nombreNuits > 0 && (
+              <span className="ml-2 text-gray-400">· {nombreNuits} nuit{nombreNuits !== 1 ? 's' : ''}</span>
+            )}
           </p>
         </div>
         <button
@@ -264,15 +417,17 @@ export default function StaffPage() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-white/10">
                 {staff.map(m => {
-                  const charge = Number(m.cout_revient) + Number(m.prime)
+                  const charge     = Number(m.cout_revient) + Number(m.prime)
+                  const hasCharges = (m.charges_custom ?? []).length > 0
+                  const tooltip    = `CDR: ${Number(m.cout_revient).toLocaleString('fr-DZ')} DA | Prime: ${Number(m.prime).toLocaleString('fr-DZ')} DA | Total: ${charge.toLocaleString('fr-DZ')} DA`
                   return (
-                    <tr key={m.id} className="hover:bg-[#f8f9fd] dark:hover:bg-white/5 transition-colors">
-                      <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">
-                        {m.nom}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                        {m.fonction}
-                      </td>
+                    <tr
+                      key={m.id}
+                      title={tooltip}
+                      className="hover:bg-[#f8f9fd] dark:hover:bg-white/5 transition-colors"
+                    >
+                      <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">{m.nom}</td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{m.fonction}</td>
                       <td className="px-4 py-3 text-center">
                         {m.type_chambre ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
@@ -302,6 +457,15 @@ export default function StaffPage() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
+                          {!hasCharges && (
+                            <button
+                              onClick={() => recalcFromMoteur(m)}
+                              title="Initialiser charges depuis moteur"
+                              className="p-1.5 text-[#fdbe11] hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
+                            >
+                              <i className="ti ti-refresh text-base" aria-hidden="true" />
+                            </button>
+                          )}
                           <button
                             onClick={() => openEdit(m)}
                             className="p-1.5 text-[#003090] hover:bg-[#e8ecf6] rounded-lg transition-colors"
@@ -322,8 +486,6 @@ export default function StaffPage() {
                   )
                 })}
               </tbody>
-
-              {/* Totaux row */}
               <tfoot>
                 <tr className="bg-[#003090] text-white text-sm font-semibold">
                   <td className="px-4 py-3" colSpan={3}>Total</td>
@@ -352,8 +514,9 @@ export default function StaffPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
+
+              {/* Nom / Fonction */}
               <div className="grid grid-cols-2 gap-4">
-                {/* Nom */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Nom <span className="text-red-500">*</span>
@@ -361,13 +524,11 @@ export default function StaffPage() {
                   <input
                     type="text" required
                     value={form.nom}
-                    onChange={e => setField('nom', e.target.value)}
+                    onChange={e => setForm(f => ({ ...f, nom: e.target.value }))}
                     placeholder="Ex: Benali"
                     className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
                   />
                 </div>
-
-                {/* Fonction */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Fonction <span className="text-red-500">*</span>
@@ -376,7 +537,7 @@ export default function StaffPage() {
                     type="text" required
                     list="fonctions-list"
                     value={form.fonction}
-                    onChange={e => setField('fonction', e.target.value)}
+                    onChange={e => setForm(f => ({ ...f, fonction: e.target.value }))}
                     placeholder="Ex: Entraîneur"
                     className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
                   />
@@ -394,7 +555,7 @@ export default function StaffPage() {
                 <div className="flex gap-2 flex-wrap">
                   <button
                     type="button"
-                    onClick={() => setField('type_chambre', '')}
+                    onClick={() => onTypeChambreChange('')}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                       form.type_chambre === ''
                         ? 'bg-[#003090] text-white border-[#003090]'
@@ -407,7 +568,7 @@ export default function StaffPage() {
                     <button
                       key={ch}
                       type="button"
-                      onClick={() => setField('type_chambre', ch)}
+                      onClick={() => onTypeChambreChange(ch)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                         form.type_chambre === ch
                           ? 'bg-[#003090] text-white border-[#003090]'
@@ -420,94 +581,250 @@ export default function StaffPage() {
                 </div>
               </div>
 
-              {/* CDR preview panel */}
-              <div className="bg-[#f0f2f8] dark:bg-white/5 rounded-xl p-4 space-y-2">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-                  Aperçu CDR
-                  {form.type_chambre && (
-                    <span className="ml-2 normal-case font-normal text-[#003090] dark:text-[#fdbe11]">
-                      — chambre {form.type_chambre}
-                    </span>
-                  )}
-                </p>
-                {(
-                  [
-                    { label: 'Hébergement', icon: 'ti-building', value: cdrSuggestion.hebergement },
-                    { label: 'Repas',       icon: 'ti-soup',     value: cdrSuggestion.repas       },
-                    { label: 'Transport',   icon: 'ti-bus',      value: cdrSuggestion.transport   },
-                  ] as { label: string; icon: string; value: number }[]
-                ).map(row => (
-                  <div key={row.label} className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
-                      <i className={`ti ${row.icon}`} aria-hidden="true" />
-                      {row.label}
-                    </span>
-                    <span className="font-mono text-gray-800 dark:text-gray-200">
-                      {row.value.toLocaleString('fr-DZ')} DA
-                    </span>
-                  </div>
-                ))}
-                <div className="border-t border-gray-200 dark:border-white/10 pt-2 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-[#003090] dark:text-white">CDR suggéré</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-[#003090] dark:text-white">
-                      {cdrSuggestion.total.toLocaleString('fr-DZ')} DA
-                    </span>
-                    {String(cdrSuggestion.total) !== form.cout_revient && cdrSuggestion.total > 0 && (
-                      <button
-                        type="button"
-                        onClick={applySuggestion}
-                        className="text-xs px-2 py-0.5 bg-[#003090] text-white rounded-md hover:bg-[#002070] transition-colors"
-                      >
-                        Utiliser
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
+              {/* ── Section charges (dark) ──────────────────────── */}
+              <div className="rounded-xl overflow-hidden" style={{ background: '#0a0f2e' }}>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* Coût de revient */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Coût de revient (DA) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number" required min="0" step="0.01"
-                    value={form.cout_revient}
-                    onChange={e => setField('cout_revient', e.target.value)}
-                    placeholder="0"
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">Modifiable manuellement</p>
-                </div>
-
-                {/* Prime */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Prime (DA)
-                  </label>
-                  <input
-                    type="number" min="0" step="0.01"
-                    value={form.prime}
-                    onChange={e => setField('prime', e.target.value)}
-                    placeholder="0"
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
-                  />
-                </div>
-              </div>
-
-              {/* Total charge preview */}
-              {((parseFloat(form.cout_revient) || 0) + (parseFloat(form.prime) || 0)) > 0 && (
-                <div className="flex items-center justify-between bg-[#003090] text-white rounded-xl px-4 py-3">
-                  <span className="text-sm font-medium">Charge totale</span>
-                  <span className="font-mono font-bold">
-                    {((parseFloat(form.cout_revient) || 0) + (parseFloat(form.prime) || 0)).toLocaleString('fr-DZ')} DA
+                {/* Header charges */}
+                <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    Charges
                   </span>
+                  <button
+                    type="button"
+                    onClick={openAddCharge}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors"
+                    style={{
+                      background:   'rgba(253,190,17,0.12)',
+                      border:       '1px solid rgba(253,190,17,0.2)',
+                      color:        '#fdbe11',
+                      borderRadius: 10,
+                    }}
+                  >
+                    <i className="ti ti-plus text-sm" aria-hidden="true" />
+                    Ajouter charge
+                  </button>
+                </div>
+
+                <div className="p-4 space-y-1.5">
+
+                  {/* État vide */}
+                  {form.charges_custom.length === 0 && (
+                    <div className="flex items-center justify-between py-2">
+                      <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 12 }}>
+                        Aucune charge configurée
+                      </span>
+                      {moteurCouts.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={initFormCharges}
+                          className="text-xs px-3 py-1.5 rounded-lg transition-colors"
+                          style={{ color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.15)' }}
+                        >
+                          Initialiser depuis moteur
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Liste des charges */}
+                  {form.charges_custom.map(c => {
+                    const calc = chargeCalc(c, nombreNuits)
+                    return (
+                      <div
+                        key={c.id}
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
+                        style={{
+                          background:   'rgba(255,255,255,0.03)',
+                          border:       c.custom
+                            ? '1px dashed rgba(253,190,17,0.2)'
+                            : '1px solid rgba(255,255,255,0.06)',
+                          marginBottom: 6,
+                        }}
+                      >
+                        {/* Toggle */}
+                        <button
+                          type="button"
+                          onClick={() => toggleCharge(c.id)}
+                          aria-label={c.actif ? 'Désactiver' : 'Activer'}
+                          style={{
+                            width:      30,
+                            height:     17,
+                            borderRadius: 999,
+                            background: c.actif ? '#003090' : 'rgba(255,255,255,0.15)',
+                            flexShrink: 0,
+                            position:   'relative',
+                            transition: 'background 0.2s',
+                          }}
+                        >
+                          <span style={{
+                            display:    'block',
+                            width:      13,
+                            height:     13,
+                            borderRadius: 999,
+                            background: '#fff',
+                            position:   'absolute',
+                            top:        2,
+                            left:       c.actif ? 15 : 2,
+                            transition: 'left 0.15s',
+                          }} />
+                        </button>
+
+                        {/* Icône catégorie */}
+                        <div className={`shrink-0 flex items-center justify-center ${catColor(c.categorie)}`} style={{ width: 26, height: 26 }}>
+                          <i className={`ti ${catIcon(c.categorie)} text-base`} aria-hidden="true" />
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p style={{ color: '#fff', fontSize: 11, fontWeight: 700, lineHeight: 1.3 }} className="truncate">
+                            {c.libelle}
+                          </p>
+                          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, lineHeight: 1.4 }}>
+                            {calc.formule}
+                          </p>
+                        </div>
+
+                        {/* Montant calculé */}
+                        <span style={{
+                          color:      c.actif ? '#fff' : 'rgba(255,255,255,0.2)',
+                          fontSize:   12,
+                          fontWeight: 700,
+                          flexShrink: 0,
+                          fontVariantNumeric: 'tabular-nums',
+                        }}>
+                          {c.actif ? `${calc.montant.toLocaleString('fr-DZ')} DA` : '0 DA'}
+                        </span>
+
+                        {/* Modifier */}
+                        <button
+                          type="button"
+                          onClick={() => openEditCharge(c)}
+                          className="shrink-0 p-1 transition-colors"
+                          style={{ color: 'rgba(255,255,255,0.35)' }}
+                          aria-label="Modifier"
+                        >
+                          <i className="ti ti-edit text-sm" aria-hidden="true" />
+                        </button>
+
+                        {/* Supprimer (custom only) */}
+                        {c.custom && (
+                          <button
+                            type="button"
+                            onClick={() => removeCharge(c.id)}
+                            className="shrink-0 p-1 transition-colors hover:text-red-400"
+                            style={{ color: 'rgba(255,255,255,0.35)' }}
+                            aria-label="Supprimer"
+                          >
+                            <i className="ti ti-trash text-sm" aria-hidden="true" />
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+
+                  {/* Encadré CDR total */}
+                  {form.charges_custom.length > 0 && (
+                    <>
+                      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', margin: '12px 0 8px' }} />
+                      <div style={{
+                        background:   'rgba(0,48,144,0.15)',
+                        borderLeft:   '3px solid #7eb8ff',
+                        borderRadius: '0 10px 10px 0',
+                        padding:      12,
+                      }}>
+                        {[
+                          { key: 'hebergement', label: 'Hébergement' },
+                          { key: 'repas',       label: 'Repas'       },
+                          { key: 'transport',   label: 'Transport'   },
+                        ].map(row => (
+                          <div key={row.key} className="flex items-center justify-between" style={{ marginBottom: 4 }}>
+                            <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>{row.label}</span>
+                            <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontFamily: 'monospace' }}>
+                              {(cdrByCategory[row.key] ?? 0).toLocaleString('fr-DZ')} DA
+                            </span>
+                          </div>
+                        ))}
+                        {(() => {
+                          const autres = Object.entries(cdrByCategory)
+                            .filter(([k]) => !['hebergement', 'repas', 'transport'].includes(k))
+                            .reduce((s, [, v]) => s + v, 0)
+                          return autres > 0 ? (
+                            <div className="flex items-center justify-between" style={{ marginBottom: 4 }}>
+                              <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>Autres</span>
+                              <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, fontFamily: 'monospace' }}>
+                                {autres.toLocaleString('fr-DZ')} DA
+                              </span>
+                            </div>
+                          ) : null
+                        })()}
+                        <div style={{ borderTop: '1px solid rgba(255,255,255,0.10)', margin: '8px 0' }} />
+                        <div className="flex items-center justify-between">
+                          <span style={{ color: '#7eb8ff', fontWeight: 700, fontSize: 15 }}>CDR total</span>
+                          <span style={{ color: '#7eb8ff', fontWeight: 700, fontSize: 15, fontFamily: 'monospace' }}>
+                            {cdrCalc.total.toLocaleString('fr-DZ')} DA
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Prime */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Prime (DA)
+                </label>
+                <input
+                  type="number" min="0" step="0.01"
+                  value={form.prime}
+                  onChange={e => setForm(f => ({ ...f, prime: e.target.value }))}
+                  placeholder="0"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+                />
+              </div>
+
+              {/* Encadré charge totale */}
+              {(form.charges_custom.length > 0 || (parseFloat(form.prime) || 0) > 0) && (
+                <div style={{
+                  background:   'rgba(253,190,17,0.08)',
+                  borderLeft:   '3px solid #fdbe11',
+                  borderRadius: '0 10px 10px 0',
+                  padding:      12,
+                }}>
+                  {(() => {
+                    const cdr = form.charges_custom.length > 0
+                      ? cdrCalc.total
+                      : (editItem ? Number(editItem.cout_revient) : 0)
+                    const prime = parseFloat(form.prime) || 0
+                    return (
+                      <>
+                        <div className="flex items-center justify-between" style={{ marginBottom: 4 }}>
+                          <span className="text-sm text-gray-600 dark:text-gray-300">CDR</span>
+                          <span className="font-mono text-sm text-gray-700 dark:text-gray-200">
+                            {cdr.toLocaleString('fr-DZ')} DA
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
+                          <span className="text-sm text-gray-600 dark:text-gray-300">Prime</span>
+                          <span className="font-mono text-sm text-gray-700 dark:text-gray-200">
+                            {prime.toLocaleString('fr-DZ')} DA
+                          </span>
+                        </div>
+                        <div style={{ borderTop: '1px solid rgba(253,190,17,0.2)', marginBottom: 8 }} />
+                        <div className="flex items-center justify-between">
+                          <span style={{ color: '#fdbe11', fontWeight: 700, fontSize: 18 }}>Charge totale</span>
+                          <span style={{ color: '#fdbe11', fontWeight: 700, fontSize: 18, fontFamily: 'monospace' }}>
+                            {(cdr + prime).toLocaleString('fr-DZ')} DA
+                          </span>
+                        </div>
+                      </>
+                    )
+                  })()}
                 </div>
               )}
 
-              {/* Buttons */}
+              {/* Boutons */}
               <div className="flex gap-3 pt-1">
                 <button
                   type="button" onClick={closeForm}
@@ -523,6 +840,139 @@ export default function StaffPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modale ajout/modification charge ──────────────────── */}
+      {chargeModalOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl p-6 space-y-4"
+            style={{ background: '#0a0f2e', border: '1px solid rgba(255,255,255,0.1)' }}
+          >
+            <h3 style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>
+              {editingChargeId ? 'Modifier la charge' : 'Ajouter une charge'}
+            </h3>
+
+            {/* Libellé */}
+            <div>
+              <label style={{ display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+                Libellé
+              </label>
+              <input
+                type="text"
+                value={chargeModal.libelle}
+                onChange={e => setChargeModal(cm => ({ ...cm, libelle: e.target.value }))}
+                placeholder="Ex: Chambre double"
+                className="w-full px-3 py-2 rounded-lg text-sm text-white focus:outline-none"
+                style={{
+                  background:  'rgba(255,255,255,0.05)',
+                  border:      '1px solid rgba(255,255,255,0.1)',
+                  color:       '#fff',
+                }}
+              />
+            </div>
+
+            {/* Montant */}
+            <div>
+              <label style={{ display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+                Montant DA
+              </label>
+              <input
+                type="number" min="0" step="0.01"
+                value={chargeModal.montant}
+                onChange={e => setChargeModal(cm => ({ ...cm, montant: e.target.value }))}
+                placeholder="0"
+                className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none"
+                style={{
+                  background:  'rgba(255,255,255,0.05)',
+                  border:      '1px solid rgba(255,255,255,0.1)',
+                  color:       '#fff',
+                }}
+              />
+            </div>
+
+            {/* Type */}
+            <div>
+              <label style={{ display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+                Type
+              </label>
+              <select
+                value={chargeModal.type}
+                onChange={e => setChargeModal(cm => ({ ...cm, type: e.target.value as ChargeModalForm['type'] }))}
+                className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none"
+                style={{
+                  background:  'rgba(255,255,255,0.05)',
+                  border:      '1px solid rgba(255,255,255,0.1)',
+                  color:       '#fff',
+                }}
+              >
+                <option value="par_nuit"     style={{ background: '#0a0f2e' }}>Par nuit</option>
+                <option value="par_jour"     style={{ background: '#0a0f2e' }}>Par jour</option>
+                <option value="par_personne" style={{ background: '#0a0f2e' }}>Par personne</option>
+                <option value="fixe_global"  style={{ background: '#0a0f2e' }}>Forfait global</option>
+              </select>
+            </div>
+
+            {/* Catégorie */}
+            <div>
+              <label style={{ display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+                Catégorie
+              </label>
+              <select
+                value={chargeModal.categorie}
+                onChange={e => setChargeModal(cm => ({ ...cm, categorie: e.target.value }))}
+                className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none"
+                style={{
+                  background:  'rgba(255,255,255,0.05)',
+                  border:      '1px solid rgba(255,255,255,0.1)',
+                  color:       '#fff',
+                }}
+              >
+                <option value="hebergement" style={{ background: '#0a0f2e' }}>Hébergement</option>
+                <option value="repas"       style={{ background: '#0a0f2e' }}>Repas</option>
+                <option value="transport"   style={{ background: '#0a0f2e' }}>Transport</option>
+                <option value="autre"       style={{ background: '#0a0f2e' }}>Autre</option>
+              </select>
+            </div>
+
+            {/* Aperçu calcul */}
+            {chargeModalPreview > 0 && (
+              <div
+                className="flex items-center justify-between px-3 py-2 rounded-lg"
+                style={{ background: 'rgba(0,48,144,0.15)', border: '1px solid rgba(0,48,144,0.3)' }}
+              >
+                <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>Montant calculé</span>
+                <span style={{ color: '#7eb8ff', fontWeight: 700, fontFamily: 'monospace' }}>
+                  = {chargeModalPreview.toLocaleString('fr-DZ')} DA
+                </span>
+              </div>
+            )}
+
+            {/* Boutons */}
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setChargeModalOpen(false)}
+                className="flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                style={{ color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.15)' }}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={saveCharge}
+                disabled={!chargeModal.libelle.trim() || !(parseFloat(chargeModal.montant) > 0)}
+                className="flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-40"
+                style={{ background: '#fdbe11', color: '#003090' }}
+              >
+                {editingChargeId ? 'Modifier' : 'Ajouter'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -74,14 +74,25 @@ export interface Reservation {
   confirmed_at:               string | null;
 }
 
+export interface ChargeStaff {
+  id:        string;
+  libelle:   string;
+  categorie: string;
+  type:      'par_nuit' | 'par_jour' | 'par_personne' | 'fixe_global';
+  montant:   number;
+  actif:     boolean;
+  custom:    boolean;
+}
+
 export interface Staff {
-  id:           string;
-  nom:          string;
-  fonction:     string;
-  type_chambre: TypeChambre | null;
-  cout_revient: number;
-  prime:        number;
-  created_at:   string;
+  id:             string;
+  nom:            string;
+  fonction:       string;
+  type_chambre:   TypeChambre | null;
+  cout_revient:   number;
+  prime:          number;
+  charges_custom: ChargeStaff[];
+  created_at:     string;
 }
 
 export interface Parametres {
