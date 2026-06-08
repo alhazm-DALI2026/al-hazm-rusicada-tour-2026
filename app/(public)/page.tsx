@@ -6,9 +6,13 @@ import Link from 'next/link'
 import Image from 'next/image'
 import type { Offre, Parametres, TypePublic } from '@/types'
 
-// ── Video slider ──────────────────────────────────────────────────────────────
+// ── Photo slider ─────────────────────────────────────────────────────────────
 
-const VIDEOS = ['/videos/video1.mp4', '/videos/video2.mp4']
+const slides = [
+  '/images/aquapark.jpg',
+  '/images/football-action.jpg',
+  '/images/enfants-marche.jpg',
+]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -157,13 +161,13 @@ export default function HomePage() {
   const [offres, setOffres]         = useState<Offre[]>([])
   const [parametres, setParametres] = useState<Parametres | null>(null)
   const [loading, setLoading]       = useState(true)
-  const [currentVideo, setCurrentVideo] = useState(0)
+  const [current, setCurrent] = useState(0)
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentVideo(prev => (prev === VIDEOS.length - 1 ? 0 : prev + 1))
-    }, 8000)
-    return () => clearInterval(interval)
+    const timer = setInterval(() => {
+      setCurrent(prev => (prev + 1) % slides.length)
+    }, 5000)
+    return () => clearInterval(timer)
   }, [])
   const [showModal, setShowModal]   = useState(false)
   const [username, setUsername]     = useState('')
@@ -236,31 +240,25 @@ export default function HomePage() {
       ══════════════════════════════════════════════════════════ */}
       <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
 
-        {/* Vidéos en fond */}
-        {VIDEOS.map((src, index) => (
-          <video
+        {/* Images en fond avec transition */}
+        {slides.map((src, i) => (
+          <div
             key={src}
-            src={src}
-            autoPlay
-            muted
-            loop
-            playsInline
             style={{
               position: 'absolute',
               inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              objectPosition: 'center',
-              opacity: index === currentVideo ? 1 : 0,
-              transition: 'opacity 1.2s ease-in-out',
+              backgroundImage: `url('${src}')`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              opacity: i === current ? 1 : 0,
+              transition: 'opacity 1s ease-in-out',
               zIndex: 0,
             }}
           />
         ))}
 
-        {/* Overlay sombre */}
-        <div style={{ position: 'absolute', inset: 0, backgroundColor: '#003090', opacity: 0.60, zIndex: 1 }} />
+        {/* Overlay bleu */}
+        <div style={{ position: 'absolute', inset: 0, background: '#003090', opacity: 0.65, zIndex: 1 }} />
 
         <div style={{
           position: 'relative',
