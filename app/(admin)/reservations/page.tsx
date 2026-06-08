@@ -104,8 +104,8 @@ function SourceBadge({ source }: { source: SourceReservation }) {
   return (
     <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${
       source === 'admin'
-        ? 'bg-purple-100 text-purple-700 border-purple-200'
-        : 'bg-blue-100   text-blue-700   border-blue-200'
+        ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/30'
+        : 'bg-blue-100   text-blue-700   border-blue-200   dark:bg-blue-500/10   dark:text-blue-400   dark:border-blue-500/30'
     }`}>{source === 'admin' ? 'Admin' : 'Client'}</span>
   )
 }
@@ -445,7 +445,8 @@ function CreateModal({
               Annuler
             </button>
             <button type="submit" disabled={saving}
-              className="flex-1 px-4 py-2 bg-[#003090] text-white rounded-lg text-sm font-medium hover:bg-[#002070] disabled:opacity-60 transition-colors">
+              style={{ background: '#fdbe11', color: '#003090' }}
+              className="flex-1 px-4 py-2 rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-60 transition-opacity">
               {saving ? 'Création…' : 'Créer'}
             </button>
           </div>
@@ -565,7 +566,8 @@ export default function ReservationsPage() {
             <i className="ti ti-file-spreadsheet" aria-hidden="true" /> Exporter Excel
           </button>
           <button onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#003090] text-white rounded-lg text-sm font-medium hover:bg-[#002070] transition-colors">
+            style={{ background: '#fdbe11', color: '#003090' }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold hover:opacity-90 transition-opacity">
             <i className="ti ti-plus" aria-hidden="true" /> Nouvelle réservation
           </button>
         </div>
@@ -671,25 +673,25 @@ export default function ReservationsPage() {
                         <div className="flex items-center gap-1">
                           {r.statut === 'en_attente' && (
                             <button onClick={() => handleConfirm(r)}
-                              className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              className="p-1.5 text-green-500 hover:bg-white/5 rounded-lg transition-colors"
                               title="Confirmer">
                               <i className="ti ti-circle-check text-base" aria-hidden="true" />
                             </button>
                           )}
                           {r.statut !== 'annulee' && (
                             <button onClick={() => setCancelItem(r)}
-                              className="p-1.5 text-orange-500 hover:bg-orange-50 rounded-lg transition-colors"
+                              className="p-1.5 text-orange-400 hover:bg-white/5 rounded-lg transition-colors"
                               title="Annuler">
                               <i className="ti ti-ban text-base" aria-hidden="true" />
                             </button>
                           )}
                           <button onClick={() => setDrawerItem(r)}
-                            className="p-1.5 text-[#003090] hover:bg-[#e8ecf6] rounded-lg transition-colors"
+                            className="p-1.5 text-[#7eb8ff] hover:bg-white/5 rounded-lg transition-colors"
                             title="Détail">
                             <i className="ti ti-eye text-base" aria-hidden="true" />
                           </button>
                           <button onClick={() => setDeleteId(r.id)}
-                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-1.5 text-red-500 hover:bg-white/5 rounded-lg transition-colors"
                             title="Supprimer">
                             <i className="ti ti-trash text-base" aria-hidden="true" />
                           </button>
@@ -721,8 +723,9 @@ export default function ReservationsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center shrink-0">
-                <i className="ti ti-ban text-orange-600 text-lg" aria-hidden="true" />
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.2)' }}>
+                <i className="ti ti-ban text-lg" style={{ color: '#f97316' }} aria-hidden="true" />
               </div>
               <div>
                 <p className="font-bold text-gray-900 dark:text-white">Annuler la réservation ?</p>
@@ -748,8 +751,9 @@ export default function ReservationsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center shrink-0">
-                <i className="ti ti-trash text-red-600 text-lg" aria-hidden="true" />
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <i className="ti ti-trash text-lg" style={{ color: '#ef4444' }} aria-hidden="true" />
               </div>
               <div>
                 <p className="font-bold text-gray-900 dark:text-white">Supprimer la réservation ?</p>

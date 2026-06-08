@@ -352,7 +352,7 @@ export default function ParametresPage() {
             onClick={() => setActiveTab(tab)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeTab === tab
-                ? 'bg-white dark:bg-[#1a1d2e] text-[#003090] dark:text-white shadow-sm'
+                ? 'bg-white dark:bg-white/8 text-[#003090] dark:text-white shadow-sm'
                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
@@ -595,7 +595,8 @@ export default function ParametresPage() {
           <button
             type="submit"
             disabled={saving}
-            className="flex items-center gap-2 px-6 py-2.5 bg-[#003090] text-white rounded-lg text-sm font-medium hover:bg-[#002070] disabled:opacity-60 transition-colors"
+            style={{ background: '#fdbe11', color: '#003090' }}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-60 transition-opacity"
           >
             <i className={`ti ${saving ? 'ti-loader-2 animate-spin' : 'ti-device-floppy'}`} aria-hidden="true" />
             {saving ? 'Enregistrement…' : 'Sauvegarder les paramètres'}

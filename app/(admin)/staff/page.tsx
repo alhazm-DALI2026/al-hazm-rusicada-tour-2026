@@ -368,7 +368,8 @@ export default function StaffPage() {
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-[#003090] text-white rounded-lg text-sm font-medium hover:bg-[#002070] transition-colors"
+          style={{ background: '#fdbe11', color: '#003090' }}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold hover:opacity-90 transition-opacity"
         >
           <i className="ti ti-user-plus" aria-hidden="true" />
           Ajouter un membre
@@ -430,7 +431,7 @@ export default function StaffPage() {
                       <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{m.fonction}</td>
                       <td className="px-4 py-3 text-center">
                         {m.type_chambre ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/30">
                             {m.type_chambre}
                           </span>
                         ) : (
@@ -468,14 +469,14 @@ export default function StaffPage() {
                           )}
                           <button
                             onClick={() => openEdit(m)}
-                            className="p-1.5 text-[#003090] hover:bg-[#e8ecf6] rounded-lg transition-colors"
+                            className="p-1.5 text-[#7eb8ff] hover:bg-white/5 rounded-lg transition-colors"
                             aria-label="Modifier"
                           >
                             <i className="ti ti-pencil text-base" aria-hidden="true" />
                           </button>
                           <button
                             onClick={() => { setDeleteId(m.id); setDeleteName(m.nom) }}
-                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-1.5 text-red-500 hover:bg-white/5 rounded-lg transition-colors"
                             aria-label="Supprimer"
                           >
                             <i className="ti ti-trash text-base" aria-hidden="true" />
@@ -834,7 +835,8 @@ export default function StaffPage() {
                 </button>
                 <button
                   type="submit" disabled={saving}
-                  className="flex-1 px-4 py-2 bg-[#003090] text-white rounded-lg text-sm font-medium hover:bg-[#002070] disabled:opacity-60 transition-colors"
+                  style={{ background: '#fdbe11', color: '#003090' }}
+                  className="flex-1 px-4 py-2 rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-60 transition-opacity"
                 >
                   {saving ? 'Enregistrement…' : editItem ? 'Modifier' : 'Ajouter'}
                 </button>
@@ -982,8 +984,9 @@ export default function StaffPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-surface rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center shrink-0">
-                <i className="ti ti-user-x text-red-600 text-lg" aria-hidden="true" />
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <i className="ti ti-user-x text-lg" style={{ color: '#ef4444' }} aria-hidden="true" />
               </div>
               <div>
                 <p className="font-bold text-gray-900 dark:text-white">Supprimer {deleteName} ?</p>

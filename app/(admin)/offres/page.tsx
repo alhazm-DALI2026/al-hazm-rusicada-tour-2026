@@ -11,9 +11,9 @@ import type {
 // ── Static config ─────────────────────────────────────────────────────────────
 
 const TP_CFG: { value: TypePublic; label: string; badge: string }[] = [
-  { value: 'enfant',  label: 'Enfant',  badge: 'bg-blue-100   text-blue-700   border-blue-200'   },
-  { value: 'adulte',  label: 'Adulte',  badge: 'bg-green-100  text-green-700  border-green-200'  },
-  { value: 'famille', label: 'Famille', badge: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  { value: 'enfant',  label: 'Enfant',  badge: 'bg-blue-100   text-blue-700   border-blue-200   dark:bg-blue-500/10   dark:text-blue-400   dark:border-blue-500/30'   },
+  { value: 'adulte',  label: 'Adulte',  badge: 'bg-green-100  text-green-700  border-green-200  dark:bg-green-500/10  dark:text-green-400  dark:border-green-500/30'  },
+  { value: 'famille', label: 'Famille', badge: 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/30' },
 ]
 
 const CHAMBRES: TypeChambre[] = ['Single', 'Double', 'Triple', 'Quadruple']
@@ -134,7 +134,9 @@ function OffreCard({ o, onEdit, onDelete, onToggle }: {
               {cfg.label}
             </span>
             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-              o.actif ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+              o.actif
+                ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400'
+                : 'bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-gray-500'
             }`}>
               {o.actif ? 'Actif' : 'Inactif'}
             </span>
@@ -200,7 +202,7 @@ function OffreCard({ o, onEdit, onDelete, onToggle }: {
         {/* Actions */}
         <div className="flex gap-2 pt-1">
           <button onClick={onEdit}
-            className="flex-1 flex items-center justify-center gap-1 px-3 py-2 border border-[#003090] text-[#003090] rounded-lg text-xs font-medium hover:bg-[#e8ecf6] transition-colors">
+            className="flex-1 flex items-center justify-center gap-1 px-3 py-2 border border-white/20 text-gray-300 rounded-lg text-xs font-medium hover:bg-white/5 transition-colors">
             <i className="ti ti-pencil" aria-hidden="true" /> Modifier
           </button>
           <button onClick={onToggle}
@@ -403,7 +405,8 @@ export default function OffresPage() {
           </p>
         </div>
         <button onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-[#003090] text-white rounded-lg text-sm font-medium hover:bg-[#002070] transition-colors">
+          style={{ background: '#fdbe11', color: '#003090' }}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold hover:opacity-90 transition-opacity">
           <i className="ti ti-plus" aria-hidden="true" /> Nouvelle offre
         </button>
       </div>
@@ -662,7 +665,8 @@ export default function OffresPage() {
                   Annuler
                 </button>
                 <button type="submit" disabled={saving}
-                  className="flex-1 px-4 py-2 bg-[#003090] text-white rounded-lg text-sm font-medium hover:bg-[#002070] disabled:opacity-60 transition-colors">
+                  style={{ background: '#fdbe11', color: '#003090' }}
+                  className="flex-1 px-4 py-2 rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-60 transition-opacity">
                   {saving ? 'Enregistrement…' : editItem ? 'Modifier' : 'Créer'}
                 </button>
               </div>
@@ -676,8 +680,9 @@ export default function OffresPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center shrink-0">
-                <i className="ti ti-trash text-red-600 text-lg" aria-hidden="true" />
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <i className="ti ti-trash text-lg" style={{ color: '#ef4444' }} aria-hidden="true" />
               </div>
               <div>
                 <p className="font-bold text-gray-900 dark:text-white">Supprimer cette offre ?</p>

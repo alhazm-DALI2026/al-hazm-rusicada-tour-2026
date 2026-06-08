@@ -7,13 +7,13 @@ import type { MoteurCout, MoteurCoutCategorie, MoteurCoutType, Parametres } from
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const CATEGORIES: { value: MoteurCoutCategorie; label: string; badge: string }[] = [
-  { value: 'hebergement', label: 'Hébergement', badge: 'bg-blue-100   text-blue-700   border-blue-200'   },
-  { value: 'repas',       label: 'Repas',        badge: 'bg-orange-100 text-orange-700 border-orange-200' },
-  { value: 'transport',   label: 'Transport',    badge: 'bg-green-100  text-green-700  border-green-200'  },
-  { value: 'assurance',   label: 'Assurance',    badge: 'bg-purple-100 text-purple-700 border-purple-200' },
-  { value: 'medical',     label: 'Médical',      badge: 'bg-red-100    text-red-700    border-red-200'    },
-  { value: 'media',       label: 'Média',        badge: 'bg-gray-100   text-gray-600   border-gray-200'   },
-  { value: 'autre',       label: 'Autre',        badge: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  { value: 'hebergement', label: 'Hébergement', badge: 'bg-blue-100   text-blue-700   border-blue-200   dark:bg-blue-500/10   dark:text-blue-400   dark:border-blue-500/30'   },
+  { value: 'repas',       label: 'Repas',        badge: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/30' },
+  { value: 'transport',   label: 'Transport',    badge: 'bg-green-100  text-green-700  border-green-200  dark:bg-green-500/10  dark:text-green-400  dark:border-green-500/30'  },
+  { value: 'assurance',   label: 'Assurance',    badge: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/30' },
+  { value: 'medical',     label: 'Médical',      badge: 'bg-red-100    text-red-700    border-red-200    dark:bg-red-500/10    dark:text-red-400    dark:border-red-500/30'    },
+  { value: 'media',       label: 'Média',        badge: 'bg-gray-100   text-gray-600   border-gray-200   dark:bg-white/5       dark:text-gray-400   dark:border-white/10'      },
+  { value: 'autre',       label: 'Autre',        badge: 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/30' },
 ]
 
 const TYPES: { value: MoteurCoutType; label: string }[] = [
@@ -243,7 +243,8 @@ export default function MoteurPage() {
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-[#003090] text-white rounded-lg text-sm font-medium hover:bg-[#002070] transition-colors"
+          style={{ background: '#fdbe11', color: '#003090' }}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold hover:opacity-90 transition-opacity"
         >
           <i className="ti ti-plus" aria-hidden="true" />
           Nouveau coût
@@ -331,7 +332,7 @@ export default function MoteurPage() {
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => openEdit(c)}
-                            className="p-1.5 text-[#003090] hover:bg-[#e8ecf6] rounded-lg transition-colors"
+                            className="p-1.5 text-[#7eb8ff] hover:bg-white/5 rounded-lg transition-colors"
                             aria-label="Modifier"
                           >
                             <i className="ti ti-pencil text-base" aria-hidden="true" />
@@ -470,7 +471,8 @@ export default function MoteurPage() {
                 </button>
                 <button
                   type="submit" disabled={saving}
-                  className="flex-1 px-4 py-2 bg-[#003090] text-white rounded-lg text-sm font-medium hover:bg-[#002070] disabled:opacity-60 transition-colors"
+                  style={{ background: '#fdbe11', color: '#003090' }}
+                  className="flex-1 px-4 py-2 rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-60 transition-opacity"
                 >
                   {saving ? 'Enregistrement…' : editItem ? 'Modifier' : 'Créer'}
                 </button>
@@ -485,8 +487,9 @@ export default function MoteurPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center shrink-0">
-                <i className="ti ti-trash text-red-600 text-lg" aria-hidden="true" />
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <i className="ti ti-trash text-lg" style={{ color: '#ef4444' }} aria-hidden="true" />
               </div>
               <div>
                 <p className="font-bold text-gray-900 dark:text-white">Supprimer ce coût ?</p>

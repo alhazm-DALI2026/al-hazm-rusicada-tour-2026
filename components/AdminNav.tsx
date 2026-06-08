@@ -1,66 +1,149 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-interface NavItem {
-  href:   string
-  label:  string
-  icon:   string
-  badge?: boolean
-}
-
-const NAV: NavItem[] = [
+const NAV = [
   { href: '/dashboard',    label: 'Dashboard',    icon: 'ti-layout-dashboard' },
-  { href: '/reservations', label: 'Réservations', icon: 'ti-calendar-event', badge: true },
-  { href: '/offres',       label: 'Offres',        icon: 'ti-ticket' },
-  { href: '/moteur',       label: 'Moteur',        icon: 'ti-calculator' },
-  { href: '/staff',        label: 'Staff',         icon: 'ti-users' },
-  { href: '/parametres',   label: 'Paramètres',    icon: 'ti-settings' },
+  { href: '/reservations', label: 'Réservations', icon: 'ti-calendar-check',  badge: true },
+  { href: '/offres',       label: 'Offres',        icon: 'ti-ticket'           },
+  { href: '/moteur',       label: 'Moteur',        icon: 'ti-calculator'       },
+  { href: '/staff',        label: 'Staff',         icon: 'ti-users'            },
+  { href: '/parametres',   label: 'Paramètres',    icon: 'ti-settings'         },
 ]
 
-function ShieldLogo() {
+const BOTTOM = NAV.filter(n => n.href !== '/staff')
+
+function SidebarContent({
+  pathname, pending, onClose, onLogout,
+}: {
+  pathname: string
+  pending:  number
+  onClose?: () => void
+  onLogout: () => void
+}) {
   return (
-    <svg width="28" height="33" viewBox="0 0 28 33" fill="none" aria-hidden="true">
-      <path
-        d="M14 1L1 6.5V16c0 8.837 5.8 16.5 13 19 7.2-2.5 13-10.163 13-19V6.5L14 1z"
-        fill="#003090"
-        stroke="#fdbe11"
-        strokeWidth="1.5"
-      />
-      <path
-        d="M8 17l4 4 8-8"
-        stroke="#fdbe11"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+
+      {/* Logo */}
+      <div style={{ padding: '20px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Image
+            src="/images/logo-white.png"
+            alt="Al Hazm"
+            width={36} height={36}
+            style={{ objectFit: 'contain' }}
+          />
+          <div>
+            <div style={{ color: '#fff', fontSize: 13, fontWeight: 700, lineHeight: 1.3 }}>
+              Al Hazm Admin
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, lineHeight: 1.3 }}>
+              Rusicada Tour 2026
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Nav items */}
+      <nav style={{ flex: 1, padding: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {NAV.map(item => {
+          const active = pathname.startsWith(item.href)
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={onClose}
+              style={{
+                display:        'flex',
+                alignItems:     'center',
+                gap:            10,
+                padding:        '10px 12px',
+                borderRadius:   10,
+                textDecoration: 'none',
+                transition:     'all 0.2s',
+                background:     active ? 'rgba(253,190,17,0.1)' : 'transparent',
+                border:         active ? '1px solid rgba(253,190,17,0.2)' : '1px solid transparent',
+                color:          active ? '#fdbe11' : 'rgba(255,255,255,0.45)',
+              }}
+              onMouseEnter={e => {
+                if (!active) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.8)'
+                }
+              }}
+              onMouseLeave={e => {
+                if (!active) {
+                  e.currentTarget.style.background = 'transparent'
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.45)'
+                }
+              }}
+            >
+              <i className={`ti ${item.icon}`} style={{ fontSize: 18 }} aria-hidden="true" />
+              <span style={{ fontSize: 13, fontWeight: 600 }}>{item.label}</span>
+              {item.badge && pending > 0 && (
+                <span style={{
+                  marginLeft:     'auto',
+                  background:     '#ef4444',
+                  color:          '#fff',
+                  width:          18,
+                  height:         18,
+                  borderRadius:   '50%',
+                  fontSize:       10,
+                  fontWeight:     700,
+                  display:        'flex',
+                  alignItems:     'center',
+                  justifyContent: 'center',
+                  flexShrink:     0,
+                }}>
+                  {pending > 9 ? '9+' : pending}
+                </span>
+              )}
+            </Link>
+          )
+        })}
+      </nav>
+
+      {/* Logout */}
+      <div style={{ padding: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <button
+          onClick={onLogout}
+          style={{
+            display:    'flex',
+            alignItems: 'center',
+            gap:        8,
+            color:      'rgba(239,68,68,0.6)',
+            background: 'none',
+            border:     'none',
+            cursor:     'pointer',
+            fontSize:   13,
+            padding:    '8px 4px',
+            width:      '100%',
+            transition: 'color 0.2s',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'rgba(239,68,68,0.6)')}
+        >
+          <i className="ti ti-logout" style={{ fontSize: 16 }} aria-hidden="true" />
+          Déconnexion
+        </button>
+      </div>
+    </div>
   )
 }
 
 export default function AdminNav() {
-  const pathname              = usePathname()
-  const router                = useRouter()
-  const [pending, setPending] = useState(0)
-  const [dark, setDark]       = useState(false)
+  const pathname  = usePathname()
+  const router    = useRouter()
+  const [pending,    setPending]    = useState(0)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
-  // Restore saved theme on mount
-  useEffect(() => {
-    if (localStorage.getItem('theme') === 'dark') {
-      document.documentElement.classList.add('dark')
-      setDark(true)
-    }
-  }, [])
-
-  // Fetch pending reservations count
   useEffect(() => {
     fetch('/api/dashboard')
       .then(r => r.json())
-      .then((d: { en_attente?: { count: number } }) => {
-        setPending(d?.en_attente?.count ?? 0)
-      })
+      .then((d: { en_attente?: { count: number } }) => setPending(d?.en_attente?.count ?? 0))
       .catch(() => {})
   }, [])
 
@@ -69,93 +152,164 @@ export default function AdminNav() {
     router.push('/')
   }
 
-  function toggleTheme() {
-    const next = !dark
-    setDark(next)
-    document.documentElement.classList.toggle('dark', next)
-    localStorage.setItem('theme', next ? 'dark' : 'light')
-  }
+  const pageTitle = NAV.find(n => pathname.startsWith(n.href))?.label ?? 'Admin'
 
   return (
-    <header
-      className="sticky top-0 z-50 bg-[var(--color-surface)] border-b-[3px] border-[#fdbe11] shadow-sm"
-    >
-      <div className="max-w-screen-xl mx-auto px-4 h-16 flex items-center gap-4">
+    <>
+      {/* ── Desktop sidebar (≥1024px) ─────────────── */}
+      <div
+        className="hidden lg:flex lg:flex-col"
+        style={{
+          position:    'fixed',
+          top:         0,
+          left:        0,
+          width:       260,
+          height:      '100vh',
+          background:  '#060a1e',
+          borderRight: '1px solid rgba(255,255,255,0.06)',
+          zIndex:      50,
+          overflowY:   'auto',
+        }}
+      >
+        <SidebarContent
+          pathname={pathname}
+          pending={pending}
+          onLogout={handleLogout}
+        />
+      </div>
 
-        {/* Logo */}
-        <div className="flex items-center gap-2 shrink-0 mr-2">
-          <ShieldLogo />
-          <div className="flex flex-col leading-tight">
-            <span className="text-sm font-bold text-[#003090] dark:text-white">
-              Al Hazm Academy
-            </span>
-            <span className="text-xs text-[#fdbe11] font-semibold" dir="rtl">
-              أكاديمية الحزم
-            </span>
+      {/* ── Mobile sticky header (<1024px) ────────── */}
+      <header
+        className="lg:hidden"
+        style={{
+          position:     'sticky',
+          top:          0,
+          zIndex:       50,
+          background:   '#060a1e',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          padding:      '12px 16px',
+          display:      'flex',
+          alignItems:   'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Image
+            src="/images/logo-white.png"
+            alt="Al Hazm"
+            width={28} height={28}
+            style={{ objectFit: 'contain' }}
+          />
+          <span style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>{pageTitle}</span>
+        </div>
+        <button
+          onClick={() => setDrawerOpen(true)}
+          style={{ color: 'rgba(255,255,255,0.6)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+          aria-label="Menu"
+        >
+          <i className="ti ti-menu-2" style={{ fontSize: 22 }} aria-hidden="true" />
+        </button>
+      </header>
+
+      {/* ── Mobile drawer ─────────────────────────── */}
+      {drawerOpen && (
+        <div className="lg:hidden" style={{ position: 'fixed', inset: 0, zIndex: 100 }}>
+          <div
+            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)' }}
+            onClick={() => setDrawerOpen(false)}
+          />
+          <div style={{
+            position:   'absolute',
+            top:        0,
+            left:       0,
+            width:      260,
+            height:     '100%',
+            background: '#060a1e',
+            overflowY:  'auto',
+          }}>
+            <button
+              onClick={() => setDrawerOpen(false)}
+              style={{
+                position:   'absolute',
+                top:        12,
+                right:      12,
+                color:      'rgba(255,255,255,0.5)',
+                background: 'none',
+                border:     'none',
+                cursor:     'pointer',
+                padding:    4,
+                zIndex:     1,
+              }}
+              aria-label="Fermer"
+            >
+              <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true" />
+            </button>
+            <SidebarContent
+              pathname={pathname}
+              pending={pending}
+              onClose={() => setDrawerOpen(false)}
+              onLogout={handleLogout}
+            />
           </div>
         </div>
+      )}
 
-        {/* Nav */}
-        <nav className="flex items-center gap-0.5 flex-1" aria-label="Navigation admin">
-          {NAV.map(item => {
-            const active = pathname.startsWith(item.href)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  active
-                    ? 'bg-[#003090] text-white'
-                    : 'text-[#003090] hover:bg-[#e8ecf6] dark:text-white dark:hover:bg-white/10'
-                }`}
-              >
-                <i className={`ti ${item.icon}`} aria-hidden="true" />
-                <span className="hidden lg:inline">{item.label}</span>
-
+      {/* ── Mobile bottom nav ─────────────────────── */}
+      <nav
+        className="lg:hidden"
+        style={{
+          position:      'fixed',
+          bottom:        0,
+          left:          0,
+          right:         0,
+          zIndex:        50,
+          background:    '#060a1e',
+          borderTop:     '1px solid rgba(255,255,255,0.06)',
+          padding:       '8px 0 4px',
+          display:       'flex',
+        }}
+      >
+        {BOTTOM.map(item => {
+          const active = pathname.startsWith(item.href)
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              style={{
+                flex:           1,
+                textAlign:      'center',
+                textDecoration: 'none',
+                color:          active ? '#fdbe11' : 'rgba(255,255,255,0.3)',
+                position:       'relative',
+              }}
+            >
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <i className={`ti ${item.icon}`} style={{ fontSize: 22, display: 'block' }} aria-hidden="true" />
                 {item.badge && pending > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold min-w-4 h-4 rounded-full flex items-center justify-center px-0.5 leading-none">
+                  <span style={{
+                    position:       'absolute',
+                    top:            -2,
+                    right:          -4,
+                    background:     '#ef4444',
+                    color:          '#fff',
+                    width:          14,
+                    height:         14,
+                    borderRadius:   '50%',
+                    fontSize:       9,
+                    fontWeight:     700,
+                    display:        'flex',
+                    alignItems:     'center',
+                    justifyContent: 'center',
+                  }}>
                     {pending > 9 ? '9+' : pending}
                   </span>
                 )}
-              </Link>
-            )
-          })}
-        </nav>
-
-        {/* Actions */}
-        <div className="flex items-center gap-1 shrink-0">
-          <Link
-            href="/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-[#003090] hover:bg-[#e8ecf6] dark:text-white dark:hover:bg-white/10 transition-colors"
-            title="Vue publique"
-          >
-            <i className="ti ti-eye" aria-hidden="true" />
-            <span className="hidden lg:inline">Public</span>
-          </Link>
-
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="p-2 rounded-lg text-[#003090] hover:bg-[#e8ecf6] dark:text-white dark:hover:bg-white/10 transition-colors"
-            aria-label={dark ? 'Passer en mode clair' : 'Passer en mode sombre'}
-          >
-            <i className={`ti ${dark ? 'ti-sun' : 'ti-moon'}`} aria-hidden="true" />
-          </button>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-            title="Déconnexion"
-          >
-            <span>🚪</span>
-            <span className="hidden lg:inline">Déconnexion</span>
-          </button>
-        </div>
-
-      </div>
-    </header>
+              </div>
+              <div style={{ fontSize: 9, marginTop: 2, fontWeight: 600 }}>{item.label}</div>
+            </Link>
+          )
+        })}
+      </nav>
+    </>
   )
 }
