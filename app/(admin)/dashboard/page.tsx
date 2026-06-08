@@ -228,6 +228,73 @@ export default function DashboardPage() {
               <div className="border-t border-gray-100 dark:border-white/10 pt-3">
                 <Row label="Coût total" value={fmt(data.staff.cout_total)} />
               </div>
+
+              {/* ── Capacité d'encadrement ── */}
+              {(() => {
+                const coutMoyenStaff = data.staff.count > 0
+                  ? data.staff.cout_total / data.staff.count
+                  : 0
+                const margeDisponible =
+                  data.bilan.marge_brute - data.bilan.charges_fixes
+                const staffMaxSupportable = coutMoyenStaff > 0
+                  ? Math.floor(margeDisponible / coutMoyenStaff)
+                  : 0
+                const staffSupplementaire = staffMaxSupportable - data.staff.count
+
+                const placesValeur = staffSupplementaire > 0
+                  ? `+ ${staffSupplementaire} membres`
+                  : staffSupplementaire === 0
+                    ? 'Capacité atteinte'
+                    : `${staffSupplementaire} (dépassé !)`
+                const placesCouleur = staffSupplementaire > 0
+                  ? '#22c55e'
+                  : staffSupplementaire === 0
+                    ? '#fdbe11'
+                    : '#ef4444'
+
+                return (
+                  <div style={{
+                    background: 'rgba(253,190,17,0.08)',
+                    border: '1px solid rgba(253,190,17,0.2)',
+                    borderRadius: 10,
+                    padding: 12,
+                    marginTop: 12,
+                  }}>
+                    <div style={{
+                      fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+                      color: 'rgba(255,255,255,0.5)', marginBottom: 10,
+                      letterSpacing: '0.05em',
+                    }}>
+                      📊 Capacité d&apos;encadrement
+                    </div>
+
+                    {[
+                      { label: 'Coût moyen / membre',   value: fmt(coutMoyenStaff),                         color: undefined                         },
+                      { label: 'Staff max supportable',  value: `${staffMaxSupportable} membres`,             color: '#fdbe11'                         },
+                      { label: 'Places disponibles',     value: placesValeur,                                 color: placesCouleur                     },
+                    ].map(row => (
+                      <div key={row.label} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        paddingBottom: 6, marginBottom: 6,
+                        borderBottom: '1px solid rgba(255,255,255,0.06)',
+                      }}>
+                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>{row.label}</span>
+                        <span style={{
+                          fontSize: 12, fontWeight: row.color ? 700 : 500, fontFamily: 'monospace',
+                          color: row.color ?? 'rgba(255,255,255,0.85)',
+                        }}>
+                          {row.value}
+                        </span>
+                      </div>
+                    ))}
+
+                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', margin: '6px 0 0', lineHeight: 1.5 }}>
+                      Calculé sur : marge brute − charges fixes<br />
+                      ÷ coût moyen par membre staff
+                    </p>
+                  </div>
+                )
+              })()}
             </Bloc>
           </div>
 
