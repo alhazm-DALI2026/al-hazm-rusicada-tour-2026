@@ -18,6 +18,58 @@ const TAG: Record<string, React.CSSProperties> = {
   famille: { background: 'rgba(34,197,94,0.18)',  color: '#4ade80' },
 }
 
+const RESPONSIVE_CSS = `
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Mobile */
+  .offres-grid {
+    padding: 0 16px 110px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    animation: fadeInUp 0.4s ease;
+  }
+
+  .offer-card-inner { padding: 16px; }
+  .card-name        { color: #fff; font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+  .card-price       { color: #fdbe11; font-size: 18px; font-weight: 800; }
+
+  .tabs-wrapper {
+    position: relative; z-index: 5;
+    display: grid; grid-template-columns: 1fr 1fr;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px; padding: 4px; gap: 4px;
+    margin: 14px 16px;
+  }
+
+  /* Tablette */
+  @media (min-width: 640px) {
+    .offres-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  }
+
+  /* Desktop */
+  @media (min-width: 1024px) {
+    .offres-grid {
+      padding: 0 48px 110px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .offer-card-inner { padding: 24px; }
+    .card-name        { font-size: 17px; }
+    .card-price       { font-size: 22px; }
+    .tabs-wrapper     { max-width: 640px; margin: 16px auto; }
+  }
+
+  /* Grand écran */
+  @media (min-width: 1280px) {
+    .offres-grid { padding: 0 64px 110px; gap: 28px; }
+  }
+`
+
 function OfferCard({ offre, isFirst }: { offre: Offre; isFirst: boolean }) {
   const router = useRouter()
   const complet = offre.places_restantes === 0
@@ -30,8 +82,8 @@ function OfferCard({ offre, isFirst }: { offre: Offre; isFirst: boolean }) {
         backdropFilter: 'blur(12px)',
         border: isFirst ? '1.5px solid rgba(253,190,17,0.5)' : '1px solid rgba(255,255,255,0.1)',
         borderRadius: 20, overflow: 'hidden',
-        width: 280, opacity: complet ? 0.6 : 1,
-        transition: 'transform .25s, box-shadow .25s', flexShrink: 0,
+        opacity: complet ? 0.6 : 1,
+        transition: 'transform .25s, box-shadow .25s',
       }}
       onMouseEnter={e => {
         const el = e.currentTarget as HTMLDivElement
@@ -45,7 +97,7 @@ function OfferCard({ offre, isFirst }: { offre: Offre; isFirst: boolean }) {
       }}
     >
       <div style={{ height: 4, background: ACCENT[offre.type_public] ?? ACCENT.enfant }} />
-      <div style={{ padding: 16 }}>
+      <div className="offer-card-inner">
 
         <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
           <span style={{ ...TAG[offre.type_public], fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6 }}>
@@ -56,7 +108,7 @@ function OfferCard({ offre, isFirst }: { offre: Offre; isFirst: boolean }) {
           </span>
         </div>
 
-        <div style={{ color: '#fff', fontSize: 15, fontWeight: 800, marginBottom: 4 }}>{offre.nom}</div>
+        <div className="card-name">{offre.nom}</div>
         {offre.description && (
           <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, marginBottom: 12 }}>{offre.description}</div>
         )}
@@ -83,7 +135,7 @@ function OfferCard({ offre, isFirst }: { offre: Offre; isFirst: boolean }) {
         </div>
 
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ color: '#fdbe11', fontSize: 18, fontWeight: 800 }}>{fmt(offre.prix_vente)}</div>
+          <div className="card-price">{fmt(offre.prix_vente)}</div>
           {complet ? (
             <span style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.3)', borderRadius: 10, padding: '9px 16px', fontSize: 11, fontWeight: 700 }}>Complet</span>
           ) : (
@@ -119,7 +171,7 @@ export default function FormulesPage() {
 
   return (
     <div style={{ backgroundColor: '#0a0f2e', minHeight: '100vh' }}>
-      <style>{`@keyframes fadeInUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
+      <style>{RESPONSIVE_CSS}</style>
 
       {/* Glows */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
@@ -141,7 +193,7 @@ export default function FormulesPage() {
       </header>
 
       {/* Onglets */}
-      <div style={{ position: 'relative', zIndex: 5, display: 'grid', gridTemplateColumns: '1fr 1fr', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 4, gap: 4, margin: '14px 16px' }}>
+      <div className="tabs-wrapper">
         <button type="button" onClick={() => setActiveTab('std')}
           style={{ background: activeTab === 'std' ? '#003090' : 'transparent', color: activeTab === 'std' ? '#fff' : 'rgba(255,255,255,0.4)', boxShadow: activeTab === 'std' ? '0 4px 16px rgba(0,48,144,0.5)' : 'none', borderRadius: 10, padding: 11, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, fontWeight: 700, transition: 'all .2s' }}>
           <i className="ti ti-ticket" style={{ fontSize: 14 }} aria-hidden="true" />
@@ -159,7 +211,7 @@ export default function FormulesPage() {
 
         {/* ── Vue offres standard ── */}
         {activeTab === 'std' && (
-          <div style={{ padding: '0 16px 110px', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12, animation: 'fadeInUp 0.4s ease' }}>
+          <div className="offres-grid">
             {loading ? (
               <div style={{ padding: '60px 0', textAlign: 'center', width: '100%' }}>
                 <i className="ti ti-loader-2 animate-spin" style={{ fontSize: 36, color: 'rgba(255,255,255,0.5)', display: 'block' }} aria-hidden="true" />
