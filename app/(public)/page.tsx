@@ -9,9 +9,9 @@ import type { Offre, Parametres, TypePublic } from '@/types'
 // ── Photo slider ─────────────────────────────────────────────────────────────
 
 const slides = [
-  '/images/aquapark.jpg',
-  '/images/football-action.jpg',
-  '/images/enfants-marche.jpg',
+  '/images/slide1.jpg',
+  '/images/slide2.jpg',
+  '/images/slide3.jpg',
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -166,7 +166,7 @@ export default function HomePage() {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrent(prev => (prev + 1) % slides.length)
-    }, 5000)
+    }, 3000)
     return () => clearInterval(timer)
   }, [])
   const [showModal, setShowModal]   = useState(false)
