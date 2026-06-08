@@ -37,6 +37,52 @@ function formatChambres(chambres: { type: string }[]) {
   return Array.from(counts.entries()).map(([type, n]) => `${n}×${type}`).join(' + ')
 }
 
+// ── Configurations de chambres ────────────────────────────────────────────────
+
+type RoomConfig = { s: number; d: number; t: number; q: number }
+
+function genererConfigs(nbAdultes: number, nbEnfants: number): RoomConfig[] {
+  const n = nbAdultes + nbEnfants
+  if (n === 0) return []
+  const all: RoomConfig[] = []
+  for (let q = Math.floor(n / 4); q >= 0; q--) {
+    for (let t = Math.floor((n - q * 4) / 3); t >= 0; t--) {
+      for (let d = Math.floor((n - q * 4 - t * 3) / 2); d >= 0; d--) {
+        const s = n - q * 4 - t * 3 - d * 2
+        if (s >= 0) all.push({ s, d, t, q })
+      }
+    }
+  }
+  all.sort((a, b) => (a.s + a.d + a.t + a.q) - (b.s + b.d + b.t + b.q))
+  return all.filter(c => c.s <= 2 && (c.s + c.d + c.t + c.q) <= 5).slice(0, 5)
+}
+
+function configLabel(c: RoomConfig): string {
+  const parts: string[] = []
+  if (c.q > 0) parts.push(`${c.q}×Quadruple`)
+  if (c.t > 0) parts.push(`${c.t}×Triple`)
+  if (c.d > 0) parts.push(`${c.d}×Double`)
+  if (c.s > 0) parts.push(`${c.s}×Single`)
+  return parts.join(' + ')
+}
+
+function pvHebergConfig(c: RoomConfig, p: Parametres, nuits: number): number {
+  return (c.s * p.pv_single + c.d * p.pv_double + c.t * p.pv_triple + c.q * p.pv_quadruple) * nuits
+}
+
+function cdrHebergConfig(c: RoomConfig, p: Parametres, nuits: number): number {
+  return (c.s * p.cdr_single + c.d * p.cdr_double + c.t * p.cdr_triple + c.q * p.cdr_quadruple) * nuits
+}
+
+function configToChambres(c: RoomConfig): { type: string; occupants: string }[] {
+  const list: { type: string; occupants: string }[] = []
+  for (let i = 0; i < c.q; i++) list.push({ type: 'Quadruple', occupants: '4 personnes' })
+  for (let i = 0; i < c.t; i++) list.push({ type: 'Triple', occupants: '3 personnes' })
+  for (let i = 0; i < c.d; i++) list.push({ type: 'Double', occupants: '2 personnes' })
+  for (let i = 0; i < c.s; i++) list.push({ type: 'Single', occupants: '1 personne' })
+  return list
+}
+
 // ── Counter ───────────────────────────────────────────────────────────────────
 
 function Counter({ label, sub, value, min, max, onChange }: {
@@ -74,6 +120,7 @@ export default function FamillePage() {
   const [error, setError]           = useState<string | null>(null)
   const [form, setForm]             = useState<FamilleForm>(EMPTY)
   const [etape, setEtape]           = useState<1 | 2 | 3>(1)
+  const [selectedConfigIdx, setSelectedConfigIdx] = useState(0)
 
   const adminNumero = process.env.NEXT_PUBLIC_WHATSAPP_NUMERO ?? ''
 
@@ -96,9 +143,22 @@ export default function FamillePage() {
     })
   }, [params, form])
 
-  // Prix affiché = hébergement + repas uniquement (transport non compris)
-  const pvAffiche  = result ? result.detail.hebergement_pv  + result.detail.repas_pv  : 0
-  const cdrAffiche = result ? result.detail.hebergement_cdr + result.detail.repas_cdr : 0
+  const configs = useMemo(
+    () => genererConfigs(form.nb_adultes, form.nb_enfants),
+    [form.nb_adultes, form.nb_enfants],
+  )
+
+  useEffect(() => { setSelectedConfigIdx(0) }, [form.nb_adultes, form.nb_enfants])
+
+  const selectedConfig = configs[Math.min(selectedConfigIdx, configs.length - 1)] ?? null
+
+  // Prix affiché = hébergement config choisie + repas (transport non compris)
+  const pvAffiche = params && selectedConfig && result
+    ? pvHebergConfig(selectedConfig, params, form.nombre_nuits) + result.detail.repas_pv
+    : 0
+  const cdrAffiche = params && selectedConfig && result
+    ? cdrHebergConfig(selectedConfig, params, form.nombre_nuits) + result.detail.repas_cdr
+    : 0
 
   function setField<K extends keyof FamilleForm>(key: K, val: FamilleForm[K]) {
     setForm(f => ({ ...f, [key]: val }))
@@ -128,7 +188,7 @@ export default function FamillePage() {
       cout_revient:   cdrAffiche,
       prix_vente:     pvAffiche,
       options_custom: {
-        chambres:   result?.chambres ?? [],
+        chambres:   selectedConfig ? configToChambres(selectedConfig) : (result?.chambres ?? []),
         nb_bebes:   form.nb_bebes,
         detail_cdr: result?.detail ?? null,
       },
@@ -255,22 +315,48 @@ export default function FamillePage() {
               <Counter label="Bébés"            sub="0 à 2 ans · gratuit"    value={form.nb_bebes}     min={0} max={10} onChange={v => setField('nb_bebes',     v)} />
               <Counter label="Nombre de nuits"  sub="5 nuits recommandées"   value={form.nombre_nuits} min={1} max={7}  onChange={v => setField('nombre_nuits', v)} />
 
-              {/* Chambres calculées */}
-              {result && result.chambres.length > 0 && (
-                <div style={{ background: 'rgba(0,48,144,0.2)', border: '1px solid rgba(0,80,204,0.3)', borderRadius: 14, padding: 14, margin: '12px 0' }}>
-                  <div style={{ color: '#7eb8ff', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
-                    🛏️ Chambres attribuées
+              {/* Sélection de la configuration des chambres */}
+              {params && configs.length > 0 && (
+                <div style={{ margin: '12px 0' }}>
+                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                    Répartition des chambres
                   </div>
-                  {result.chambres.map((c, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#fff', fontSize: 12, marginBottom: i < result.chambres.length - 1 ? 6 : 0 }}>
-                      <i className="ti ti-bed" style={{ color: '#7eb8ff', fontSize: 14 }} aria-hidden="true" />
-                      Chambre {c.type} — {c.occupants}
-                    </div>
-                  ))}
+                  {configs.map((cfg, idx) => {
+                    const isSelected = idx === Math.min(selectedConfigIdx, configs.length - 1)
+                    const pv = pvHebergConfig(cfg, params, form.nombre_nuits)
+                    const nbRooms = cfg.s + cfg.d + cfg.t + cfg.q
+                    return (
+                      <div key={idx} onClick={() => setSelectedConfigIdx(idx)}
+                        style={{
+                          background: isSelected ? 'rgba(253,190,17,0.08)' : 'rgba(255,255,255,0.04)',
+                          border: `1px solid ${isSelected ? 'rgba(253,190,17,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                          borderRadius: 12, padding: '12px 14px', marginBottom: 8,
+                          cursor: 'pointer', transition: 'all .2s',
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ width: 32, height: 32, borderRadius: 9, flexShrink: 0, background: isSelected ? 'rgba(253,190,17,0.15)' : 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <i className="ti ti-bed" style={{ color: isSelected ? '#fdbe11' : 'rgba(255,255,255,0.4)', fontSize: 15 }} aria-hidden="true" />
+                          </div>
+                          <div>
+                            <div style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>{configLabel(cfg)}</div>
+                            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>{nbRooms} chambre{nbRooms > 1 ? 's' : ''}</div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ color: isSelected ? '#fdbe11' : 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700, fontFamily: 'monospace' }}>{fmt(pv)}</div>
+                            <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9 }}>hébergement</div>
+                          </div>
+                          <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${isSelected ? '#fdbe11' : 'rgba(255,255,255,0.2)'}`, background: isSelected ? '#fdbe11' : 'transparent', flexShrink: 0 }} />
+                        </div>
+                      </div>
+                    )
+                  })}
                   {form.nb_bebes > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#fff', fontSize: 12, marginTop: 6 }}>
-                      <i className="ti ti-baby" style={{ color: '#fdbe11', fontSize: 14 }} aria-hidden="true" />
-                      {form.nb_bebes} bébé{form.nb_bebes > 1 ? 's' : ''} — lit bébé (gratuit)
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(255,255,255,0.45)', fontSize: 11, marginTop: 2 }}>
+                      <i className="ti ti-baby" style={{ color: '#fdbe11', fontSize: 13 }} aria-hidden="true" />
+                      {form.nb_bebes} bébé{form.nb_bebes > 1 ? 's' : ''} — lit bébé inclus (gratuit)
                     </div>
                   )}
                 </div>
@@ -369,7 +455,7 @@ export default function FamillePage() {
               <div style={{ background: 'rgba(0,48,144,0.2)', border: '1px solid rgba(0,80,204,0.3)', borderRadius: 14, padding: 14, marginBottom: 14 }}>
                 {([
                   { label: 'Composition', value: `${form.nb_adultes} adulte${form.nb_adultes > 1 ? 's' : ''}${form.nb_enfants > 0 ? ` + ${form.nb_enfants} enfant${form.nb_enfants > 1 ? 's' : ''}` : ''}${form.nb_bebes > 0 ? ` + ${form.nb_bebes} bébé${form.nb_bebes > 1 ? 's' : ''}` : ''}` },
-                  { label: 'Chambres',    value: result ? formatChambres(result.chambres) : '—' },
+                  { label: 'Chambres',    value: selectedConfig ? configLabel(selectedConfig) : '—' },
                   { label: 'Transport',   value: form.transport ? 'Inclus' : 'Non' },
                   { label: 'Repas',       value: form.repas === 'complet' ? 'Pension complète' : form.repas === 'demi' ? 'Demi-pension' : 'Sans repas' },
                   { label: 'Durée',       value: `${form.nombre_nuits} nuits / ${form.nombre_nuits + 1} jours` },
@@ -427,7 +513,7 @@ export default function FamillePage() {
                 <div>
                   <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>CHAMBRES</div>
                   <div style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>
-                    {result && result.chambres.length > 0 ? formatChambres(result.chambres) : '—'}
+                    {selectedConfig ? configLabel(selectedConfig) : '—'}
                   </div>
                   <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>{form.nombre_nuits} nuit{form.nombre_nuits > 1 ? 's' : ''}</div>
                 </div>
@@ -448,7 +534,7 @@ export default function FamillePage() {
                   {pvAffiche > 0 ? fmt(pvAffiche) : '—'}
                 </div>
                 <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>
-                  {result && result.chambres.length > 0 ? formatChambres(result.chambres) : '—'} · {form.nombre_nuits} nuit{form.nombre_nuits > 1 ? 's' : ''}
+                  {selectedConfig ? configLabel(selectedConfig) : '—'} · {form.nombre_nuits} nuit{form.nombre_nuits > 1 ? 's' : ''}
                 </div>
               </div>
             )}
