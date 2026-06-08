@@ -190,11 +190,11 @@ export default function HomePage() {
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
           }}>
             <div style={{
-              width: 36, height: 36, borderRadius: '50%',
+              width: 44, height: 44, borderRadius: 13,
               background: s.circBg, border: `1px solid ${s.circBorder}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <i className={`ti ${s.icon}`} style={{ color: s.ic, fontSize: 16 }} aria-hidden="true" />
+              <i className={`ti ${s.icon}`} style={{ color: s.ic, fontSize: 20 }} aria-hidden="true" />
             </div>
             <div style={{ color: '#fff', fontSize: 18, fontWeight: 700, lineHeight: 1 }}>{s.val}</div>
             <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
@@ -203,12 +203,12 @@ export default function HomePage() {
       </section>
 
       {/* ── 4. TOUT EST INCLUS ─────────────────────────────────── */}
-      <section style={{ position: 'relative', zIndex: 5, padding: '28px 16px' }}>
-        <div style={{ marginBottom: 16 }}>
-          <h2 style={{ color: '#fff', fontSize: 19, fontWeight: 900, margin: '0 0 2px' }}>
+      <section style={{ position: 'relative', zIndex: 5, padding: '32px 20px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <h2 style={{ color: '#fff', fontSize: 24, fontWeight: 900, margin: '0 0 4px', textAlign: 'center' }}>
             Tout est inclus
           </h2>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, margin: 0 }}>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, margin: 0, textAlign: 'center' }}>
             Dans chaque pack Al Hazm
           </p>
         </div>
@@ -225,12 +225,12 @@ export default function HomePage() {
       </section>
 
       {/* ── 5. GALERIE ─────────────────────────────────────────── */}
-      <section style={{ position: 'relative', zIndex: 5, padding: '0 16px 28px' }}>
-        <div style={{ marginBottom: 14 }}>
-          <h2 style={{ color: '#fff', fontSize: 19, fontWeight: 900, margin: '0 0 2px' }}>
+      <section style={{ position: 'relative', zIndex: 5, padding: '32px 20px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 18 }}>
+          <h2 style={{ color: '#fff', fontSize: 24, fontWeight: 900, margin: '0 0 2px', textAlign: 'center' }}>
             Ils l&apos;ont vécu.
           </h2>
-          <p style={{ color: '#fdbe11', fontSize: 11, fontWeight: 600, margin: 0 }}>
+          <p style={{ color: '#fdbe11', fontSize: 13, fontWeight: 600, margin: 0, textAlign: 'center' }}>
             Votre enfant aussi.
           </p>
         </div>
@@ -246,12 +246,12 @@ export default function HomePage() {
       </section>
 
       {/* ── 6. INSCRIPTION ─────────────────────────────────────── */}
-      <section ref={inscriptionRef} style={{ position: 'relative', zIndex: 5, padding: '0 16px 28px' }}>
-        <div style={{ marginBottom: 14 }}>
-          <h2 style={{ color: '#fff', fontSize: 19, fontWeight: 900, margin: '0 0 2px' }}>
+      <section ref={inscriptionRef} style={{ position: 'relative', zIndex: 5, padding: '32px 20px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <h2 style={{ color: '#fff', fontSize: 24, fontWeight: 900, margin: '0 0 4px', textAlign: 'center' }}>
             Votre inscription
           </h2>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, margin: 0 }}>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, margin: 0, textAlign: 'center' }}>
             Choisissez la formule qui vous{' '}
             <span style={{ color: '#fdbe11' }}>correspond</span>
           </p>
