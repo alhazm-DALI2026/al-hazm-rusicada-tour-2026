@@ -270,23 +270,6 @@ export default function FormulesPage() {
               ))}
             </div>
 
-            {/* Card exemple */}
-            <div style={{ background: 'rgba(253,190,17,0.05)', border: '1px solid rgba(253,190,17,0.18)', borderRadius: 16, padding: 14 }}>
-              <div style={{ color: '#fdbe11', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-                EXEMPLE — 2 adultes + 2 enfants · 5 nuits
-              </div>
-              {[
-                { label: 'Hébergement', value: '45 000 DA', bold: false },
-                { label: 'Repas',       value: '38 400 DA', bold: false },
-                { label: 'Transport',   value: '28 000 DA', bold: false },
-                { label: 'Total estimé',value: '149 500 DA', bold: true  },
-              ].map((row, idx, arr) => (
-                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: idx < arr.length - 1 ? 8 : 0, marginBottom: idx < arr.length - 1 ? 8 : 0, borderBottom: idx === arr.length - 2 ? '1px solid rgba(253,190,17,0.2)' : idx < arr.length - 2 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{row.label}</span>
-                  <span style={{ color: row.bold ? '#fdbe11' : 'rgba(255,255,255,0.8)', fontSize: row.bold ? 14 : 11, fontWeight: row.bold ? 800 : 500, fontFamily: 'monospace' }}>{row.value}</span>
-                </div>
-              ))}
-            </div>
           </div>
         )}
       </div>
