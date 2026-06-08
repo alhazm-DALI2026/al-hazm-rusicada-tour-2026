@@ -1,85 +1,96 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import Image from 'next/image'
-import type { Offre, TypePublic } from '@/types'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import type { Offre } from '@/types'
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmt(n: number) { return n.toLocaleString('fr-DZ') + ' DA' }
 
-const TYPE_PUBLIC_CFG: Record<TypePublic, { label: string; badge: string }> = {
-  enfant:  { label: 'Enfant',  badge: 'bg-green-100  text-green-700  border-green-200'  },
-  adulte:  { label: 'Adulte',  badge: 'bg-blue-100   text-blue-700   border-blue-200'   },
-  famille: { label: 'Famille', badge: 'bg-purple-100 text-purple-700 border-purple-200' },
+const ACCENT: Record<string, string> = {
+  enfant:  'linear-gradient(90deg,#003090,#0050cc)',
+  adulte:  'linear-gradient(90deg,#fdbe11,#ffd94d)',
+  famille: 'linear-gradient(90deg,#22c55e,#4ade80)',
+}
+const TAG: Record<string, React.CSSProperties> = {
+  enfant:  { background: 'rgba(0,80,204,0.25)',   color: '#7eb8ff' },
+  adulte:  { background: 'rgba(253,190,17,0.18)', color: '#fdbe11' },
+  famille: { background: 'rgba(34,197,94,0.18)',  color: '#4ade80' },
 }
 
-function fmt(n: number) {
-  return n.toLocaleString('fr-DZ') + ' DA'
-}
-
-function OfferCard({ offre }: { offre: Offre }) {
-  const cfg     = TYPE_PUBLIC_CFG[offre.type_public]
-  const pct     = offre.places_total > 0 ? Math.round((offre.places_restantes / offre.places_total) * 100) : 0
+function OfferCard({ offre, isFirst }: { offre: Offre; isFirst: boolean }) {
+  const router = useRouter()
   const complet = offre.places_restantes === 0
+  const pct     = offre.places_total > 0 ? (offre.places_restantes / offre.places_total) * 100 : 0
 
   return (
     <div
-      className={`bg-white rounded-2xl shadow-md overflow-hidden flex flex-col ${complet ? 'opacity-60' : ''}`}
-      style={{ width: '100%', maxWidth: 320 }}
+      style={{
+        background: isFirst ? 'rgba(253,190,17,0.06)' : 'rgba(255,255,255,0.06)',
+        backdropFilter: 'blur(12px)',
+        border: isFirst ? '1.5px solid rgba(253,190,17,0.5)' : '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 20, overflow: 'hidden',
+        width: 280, opacity: complet ? 0.6 : 1,
+        transition: 'transform .25s, box-shadow .25s', flexShrink: 0,
+      }}
+      onMouseEnter={e => {
+        const el = e.currentTarget as HTMLDivElement
+        el.style.transform = 'translateY(-4px)'
+        el.style.boxShadow = '0 16px 40px rgba(0,0,0,0.3)'
+      }}
+      onMouseLeave={e => {
+        const el = e.currentTarget as HTMLDivElement
+        el.style.transform = 'translateY(0)'
+        el.style.boxShadow = 'none'
+      }}
     >
-      <div className="h-1.5 bg-[#003090]" />
-      <div className="p-5 flex flex-col gap-4 flex-1">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.badge} mb-2`}>
-              {cfg.label}
+      <div style={{ height: 4, background: ACCENT[offre.type_public] ?? ACCENT.enfant }} />
+      <div style={{ padding: 16 }}>
+
+        <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+          <span style={{ ...TAG[offre.type_public], fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6 }}>
+            {offre.type_public.charAt(0).toUpperCase() + offre.type_public.slice(1)}
+          </span>
+          <span style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 6 }}>
+            {offre.type_chambre}
+          </span>
+        </div>
+
+        <div style={{ color: '#fff', fontSize: 15, fontWeight: 800, marginBottom: 4 }}>{offre.nom}</div>
+        {offre.description && (
+          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, marginBottom: 12 }}>{offre.description}</div>
+        )}
+
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 12 }}>
+          {[
+            `${offre.nombre_nuits}N / ${offre.nombre_nuits + 1}J`,
+            offre.repas_type === 'complet' ? 'Pension complète' : offre.repas_type === 'demi' ? 'Demi-pension' : 'Sans repas',
+            offre.transport_inclus ? 'Transport inclus' : offre.transport_optionnel ? 'Transport optionnel' : 'Sans transport',
+          ].map(p => (
+            <span key={p} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', fontSize: 9, borderRadius: 5, padding: '3px 7px' }}>
+              {p}
             </span>
-            <h3 className="font-bold text-[#1c1c1e] text-base">{offre.nom}</h3>
-            {offre.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{offre.description}</p>}
-          </div>
-          <span className="shrink-0 text-xs bg-[#f0f2f8] text-[#003090] px-2 py-1 rounded-lg font-medium">{offre.type_chambre}</span>
+          ))}
         </div>
-        <div className="grid grid-cols-2 gap-1.5 text-xs text-gray-600">
-          <span className="flex items-center gap-1">
-            <i className="ti ti-moon text-[#003090]" aria-hidden="true" />
-            {offre.nombre_nuits}N / {offre.nombre_jours}J
-          </span>
-          <span className="flex items-center gap-1">
-            <i className={`ti ti-bus ${offre.transport_inclus ? 'text-green-600' : offre.transport_optionnel ? 'text-[#003090]' : 'text-gray-400'}`} aria-hidden="true" />
-            {offre.transport_inclus ? 'Transport inclus' : offre.transport_optionnel ? 'Optionnel' : 'Sans transport'}
-          </span>
-          <span className="flex items-center gap-1">
-            <i className="ti ti-soup text-[#003090]" aria-hidden="true" />
-            {offre.repas_type === 'complet' ? 'Pension complète' : offre.repas_type === 'demi' ? 'Demi-pension' : 'Sans repas'}
-          </span>
-        </div>
-        <div>
-          <div className="flex justify-between text-xs text-gray-500 mb-1">
-            <span>{complet ? 'Complet' : `${offre.places_restantes} place${offre.places_restantes > 1 ? 's' : ''}`}</span>
-            <span>{offre.places_total} total</span>
+
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2, marginBottom: 5 }}>
+            <div style={{ height: '100%', borderRadius: 2, background: 'linear-gradient(90deg,#22c55e,#4ade80)', width: `${pct}%`, transition: 'width .3s' }} />
           </div>
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full ${pct < 20 ? 'bg-red-400' : pct < 60 ? 'bg-amber-400' : 'bg-green-400'}`}
-              style={{ width: `${pct}%` }}
-            />
+          <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 9 }}>
+            {complet ? 'Complet' : `${offre.places_restantes} places restantes`}
           </div>
         </div>
-        <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-100">
-          <div>
-            <p className="text-xs text-gray-400">Prix</p>
-            <p className="text-xl font-bold text-[#003090] font-mono">{fmt(offre.prix_vente)}</p>
-          </div>
+
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ color: '#fdbe11', fontSize: 18, fontWeight: 800 }}>{fmt(offre.prix_vente)}</div>
           {complet ? (
-            <span className="px-4 py-2 bg-gray-200 text-gray-500 rounded-xl text-sm cursor-not-allowed">Complet</span>
+            <span style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.3)', borderRadius: 10, padding: '9px 16px', fontSize: 11, fontWeight: 700 }}>Complet</span>
           ) : (
-            <Link
-              href={`/offre/${offre.id}`}
-              className="px-4 py-2 bg-[#003090] text-white rounded-xl text-sm font-semibold hover:bg-[#002070] transition-colors"
-            >
-              Réserver
-            </Link>
+            <button type="button" onClick={() => router.push(`/offre/${offre.id}`)}
+              style={{ background: isFirst ? '#fdbe11' : '#003090', color: isFirst ? '#003090' : '#fff', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
+              Réserver →
+            </button>
           )}
         </div>
       </div>
@@ -87,12 +98,11 @@ function OfferCard({ offre }: { offre: Offre }) {
   )
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
-
 export default function FormulesPage() {
-  const router  = useRouter()
-  const [offres, setOffres]   = useState<Offre[]>([])
-  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState<'std' | 'fam'>('std')
+  const [offres, setOffres]       = useState<Offre[]>([])
+  const [loading, setLoading]     = useState(true)
 
   useEffect(() => {
     fetch('/api/offres')
@@ -101,133 +111,144 @@ export default function FormulesPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const offresEnfant  = offres.filter(o => o.type_public === 'enfant')
-  const offresAdulte  = offres.filter(o => o.type_public === 'adulte')
-  const offresFamille = offres.filter(o => o.type_public === 'famille')
+  const allOffres = [
+    ...offres.filter(o => o.type_public === 'enfant'),
+    ...offres.filter(o => o.type_public === 'adulte'),
+    ...offres.filter(o => o.type_public === 'famille'),
+  ]
 
   return (
-    <div className="min-h-screen bg-[#f0f2f8]" style={{ paddingBottom: 80 }}>
+    <div style={{ backgroundColor: '#0a0f2e', minHeight: '100vh' }}>
+      <style>{`@keyframes fadeInUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header style={{ backgroundColor: '#ffffff', borderBottom: '3px solid #fdbe11' }}>
-        <div style={{
-          maxWidth: 960,
-          margin: '0 auto',
-          padding: '12px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-        }}>
-          <Link
-            href="/"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              color: '#666666',
-              textDecoration: 'none',
-              fontSize: 14,
-              fontWeight: 500,
-            }}
-          >
-            <i className="ti ti-arrow-left" aria-hidden="true" />
-            Retour
-          </Link>
-          <span style={{ color: '#e0e0e0' }}>|</span>
-          <Image
-            src="/images/logo-color.png"
-            alt="Al Hazm Football Academy"
-            width={48}
-            height={48}
-            style={{ objectFit: 'contain' }}
-          />
-          <h1 style={{ color: '#003090', fontWeight: 800, fontSize: 18, margin: 0 }}>
-            Nos offres
-          </h1>
+      {/* Glows */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+        <div style={{ position: 'absolute', top: -100, left: -80, width: 350, height: 350, borderRadius: '50%', background: 'rgba(0,48,144,0.4)', filter: 'blur(80px)' }} />
+        <div style={{ position: 'absolute', bottom: -80, right: -60, width: 300, height: 300, borderRadius: '50%', background: 'rgba(253,190,17,0.07)', filter: 'blur(60px)' }} />
+      </div>
+
+      {/* Header */}
+      <header style={{ position: 'relative', zIndex: 10, background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button type="button" onClick={() => router.push('/')}
+          style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <i className="ti ti-arrow-left" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 16 }} aria-hidden="true" />
+        </button>
+        <Image src="/images/icon-white.png" width={36} height={36} alt="Al Hazm" style={{ objectFit: 'contain' }} />
+        <div>
+          <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, lineHeight: 1.2 }}>Nos formules</div>
+          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>Du 23 au 28 Juin 2026 · RUSICA PARK</div>
         </div>
       </header>
 
-      {/* ── Offres ─────────────────────────────────────────────────────── */}
-      <div style={{ maxWidth: 960, margin: '0 auto', padding: '24px 20px 120px' }}>
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: '#003090' }}>
-            <i className="ti ti-loader-2 animate-spin" style={{ fontSize: 40 }} aria-hidden="true" />
+      {/* Onglets */}
+      <div style={{ position: 'relative', zIndex: 5, display: 'grid', gridTemplateColumns: '1fr 1fr', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 4, gap: 4, margin: '14px 16px' }}>
+        <button type="button" onClick={() => setActiveTab('std')}
+          style={{ background: activeTab === 'std' ? '#003090' : 'transparent', color: activeTab === 'std' ? '#fff' : 'rgba(255,255,255,0.4)', boxShadow: activeTab === 'std' ? '0 4px 16px rgba(0,48,144,0.5)' : 'none', borderRadius: 10, padding: 11, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, fontWeight: 700, transition: 'all .2s' }}>
+          <i className="ti ti-ticket" style={{ fontSize: 14 }} aria-hidden="true" />
+          Offres standard
+        </button>
+        <button type="button" onClick={() => setActiveTab('fam')}
+          style={{ background: activeTab === 'fam' ? '#fdbe11' : 'transparent', color: activeTab === 'fam' ? '#003090' : 'rgba(255,255,255,0.4)', boxShadow: activeTab === 'fam' ? '0 4px 16px rgba(253,190,17,0.4)' : 'none', borderRadius: 10, padding: 11, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, fontWeight: 700, transition: 'all .2s' }}>
+          <i className="ti ti-users" style={{ fontSize: 14 }} aria-hidden="true" />
+          Réservation famille
+        </button>
+      </div>
+
+      {/* Contenu */}
+      <div style={{ position: 'relative', zIndex: 5 }}>
+
+        {/* ── Vue offres standard ── */}
+        {activeTab === 'std' && (
+          <div style={{ padding: '0 16px 110px', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12, animation: 'fadeInUp 0.4s ease' }}>
+            {loading ? (
+              <div style={{ padding: '60px 0', textAlign: 'center', width: '100%' }}>
+                <i className="ti ti-loader-2 animate-spin" style={{ fontSize: 36, color: 'rgba(255,255,255,0.5)', display: 'block' }} aria-hidden="true" />
+              </div>
+            ) : allOffres.length === 0 ? (
+              <div style={{ padding: '60px 0', color: 'rgba(255,255,255,0.4)', textAlign: 'center', width: '100%' }}>
+                <i className="ti ti-ticket-off" style={{ fontSize: 44, display: 'block', marginBottom: 12 }} aria-hidden="true" />
+                <p style={{ fontWeight: 600 }}>Aucune formule disponible pour le moment.</p>
+              </div>
+            ) : allOffres.map((o, i) => (
+              <OfferCard key={o.id} offre={o} isFirst={i === 0} />
+            ))}
           </div>
-        ) : offres.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: '#999999' }}>
-            <i className="ti ti-ticket-off" style={{ fontSize: 48, display: 'block', marginBottom: 12 }} aria-hidden="true" />
-            <p style={{ fontWeight: 600 }}>Aucune formule disponible pour le moment.</p>
-            <p style={{ fontSize: 13 }}>Revenez bientôt !</p>
-          </div>
-        ) : (
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            gap: 16,
-          }}>
-            {offresEnfant.map(o  => <OfferCard key={o.id} offre={o} />)}
-            {offresAdulte.map(o  => <OfferCard key={o.id} offre={o} />)}
-            {offresFamille.map(o => <OfferCard key={o.id} offre={o} />)}
+        )}
+
+        {/* ── Vue famille ── */}
+        {activeTab === 'fam' && (
+          <div style={{ padding: '0 16px 110px', animation: 'fadeInUp 0.4s ease' }}>
+
+            {/* Card hero */}
+            <div style={{ background: 'rgba(253,190,17,0.07)', border: '1.5px solid rgba(253,190,17,0.25)', borderRadius: 20, padding: 22, textAlign: 'center', marginBottom: 12, position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: -40, right: -40, width: 140, height: 140, background: 'rgba(253,190,17,0.12)', borderRadius: '50%', filter: 'blur(24px)', pointerEvents: 'none' }} />
+              <div style={{ width: 56, height: 56, margin: '0 auto 14px', background: 'rgba(253,190,17,0.15)', border: '1.5px solid rgba(253,190,17,0.3)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className="ti ti-users" style={{ fontSize: 26, color: '#fdbe11' }} aria-hidden="true" />
+              </div>
+              <div style={{ color: '#fff', fontSize: 16, fontWeight: 900, marginBottom: 8 }}>Pack Famille sur mesure</div>
+              <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 10, marginBottom: 18, lineHeight: 1.6 }}>
+                Adultes, enfants et bébés — chambres optimisées automatiquement.<br />
+                Prix calculé en temps réel.
+              </div>
+              <button type="button" onClick={() => router.push('/famille')}
+                style={{ width: '100%', background: '#fdbe11', color: '#003090', border: 'none', borderRadius: 13, padding: 13, fontSize: 13, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <i className="ti ti-calculator" style={{ fontSize: 16 }} aria-hidden="true" />
+                Configurer mon pack famille →
+              </button>
+            </div>
+
+            {/* Card avantages */}
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, padding: 16, marginBottom: 12 }}>
+              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>CE QUI EST INCLUS</div>
+              {([
+                { icon: 'ti-bed',             label: 'Hébergement optimisé', sub: 'Chambres selon votre famille',      c: 'bleu' },
+                { icon: 'ti-tools-kitchen-2', label: 'Repas au choix',       sub: 'Pension complète ou demi',          c: 'or'   },
+                { icon: 'ti-bus',             label: 'Transport optionnel',   sub: 'Forfait aller-retour',              c: 'bleu' },
+                { icon: 'ti-calculator',      label: 'Prix en temps réel',    sub: 'Calculé selon votre sélection',    c: 'or'   },
+              ] as const).map((item, idx, arr) => (
+                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: idx === 0 ? 0 : 9, paddingBottom: idx === arr.length - 1 ? 0 : 9, borderBottom: idx < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, background: item.c === 'bleu' ? 'rgba(0,48,144,0.35)' : 'rgba(253,190,17,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <i className={`ti ${item.icon}`} style={{ color: item.c === 'bleu' ? '#7eb8ff' : '#fdbe11', fontSize: 16 }} aria-hidden="true" />
+                  </div>
+                  <div>
+                    <div style={{ color: '#fff', fontSize: 11, fontWeight: 600 }}>{item.label}</div>
+                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 9 }}>{item.sub}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Card exemple */}
+            <div style={{ background: 'rgba(253,190,17,0.05)', border: '1px solid rgba(253,190,17,0.18)', borderRadius: 16, padding: 14 }}>
+              <div style={{ color: '#fdbe11', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                EXEMPLE — 2 adultes + 2 enfants · 5 nuits
+              </div>
+              {[
+                { label: 'Hébergement', value: '45 000 DA', bold: false },
+                { label: 'Repas',       value: '38 400 DA', bold: false },
+                { label: 'Transport',   value: '28 000 DA', bold: false },
+                { label: 'Total estimé',value: '149 500 DA', bold: true  },
+              ].map((row, idx, arr) => (
+                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: idx < arr.length - 1 ? 8 : 0, marginBottom: idx < arr.length - 1 ? 8 : 0, borderBottom: idx === arr.length - 2 ? '1px solid rgba(253,190,17,0.2)' : idx < arr.length - 2 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{row.label}</span>
+                  <span style={{ color: row.bold ? '#fdbe11' : 'rgba(255,255,255,0.8)', fontSize: row.bold ? 14 : 11, fontWeight: row.bold ? 800 : 500, fontFamily: 'monospace' }}>{row.value}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
 
-      {/* ── Barre sticky ───────────────────────────────────────────────── */}
-      <div style={{
-        position: 'sticky',
-        bottom: 0,
-        background: '#003090',
-        borderTop: '3px solid #fdbe11',
-        padding: '12px 20px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '12px',
-        zIndex: 100,
-      }}>
-        <button
-          type="button"
-          onClick={() => router.push('/formules')}
-          style={{
-            flex: 1,
-            background: '#fdbe11',
-            color: '#003090',
-            border: 'none',
-            borderRadius: '12px',
-            padding: '12px',
-            fontSize: '13px',
-            fontWeight: 800,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-          }}
-        >
-          <i className="ti ti-ticket" aria-hidden="true" />
-          Voir les offres
+      {/* Sticky bar */}
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(6,10,30,0.97)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.07)', padding: '10px 16px', zIndex: 100, display: 'flex', gap: 10 }}>
+        <button type="button" onClick={() => setActiveTab('std')}
+          style={{ flex: 1, background: '#fdbe11', color: '#003090', border: 'none', borderRadius: 13, padding: 12, fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <i className="ti ti-ticket" style={{ fontSize: 14 }} aria-hidden="true" />
+          Offres standard
         </button>
-        <button
-          type="button"
-          onClick={() => router.push('/famille')}
-          style={{
-            flex: 1,
-            background: '#ffffff',
-            color: '#fdbe11',
-            border: '2px solid #fdbe11',
-            borderRadius: '12px',
-            padding: '12px',
-            fontSize: '13px',
-            fontWeight: 800,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-          }}
-        >
-          <i className="ti ti-users" aria-hidden="true" />
+        <button type="button" onClick={() => { setActiveTab('fam'); router.push('/famille') }}
+          style={{ flex: 1, background: 'rgba(255,255,255,0.07)', color: '#fdbe11', border: '1.5px solid rgba(253,190,17,0.35)', borderRadius: 13, padding: 12, fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <i className="ti ti-users" style={{ fontSize: 14 }} aria-hidden="true" />
           Réservation famille
         </button>
       </div>
