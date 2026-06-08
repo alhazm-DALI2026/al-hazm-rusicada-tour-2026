@@ -96,6 +96,10 @@ export default function FamillePage() {
     })
   }, [params, form])
 
+  // Prix affiché = hébergement + repas uniquement (transport non compris)
+  const pvAffiche  = result ? result.detail.hebergement_pv  + result.detail.repas_pv  : 0
+  const cdrAffiche = result ? result.detail.hebergement_cdr + result.detail.repas_cdr : 0
+
   function setField<K extends keyof FamilleForm>(key: K, val: FamilleForm[K]) {
     setForm(f => ({ ...f, [key]: val }))
   }
@@ -121,8 +125,8 @@ export default function FamillePage() {
       nombre_nuits:   form.nombre_nuits,
       transport:      form.transport,
       repas_type:     form.repas,
-      cout_revient:   result?.cdrTotal ?? 0,
-      prix_vente:     result?.pvTotal  ?? 0,
+      cout_revient:   cdrAffiche,
+      prix_vente:     pvAffiche,
       options_custom: {
         chambres:   result?.chambres ?? [],
         nb_bebes:   form.nb_bebes,
@@ -378,7 +382,7 @@ export default function FamillePage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 4 }}>
                   <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 700 }}>TOTAL</span>
                   <span style={{ color: '#fdbe11', fontSize: 16, fontWeight: 800, fontFamily: 'monospace' }}>
-                    {result ? fmt(result.pvTotal) : '—'}
+                    {pvAffiche > 0 ? fmt(pvAffiche) : '—'}
                   </span>
                 </div>
               </div>
@@ -412,24 +416,41 @@ export default function FamillePage() {
         </form>
       )}
 
-      {/* Sticky bar prix temps réel */}
-      {params && result && (
+      {/* Sticky bar */}
+      {params && (
         <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(6,10,30,0.98)', backdropFilter: 'blur(24px)', borderTop: '2px solid rgba(253,190,17,0.4)', padding: '12px 16px', zIndex: 100 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ color: '#fdbe11', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>TOTAL VOTRE PACK</div>
-              <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, fontFamily: 'monospace', lineHeight: 1.2 }}>{fmt(result.pvTotal)}</div>
-              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>
-                {result.chambres.length > 0 ? formatChambres(result.chambres) : '—'} · {form.nombre_nuits} nuits
-              </div>
-            </div>
+
+            {/* Étapes 1 & 2 : chambres seulement, pas de prix */}
             {etape < 3 && (
-              <button type="button"
-                onClick={() => { if (etape === 1) setEtape(2); else setEtape(3) }}
-                style={{ background: '#fdbe11', color: '#003090', border: 'none', borderRadius: 13, padding: '12px 20px', fontSize: 12, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
-                <i className="ti ti-arrow-right" style={{ fontSize: 14 }} aria-hidden="true" />
-                Continuer →
-              </button>
+              <>
+                <div>
+                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>CHAMBRES</div>
+                  <div style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>
+                    {result && result.chambres.length > 0 ? formatChambres(result.chambres) : '—'}
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>{form.nombre_nuits} nuit{form.nombre_nuits > 1 ? 's' : ''}</div>
+                </div>
+                <button type="button"
+                  onClick={() => { if (etape === 1) setEtape(2); else setEtape(3) }}
+                  style={{ background: '#fdbe11', color: '#003090', border: 'none', borderRadius: 13, padding: '12px 20px', fontSize: 12, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+                  Continuer →
+                  <i className="ti ti-arrow-right" style={{ fontSize: 14 }} aria-hidden="true" />
+                </button>
+              </>
+            )}
+
+            {/* Étape 3 : prix hébergement + repas uniquement */}
+            {etape === 3 && (
+              <div>
+                <div style={{ color: '#fdbe11', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>TOTAL HÉBERGEMENT + REPAS</div>
+                <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, fontFamily: 'monospace', lineHeight: 1.2 }}>
+                  {pvAffiche > 0 ? fmt(pvAffiche) : '—'}
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>
+                  {result && result.chambres.length > 0 ? formatChambres(result.chambres) : '—'} · {form.nombre_nuits} nuit{form.nombre_nuits > 1 ? 's' : ''}
+                </div>
+              </div>
             )}
           </div>
         </div>
