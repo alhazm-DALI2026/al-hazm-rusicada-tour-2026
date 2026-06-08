@@ -212,14 +212,14 @@ export default function HomePage() {
             Dans chaque pack Al Hazm
           </p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {([
-            { icon: 'ti-ball-football',   label: 'Football & Formation', sub: 'Entraînements quotidiens', circBg: 'rgba(0,48,144,0.4)',    circBorder: 'rgba(0,80,204,0.25)',    ic: '#7eb8ff' },
-            { icon: 'ti-bed',             label: 'Hébergement hôtel',    sub: 'Chambre confortable',      circBg: 'rgba(253,190,17,0.15)', circBorder: 'rgba(253,190,17,0.25)', ic: '#fdbe11' },
-            { icon: 'ti-tools-kitchen-2', label: 'Pension complète',     sub: 'Repas inclus',             circBg: 'rgba(0,48,144,0.4)',    circBorder: 'rgba(0,80,204,0.25)',    ic: '#7eb8ff' },
-            { icon: 'ti-ripple',          label: 'Aqua Park Rusicada',   sub: 'Journée aquatique',        circBg: 'rgba(253,190,17,0.15)', circBorder: 'rgba(253,190,17,0.25)', ic: '#fdbe11' },
+            { src: '/images/inclus-football.jpg',    icon: 'ti-ball-football',   label: 'Football & Formation', sub: 'Entraînements quotidiens' },
+            { src: '/images/inclus-hebergement.jpg', icon: 'ti-bed',             label: 'Hébergement hôtel',    sub: 'Chambre confortable'      },
+            { src: '/images/inclus-repas.jpg',       icon: 'ti-tools-kitchen-2', label: 'Pension complète',     sub: '3 repas par jour'         },
+            { src: '/images/inclus-aquapark.jpg',    icon: 'ti-ripple',          label: 'Aqua Park Rusicada',   sub: 'Journée aquatique'        },
           ] as const).map(item => (
-            <InclusCard key={item.label} {...item} />
+            <InclusPhotoCard key={item.label} {...item} />
           ))}
         </div>
       </section>
@@ -376,42 +376,47 @@ export default function HomePage() {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function InclusCard({ icon, label, sub, circBg, circBorder, ic }: {
-  icon: string; label: string; sub: string
-  circBg: string; circBorder: string; ic: string
+function InclusPhotoCard({ src, icon, label, sub }: {
+  src: string; icon: string; label: string; sub: string
 }) {
   return (
     <div
       style={{
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.07)',
-        borderRadius: 16, padding: 16,
-        display: 'flex', alignItems: 'center', gap: 12,
-        transition: 'all .25s', cursor: 'default',
+        borderRadius: 18, overflow: 'hidden',
+        position: 'relative', height: 200,
+        cursor: 'pointer', transition: 'transform .25s',
       }}
-      onMouseEnter={e => {
-        const el = e.currentTarget as HTMLDivElement
-        el.style.borderColor = 'rgba(253,190,17,0.3)'
-        el.style.background = 'rgba(253,190,17,0.05)'
-        el.style.transform = 'translateY(-2px)'
-      }}
-      onMouseLeave={e => {
-        const el = e.currentTarget as HTMLDivElement
-        el.style.borderColor = 'rgba(255,255,255,0.07)'
-        el.style.background = 'rgba(255,255,255,0.04)'
-        el.style.transform = 'translateY(0)'
-      }}
+      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.02)' }}
+      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)' }}
     >
+      <Image
+        src={src}
+        alt={label}
+        fill
+        sizes="(max-width: 768px) 50vw, 25vw"
+        style={{ objectFit: 'cover', objectPosition: 'center', filter: 'brightness(0.55)' }}
+      />
       <div style={{
-        width: 44, height: 44, borderRadius: 13, flexShrink: 0,
-        background: circBg, border: `1px solid ${circBorder}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.3) 40%, rgba(10,15,46,0.9) 100%)',
+      }} />
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        padding: 14, display: 'flex', alignItems: 'center', gap: 10,
       }}>
-        <i className={`ti ${icon}`} style={{ color: ic, fontSize: 20 }} aria-hidden="true" />
-      </div>
-      <div>
-        <div style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>{label}</div>
-        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9 }}>{sub}</div>
+        <div style={{
+          width: 38, height: 38, borderRadius: 11, flexShrink: 0,
+          background: 'rgba(255,255,255,0.15)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255,255,255,0.2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <i className={`ti ${icon}`} style={{ fontSize: 18, color: '#fff' }} aria-hidden="true" />
+        </div>
+        <div>
+          <div style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>{label}</div>
+          <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10 }}>{sub}</div>
+        </div>
       </div>
     </div>
   )
