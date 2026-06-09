@@ -21,7 +21,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       >
         <AdminNav />
         <main
-          className="lg:ml-[260px] pt-[56px] lg:pt-0 pb-[68px] lg:pb-0"
+          className="lg:ml-[260px] pt-[56px] lg:pt-0 pb-24 lg:pb-0"
           style={{ background: '#0a0f2e', minHeight: '100vh' }}
         >
           {children}
