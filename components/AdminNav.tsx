@@ -178,14 +178,12 @@ export default function AdminNav() {
         />
       </div>
 
-      {/* ── Mobile sticky header (<1024px) ────────── */}
+      {/* ── Mobile header (<1024px) ────────────────── */}
       <header
         className="lg:hidden"
         style={{
-          position:       'fixed',
+          position:       'sticky',
           top:            0,
-          left:           0,
-          right:          0,
           height:         56,
           zIndex:         40,
           background:     '#060a1e',
@@ -258,63 +256,6 @@ export default function AdminNav() {
         </div>
       )}
 
-      {/* ── Mobile bottom nav ─────────────────────── */}
-      <nav
-        className="lg:hidden"
-        style={{
-          position:      'fixed',
-          bottom:        0,
-          left:          0,
-          right:         0,
-          height:        60,
-          zIndex:        40,
-          background:    '#060a1e',
-          borderTop:     '1px solid rgba(255,255,255,0.06)',
-          display:       'flex',
-          alignItems:    'center',
-        }}
-      >
-        {BOTTOM.map(item => {
-          const active = pathname.startsWith(item.href)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{
-                flex:           1,
-                textAlign:      'center',
-                textDecoration: 'none',
-                color:          active ? '#fdbe11' : 'rgba(255,255,255,0.3)',
-                position:       'relative',
-              }}
-            >
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                <i className={`ti ${item.icon}`} style={{ fontSize: 22, display: 'block' }} aria-hidden="true" />
-                {item.badge && pending > 0 && (
-                  <span style={{
-                    position:       'absolute',
-                    top:            -2,
-                    right:          -4,
-                    background:     '#ef4444',
-                    color:          '#fff',
-                    width:          14,
-                    height:         14,
-                    borderRadius:   '50%',
-                    fontSize:       9,
-                    fontWeight:     700,
-                    display:        'flex',
-                    alignItems:     'center',
-                    justifyContent: 'center',
-                  }}>
-                    {pending > 9 ? '9+' : pending}
-                  </span>
-                )}
-              </div>
-              <div style={{ fontSize: 9, marginTop: 2, fontWeight: 600 }}>{item.label}</div>
-            </Link>
-          )
-        })}
-      </nav>
     </>
   )
 }
