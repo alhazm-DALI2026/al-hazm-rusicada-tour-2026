@@ -323,7 +323,6 @@ export default function FamillePage() {
                   </div>
                   {configs.map((cfg, idx) => {
                     const isSelected = idx === Math.min(selectedConfigIdx, configs.length - 1)
-                    const pv = pvHebergConfig(cfg, params, form.nombre_nuits)
                     const nbRooms = cfg.s + cfg.d + cfg.t + cfg.q
                     return (
                       <div key={idx} onClick={() => setSelectedConfigIdx(idx)}
@@ -343,13 +342,7 @@ export default function FamillePage() {
                             <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>{nbRooms} chambre{nbRooms > 1 ? 's' : ''}</div>
                           </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ color: isSelected ? '#fdbe11' : 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: 700, fontFamily: 'monospace' }}>{fmt(pv)}</div>
-                            <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 9 }}>hébergement</div>
-                          </div>
-                          <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${isSelected ? '#fdbe11' : 'rgba(255,255,255,0.2)'}`, background: isSelected ? '#fdbe11' : 'transparent', flexShrink: 0 }} />
-                        </div>
+                        <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${isSelected ? '#fdbe11' : 'rgba(255,255,255,0.2)'}`, background: isSelected ? '#fdbe11' : 'transparent', flexShrink: 0 }} />
                       </div>
                     )
                   })}

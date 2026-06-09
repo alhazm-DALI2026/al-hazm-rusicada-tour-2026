@@ -210,18 +210,6 @@ export default function OffrePage() {
             />
           </div>
 
-          {/* Price card */}
-          <div className="bg-[#003090] text-white rounded-2xl p-5">
-            <p className="text-[#fdbe11] text-xs font-semibold uppercase tracking-wide mb-1">
-              {isOptional && montantTransport > 0 ? 'Prix de base (hors transport)' : 'Prix par personne'}
-            </p>
-            <p className="text-3xl font-bold font-mono">{fmt(Number(offre.prix_vente))}</p>
-            {isOptional && montantTransport > 0 && (
-              <p className="text-white/70 text-xs mt-1">
-                + {fmt(montantTransport)} si transport coché
-              </p>
-            )}
-          </div>
         </div>
 
         {/* ── Booking form (right / bottom) ───────────────────── */}
