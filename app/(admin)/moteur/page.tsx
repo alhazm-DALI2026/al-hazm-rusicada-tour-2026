@@ -386,7 +386,7 @@ export default function MoteurPage() {
       {/* ── Modal formulaire ──────────────────────────────── */}
       {showForm && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-lg">
+          <div className="bg-[#0f172a] border border-white/10 rounded-2xl shadow-xl w-full max-w-lg">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/10">
               <h2 className="text-lg font-bold text-[#003090] dark:text-white">
                 {editItem ? 'Modifier le coût' : 'Nouveau coût'}
@@ -406,7 +406,7 @@ export default function MoteurPage() {
                   value={form.libelle}
                   onChange={e => setField('libelle', e.target.value)}
                   placeholder="Ex: Hébergement chambre double par nuit"
-                  className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
                 />
               </div>
 
@@ -416,7 +416,7 @@ export default function MoteurPage() {
                   <select
                     value={form.categorie}
                     onChange={e => setField('categorie', e.target.value as MoteurCoutCategorie)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-[#1a1d2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
                   >
                     {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                   </select>
@@ -426,7 +426,7 @@ export default function MoteurPage() {
                   <select
                     value={form.type}
                     onChange={e => setField('type', e.target.value as MoteurCoutType)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-[#1a1d2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
                   >
                     {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
@@ -443,7 +443,7 @@ export default function MoteurPage() {
                     value={form.montant}
                     onChange={e => setField('montant', e.target.value)}
                     placeholder="0.00"
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
                   />
                 </div>
                 <div>
@@ -452,7 +452,7 @@ export default function MoteurPage() {
                     type="number" min="0"
                     value={form.ordre}
                     onChange={e => setField('ordre', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
                   />
                 </div>
               </div>
@@ -485,7 +485,7 @@ export default function MoteurPage() {
       {/* ── Modal suppression ─────────────────────────────── */}
       {deleteId && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-[#0f172a] border border-white/10 rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                 style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)' }}>

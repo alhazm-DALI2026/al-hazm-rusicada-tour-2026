@@ -122,7 +122,7 @@ function TarifTable({
   desc?:    string
 }) {
   const hasInfo  = rows.some(r => r.info)
-  const inputCls = 'w-full px-2 py-1.5 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090] text-right font-mono'
+  const inputCls = 'w-full px-2 py-1.5 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090] text-right font-mono'
 
   return (
     <div>
@@ -312,7 +312,7 @@ export default function ParametresPage() {
   const cdrDemiAuto = (n(form.cdr_repas_complet) * (1 - tauxDP)).toFixed(0)
   const pvDemiAuto  = (n(form.pv_repas_complet)  * (1 - tauxDP)).toFixed(0)
 
-  const inputCls = 'w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]'
+  const inputCls = 'w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]'
   const labelCls = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'
 
   if (loading) {
@@ -563,7 +563,7 @@ export default function ParametresPage() {
                         type="number" min="0" max="100" step="1"
                         value={form.taux_demi_pension}
                         onChange={e => setField('taux_demi_pension', e.target.value)}
-                        className="w-24 px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090] font-mono text-right"
+                        className="w-24 px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090] font-mono text-right"
                       />
                       <span className="text-sm text-gray-500">%</span>
                     </div>
@@ -578,7 +578,7 @@ export default function ParametresPage() {
                         type="number" min="0" max="100" step="1"
                         value={form.taux_marge_famille}
                         onChange={e => setField('taux_marge_famille', e.target.value)}
-                        className="w-24 px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090] font-mono text-right"
+                        className="w-24 px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090] font-mono text-right"
                       />
                       <span className="text-sm text-gray-500">%</span>
                     </div>
@@ -591,7 +591,7 @@ export default function ParametresPage() {
         )}
 
         {/* ── Save button (commun aux deux onglets) ──────────── */}
-        <div className="flex justify-end">
+        <div className="sticky bottom-0 bg-[#0a0f2e] border-t border-white/10 py-3 flex justify-end">
           <button
             type="submit"
             disabled={saving}

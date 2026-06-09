@@ -483,7 +483,7 @@ export default function OffresPage() {
       {/* ── Form modal ──────────────────────────────────────────── */}
       {showForm && (
         <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/50">
-          <div className="bg-[var(--color-surface)] rounded-xl shadow-xl w-full max-w-[680px] mx-auto my-8 max-h-[90vh] overflow-y-auto">
+          <div className="bg-[#0f172a] border border-white/10 rounded-xl shadow-xl w-full max-w-[680px] mx-auto my-8 max-h-[90vh] overflow-y-auto">
             {/* Modal header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/10">
               <h2 className="text-lg font-bold text-[#003090] dark:text-white">
@@ -505,7 +505,7 @@ export default function OffresPage() {
                   <input type="text" required value={form.nom}
                     onChange={e => setField('nom', e.target.value)}
                     placeholder="Ex: Pack Adulte Double"
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
                   />
                 </div>
                 <div>
@@ -513,7 +513,7 @@ export default function OffresPage() {
                   <textarea rows={2} value={form.description}
                     onChange={e => setField('description', e.target.value)}
                     placeholder="Description courte de l'offre…"
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090] resize-none"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090] resize-none"
                   />
                 </div>
               </div>
@@ -524,7 +524,7 @@ export default function OffresPage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type de public</label>
                   <select value={form.type_public}
                     onChange={e => setField('type_public', e.target.value as TypePublic)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-[#1a1d2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]">
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]">
                     {TP_CFG.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </div>
@@ -532,7 +532,7 @@ export default function OffresPage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type de chambre</label>
                   <select value={form.type_chambre}
                     onChange={e => setField('type_chambre', e.target.value as TypeChambre)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-[#1a1d2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]">
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]">
                     {CHAMBRES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
@@ -544,14 +544,14 @@ export default function OffresPage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre de nuits</label>
                   <input type="number" min="1" value={form.nombre_nuits}
                     onChange={e => setField('nombre_nuits', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre de jours</label>
                   <input type="number" min="1" value={form.nombre_jours}
                     onChange={e => setField('nombre_jours', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
                   />
                 </div>
               </div>
@@ -574,7 +574,7 @@ export default function OffresPage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type de repas</label>
                   <select value={form.repas_type}
                     onChange={e => setField('repas_type', e.target.value as RepasType)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-[#1a1d2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]">
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]">
                     {REPAS_OPTS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </select>
                 </div>
@@ -761,7 +761,7 @@ export default function OffresPage() {
                     <input type="number" required min="0" step="0.01" value={form.prix_vente}
                       onChange={e => setField('prix_vente', e.target.value)}
                       placeholder="0.00"
-                      className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
                     />
                   </div>
                 ) : (
@@ -776,7 +776,7 @@ export default function OffresPage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ordre affichage</label>
                   <input type="number" min="0" value={form.ordre_affichage}
                     onChange={e => setField('ordre_affichage', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
                   />
                 </div>
               </div>
@@ -801,7 +801,7 @@ export default function OffresPage() {
       {/* ── Delete modal ──────────────────────────────────────── */}
       {deleteId && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-[#0f172a] border border-white/10 rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                 style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)' }}>

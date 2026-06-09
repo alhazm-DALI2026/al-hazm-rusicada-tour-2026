@@ -135,8 +135,8 @@ function DrawerDetail({ r, onClose }: { r: ResWithOffre; onClose(): void }) {
   return (
     <div className="fixed inset-0 z-[60] flex justify-end">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-sm bg-[var(--color-surface)] h-full overflow-y-auto shadow-2xl flex flex-col">
-        <div className="sticky top-0 bg-[var(--color-surface)] border-b border-gray-100 dark:border-white/10 px-4 py-3 flex items-center justify-between">
+      <div className="relative w-full max-w-sm bg-[#0f172a] border-l border-white/10 h-full overflow-y-auto shadow-2xl flex flex-col">
+        <div className="sticky top-0 bg-[#0f172a] border-b border-white/10 px-4 py-3 flex items-center justify-between">
           <div>
             <p className="font-bold text-[#003090] dark:text-white font-mono">{r.reference}</p>
             <p className="text-xs text-gray-500">{r.prenom} {r.nom}</p>
@@ -322,13 +322,13 @@ function CreateModal({
     setSaving(false)
   }
 
-  const inputCls = 'w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]'
-  const selCls   = 'w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-[#1a1d2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]'
-  const labelCls = 'block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1'
+  const inputCls = 'w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]'
+  const selCls   = 'w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]'
+  const labelCls = 'block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1'
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
-      <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-xl my-4">
+      <div className="bg-[#0f172a] border border-white/10 rounded-2xl shadow-xl w-full max-w-xl my-4">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-white/10">
           <h2 className="font-bold text-[#003090] dark:text-white">Nouvelle réservation (Admin)</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1">
@@ -417,8 +417,8 @@ function CreateModal({
                 onChange={e => setF('nombre_nuits', e.target.value)} className={inputCls} />
             </div>
           </div>
-          <div className="flex items-center justify-between px-3 py-2 bg-[#f0f2f8] dark:bg-white/5 rounded-lg">
-            <span className="text-sm text-gray-700 dark:text-gray-300">Transport</span>
+          <div className="flex items-center justify-between px-3 py-2 bg-[#f0f2f8] dark:bg-[#0a0f2e] dark:border dark:border-[#003090] rounded-lg">
+            <span className="text-sm text-gray-700 dark:text-white">Transport</span>
             <Toggle value={form.transport} onChange={v => setF('transport', v)} />
           </div>
 
@@ -547,7 +547,7 @@ export default function ReservationsPage() {
   }
 
   // ── UI ────────────────────────────────────────────────────────
-  const selCls = 'px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-[#1a1d2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]'
+  const selCls = 'px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]'
 
   return (
     <div className="p-4 max-w-screen-2xl mx-auto space-y-4">
@@ -574,10 +574,10 @@ export default function ReservationsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-[var(--color-surface)] rounded-xl p-3 flex flex-wrap gap-3 shadow-sm">
+      <div className="bg-[var(--color-surface)] rounded-xl p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 shadow-sm">
         <input type="search" placeholder="Réf / Nom / Téléphone…"
           value={filters.search} onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
-          className="flex-1 min-w-[180px] px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-[#1a1d2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+          className="flex-1 min-w-[180px] px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
         />
         <select value={filters.statut} onChange={e => setFilters(f => ({ ...f, statut: e.target.value }))} className={selCls}>
           <option value="">Tous les statuts</option>
@@ -721,7 +721,7 @@ export default function ReservationsPage() {
       {/* Cancel modal */}
       {cancelItem && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-[#0f172a] border border-white/10 rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                 style={{ background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.2)' }}>
@@ -749,7 +749,7 @@ export default function ReservationsPage() {
       {/* Delete modal */}
       {deleteId && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-[#0f172a] border border-white/10 rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                 style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)' }}>

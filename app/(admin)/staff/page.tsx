@@ -504,8 +504,8 @@ export default function StaffPage() {
       {/* ── Modal formulaire ────────────────────────────────────── */}
       {showForm && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/10 sticky top-0 bg-surface z-10">
+          <div className="bg-[#0f172a] border border-white/10 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 sticky top-0 bg-[#0f172a] z-10">
               <h2 className="text-lg font-bold text-[#003090] dark:text-white">
                 {editItem ? 'Modifier le membre' : 'Ajouter un membre'}
               </h2>
@@ -527,7 +527,7 @@ export default function StaffPage() {
                     value={form.nom}
                     onChange={e => setForm(f => ({ ...f, nom: e.target.value }))}
                     placeholder="Ex: Benali"
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
                   />
                 </div>
                 <div>
@@ -540,7 +540,7 @@ export default function StaffPage() {
                     value={form.fonction}
                     onChange={e => setForm(f => ({ ...f, fonction: e.target.value }))}
                     placeholder="Ex: Entraîneur"
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
                   />
                   <datalist id="fonctions-list">
                     {FONCTIONS_SUGGEREES.map(f => <option key={f} value={f} />)}
@@ -781,7 +781,7 @@ export default function StaffPage() {
                   value={form.prime}
                   onChange={e => setForm(f => ({ ...f, prime: e.target.value }))}
                   placeholder="0"
-                  className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
                 />
               </div>
 
@@ -982,7 +982,7 @@ export default function StaffPage() {
       {/* ── Modal suppression ──────────────────────────────────── */}
       {deleteId && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-[#0f172a] border border-white/10 rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                 style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)' }}>
