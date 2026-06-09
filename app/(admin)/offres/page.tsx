@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Toast from '@/components/Toast'
-import { calculerCoutOffre } from '@/lib/calc'
+import { calculerCoutOffre, calculerOffreFamille } from '@/lib/calc'
 import type {
-  CoutInclus, MoteurCout, MoteurCoutCategorie, Offre,
+  CoutInclus, MoteurCout, MoteurCoutCategorie, Offre, Parametres,
   RepasType, TypeChambre, TypePublic,
 } from '@/types'
 
@@ -40,6 +40,7 @@ interface FormState {
   transport_inclus: boolean; transport_optionnel: boolean
   repas_type: RepasType
   couts_inclus: CoutFormItem[]; prix_vente: string; ordre_affichage: string
+  nb_adultes: string; nb_enfants: string
 }
 
 const EMPTY: FormState = {
@@ -48,6 +49,7 @@ const EMPTY: FormState = {
   transport_inclus: false, transport_optionnel: false,
   repas_type: 'demi',
   couts_inclus: [], prix_vente: '', ordre_affichage: '0',
+  nb_adultes: '2', nb_enfants: '0',
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -159,6 +161,17 @@ function OffreCard({ o, onEdit, onDelete, onToggle }: {
               {o.transport_inclus ? 'Transport inclus' : 'Transport optionnel'}
             </span>
           )}
+          {o.type_public === 'famille' && o.options_custom && (() => {
+            const oc = o.options_custom as { nb_adultes?: number; nb_enfants?: number }
+            const ad = oc.nb_adultes ?? 2
+            const en = oc.nb_enfants ?? 0
+            return (
+              <span className="flex items-center gap-1 col-span-2 text-green-500">
+                <i className="ti ti-users" aria-hidden="true" />
+                {ad} adulte{ad > 1 ? 's' : ''}{en > 0 ? ` · ${en} enfant${en > 1 ? 's' : ''}` : ''}
+              </span>
+            )
+          })()}
         </div>
 
         {/* Financials */}
@@ -236,6 +249,7 @@ export default function OffresPage() {
   const [form, setForm]           = useState<FormState>(EMPTY)
   const [saving, setSaving]       = useState(false)
   const [toast, setToast]         = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [familleParams, setFamilleParams] = useState<Parametres | null>(null)
 
   const notify = (msg: string, type: 'success' | 'error') => setToast({ message: msg, type })
 
@@ -249,6 +263,11 @@ export default function OffresPage() {
   }, [])
 
   useEffect(() => { loadAll() }, [loadAll])
+
+  useEffect(() => {
+    if (form.type_public !== 'famille') return
+    fetch('/api/parametres').then(r => r.json()).then(setFamilleParams).catch(() => {})
+  }, [form.type_public])
 
   // ── Live CDR ───────────────────────────────────────────────────
   const activeCouts = useMemo(() => allCouts.filter(c => c.actif), [allCouts])
@@ -273,6 +292,19 @@ export default function OffresPage() {
       default:         return m
     }
   }, [form, allCouts])
+
+  const familleCalc = useMemo(() => {
+    if (form.type_public !== 'famille' || !familleParams) return null
+    return calculerOffreFamille(
+      form.type_chambre,
+      parseInt(form.nb_adultes) || 2,
+      parseInt(form.nb_enfants) || 0,
+      parseInt(form.nombre_nuits) || 5,
+      form.repas_type,
+      form.transport_inclus,
+      familleParams,
+    )
+  }, [form, familleParams])
 
   // ── Form helpers ───────────────────────────────────────────────
   function setField<K extends keyof FormState>(k: K, v: FormState[K]) {
@@ -304,6 +336,7 @@ export default function OffresPage() {
         ? { id: item, montant: String(allCouts.find(m => m.id === item)?.montant ?? 0) }
         : { id: item.id, montant: String(item.montant) }
     )
+    const oc = o.options_custom as { nb_adultes?: number; nb_enfants?: number } | null
     setForm({
       nom:                 o.nom,
       description:         o.description ?? '',
@@ -317,6 +350,8 @@ export default function OffresPage() {
       couts_inclus:        coutsInclus,
       prix_vente:          String(o.prix_vente),
       ordre_affichage:     String(o.ordre_affichage),
+      nb_adultes:          String(oc?.nb_adultes ?? 2),
+      nb_enfants:          String(oc?.nb_enfants ?? 0),
     })
     setShowForm(true)
   }
@@ -338,6 +373,7 @@ export default function OffresPage() {
         categorie: c?.categorie ?? 'autre',
       }
     })
+    const isFamille = form.type_public === 'famille'
     const payload = {
       ...(editItem ? { id: editItem.id } : {}),
       nom:                 form.nom.trim(),
@@ -351,11 +387,21 @@ export default function OffresPage() {
       repas_type:          form.repas_type,
       places_total:        editItem?.places_total ?? 100,
       places_restantes:    editItem ? editItem.places_restantes : 100,
-      couts_inclus:        coutsPayload,
-      cout_revient:        cdr,
-      prix_vente:          prixVente,
+      couts_inclus:        isFamille ? [] : coutsPayload,
+      cout_revient:        isFamille ? (familleCalc?.cdrTotal ?? 0) : cdr,
+      prix_vente:          isFamille ? (familleCalc?.pvTotal  ?? 0) : prixVente,
       actif:               editItem?.actif ?? true,
       ordre_affichage:     parseInt(form.ordre_affichage) || 0,
+      ...(isFamille ? {
+        options_custom: {
+          type_chambre:   form.type_chambre,
+          nb_adultes:     parseInt(form.nb_adultes)  || 2,
+          nb_enfants:     parseInt(form.nb_enfants)  || 0,
+          nombre_nuits:   parseInt(form.nombre_nuits) || 5,
+          repas_type:     form.repas_type,
+          avec_transport: form.transport_inclus,
+        },
+      } : {}),
     }
     const r = await fetch('/api/offres', {
       method:  editItem ? 'PUT' : 'POST',
@@ -534,7 +580,28 @@ export default function OffresPage() {
                 </div>
               </div>
 
-              {/* Coûts inclus */}
+              {/* Champs famille */}
+              {form.type_public === 'famille' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nb adultes</label>
+                    <input type="number" min="1" value={form.nb_adultes}
+                      onChange={e => setField('nb_adultes', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nb enfants</label>
+                    <input type="number" min="0" value={form.nb_enfants}
+                      onChange={e => setField('nb_enfants', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Coûts inclus — système standard uniquement */}
+              {form.type_public !== 'famille' && (
               <div>
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Coûts inclus
@@ -582,73 +649,129 @@ export default function OffresPage() {
                   </div>
                 )}
               </div>
+              )}
 
               {/* CDR preview */}
-              <div className="border border-[#003090]/20 rounded-xl p-4 bg-[#f0f2f8] dark:bg-white/5 space-y-1.5">
-                <p className="text-xs font-semibold text-[#003090] dark:text-[#fdbe11] uppercase tracking-wide mb-2">
-                  Aperçu calcul en temps réel
-                </p>
-                {breakdown.size === 0 ? (
-                  <p className="text-xs text-gray-400 italic">Sélectionnez des coûts pour voir le détail.</p>
-                ) : (
-                  Array.from(breakdown.entries()).map(([cat, val]) => (
-                    <div key={cat} className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
-                      <span>{CAT_LABEL[cat]}</span>
-                      <span className="font-mono">{fmt(val)}</span>
-                    </div>
-                  ))
-                )}
-                <div className="border-t border-gray-200 dark:border-white/10 pt-1.5 mt-1 space-y-1">
-                  <div className="flex justify-between text-sm font-bold text-gray-800 dark:text-white">
-                    <span>Total CDR</span>
-                    <span className="font-mono">{fmt(cdr)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-[#003090] dark:text-[#7a9de8]">
-                    <span>Prix vente base</span>
-                    <span className="font-mono">{fmt(prixVente)}</span>
-                  </div>
-                  <div className={`flex justify-between text-sm font-bold ${marge >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600'}`}>
-                    <span>Marge</span>
-                    <span className="font-mono">{fmt(marge)} ({margeP.toFixed(1)}%)</span>
-                  </div>
+              {form.type_public === 'famille' ? (
+                <div className="rounded-xl p-4 space-y-1.5" style={{ background: 'rgba(0,48,144,0.15)', border: '1px solid rgba(0,80,204,0.2)' }}>
+                  <p className="text-xs font-semibold text-green-500 uppercase tracking-wide mb-2">
+                    Aperçu offre famille — CDR depuis paramètres
+                  </p>
+                  {!familleParams ? (
+                    <p className="text-xs text-gray-400 italic">Chargement des paramètres…</p>
+                  ) : !familleCalc ? (
+                    <p className="text-xs text-gray-400 italic">Calcul en cours…</p>
+                  ) : (
+                    <>
+                      <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                        <span>CDR Hébergement</span>
+                        <span className="font-mono">{fmt(familleCalc.cdrHeberg)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                        <span>CDR Repas</span>
+                        <span className="font-mono">{fmt(familleCalc.cdrRepas)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                        <span>CDR Transport</span>
+                        <span className="font-mono">{fmt(familleCalc.cdrTransport)}</span>
+                      </div>
+                      <div className="border-t border-gray-200 dark:border-white/10 pt-1.5 mt-1 space-y-1">
+                        <div className="flex justify-between text-sm font-bold text-gray-800 dark:text-white">
+                          <span>CDR Total</span>
+                          <span className="font-mono">{fmt(familleCalc.cdrTotal)}</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                          <span>Taux marge</span>
+                          <span className="font-mono">{((familleCalc.taux - 1) * 100).toFixed(0)}%</span>
+                        </div>
+                        <div className="flex justify-between text-sm font-bold" style={{ color: '#fdbe11' }}>
+                          <span>PV Total</span>
+                          <span className="font-mono">{fmt(familleCalc.pvTotal)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm font-bold text-green-600 dark:text-green-400">
+                          <span>Marge</span>
+                          <span className="font-mono">{fmt(familleCalc.marge)}</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
-                {form.transport_optionnel && transportSupplement > 0 && (
-                  <div className="border-t border-[#003090]/20 pt-2 mt-1 space-y-1">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#003090] dark:text-[#fdbe11]">
-                      Transport optionnel
-                    </p>
-                    <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+              ) : (
+                <div className="border border-[#003090]/20 rounded-xl p-4 bg-[#f0f2f8] dark:bg-white/5 space-y-1.5">
+                  <p className="text-xs font-semibold text-[#003090] dark:text-[#fdbe11] uppercase tracking-wide mb-2">
+                    Aperçu calcul en temps réel
+                  </p>
+                  {breakdown.size === 0 ? (
+                    <p className="text-xs text-gray-400 italic">Sélectionnez des coûts pour voir le détail.</p>
+                  ) : (
+                    Array.from(breakdown.entries()).map(([cat, val]) => (
+                      <div key={cat} className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                        <span>{CAT_LABEL[cat]}</span>
+                        <span className="font-mono">{fmt(val)}</span>
+                      </div>
+                    ))
+                  )}
+                  <div className="border-t border-gray-200 dark:border-white/10 pt-1.5 mt-1 space-y-1">
+                    <div className="flex justify-between text-sm font-bold text-gray-800 dark:text-white">
+                      <span>Total CDR</span>
+                      <span className="font-mono">{fmt(cdr)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-[#003090] dark:text-[#7a9de8]">
                       <span>Prix vente base</span>
                       <span className="font-mono">{fmt(prixVente)}</span>
                     </div>
-                    <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
-                      <span>+ Transport (option)</span>
-                      <span className="font-mono">{fmt(transportSupplement)}</span>
-                    </div>
-                    <div className="flex justify-between text-xs font-bold border-t border-gray-200 dark:border-white/10 pt-1 text-[#003090] dark:text-[#fdbe11]">
-                      <span>Prix avec transport</span>
-                      <span className="font-mono">{fmt(prixVente + transportSupplement)}</span>
-                    </div>
-                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                      <span>Prix sans transport</span>
-                      <span className="font-mono">{fmt(prixVente)}</span>
+                    <div className={`flex justify-between text-sm font-bold ${marge >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600'}`}>
+                      <span>Marge</span>
+                      <span className="font-mono">{fmt(marge)} ({margeP.toFixed(1)}%)</span>
                     </div>
                   </div>
-                )}
-              </div>
+                  {form.transport_optionnel && transportSupplement > 0 && (
+                    <div className="border-t border-[#003090]/20 pt-2 mt-1 space-y-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#003090] dark:text-[#fdbe11]">
+                        Transport optionnel
+                      </p>
+                      <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                        <span>Prix vente base</span>
+                        <span className="font-mono">{fmt(prixVente)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                        <span>+ Transport (option)</span>
+                        <span className="font-mono">{fmt(transportSupplement)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs font-bold border-t border-gray-200 dark:border-white/10 pt-1 text-[#003090] dark:text-[#fdbe11]">
+                        <span>Prix avec transport</span>
+                        <span className="font-mono">{fmt(prixVente + transportSupplement)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                        <span>Prix sans transport</span>
+                        <span className="font-mono">{fmt(prixVente)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Prix vente + Ordre */}
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Prix de vente (DA) <span className="text-red-500">*</span>
-                  </label>
-                  <input type="number" required min="0" step="0.01" value={form.prix_vente}
-                    onChange={e => setField('prix_vente', e.target.value)}
-                    placeholder="0.00"
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
-                  />
-                </div>
+                {form.type_public !== 'famille' ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Prix de vente (DA) <span className="text-red-500">*</span>
+                    </label>
+                    <input type="number" required min="0" step="0.01" value={form.prix_vente}
+                      onChange={e => setField('prix_vente', e.target.value)}
+                      placeholder="0.00"
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col justify-center px-3 py-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-500/30">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Prix de vente (calculé)</p>
+                    <p className="text-sm font-bold font-mono text-green-700 dark:text-green-400">
+                      {familleCalc ? fmt(familleCalc.pvTotal) : '—'}
+                    </p>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ordre affichage</label>
                   <input type="number" min="0" value={form.ordre_affichage}

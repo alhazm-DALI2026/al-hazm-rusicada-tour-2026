@@ -45,6 +45,7 @@ export interface Offre {
   places_restantes:    number;
   actif:               boolean;
   ordre_affichage:     number;
+  options_custom:      Record<string, unknown> | null;
   created_at:          string;
 }
 

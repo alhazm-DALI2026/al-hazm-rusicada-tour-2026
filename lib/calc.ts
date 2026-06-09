@@ -1,4 +1,4 @@
-import type { ChargeStaff, CoutInclus, MoteurCout, Offre, Parametres, RepasType } from '@/types';
+import type { ChargeStaff, CoutInclus, MoteurCout, Offre, Parametres, RepasType, TypeChambre } from '@/types';
 
 // ─── helpers internes ────────────────────────────────────────────────────────
 
@@ -311,4 +311,57 @@ export function calculerCoutFamille(
   const cdrEnfant = calculerCoutOffre(offreEnfant) + montantTransport + repas;
 
   return cdrAdulte * nbAdultes + cdrEnfant * nbEnfants;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Calcule CDR et PV d'une offre famille.
+ * CDR : paramètres (cdr_*)
+ * PV  : CDR × (1 + taux_marge_famille / 100)
+ */
+export function calculerOffreFamille(
+  typeChambre:   TypeChambre,
+  nbAdultes:     number,
+  nbEnfants:     number,
+  nombreNuits:   number,
+  repasType:     'sans' | 'demi' | 'complet',
+  avecTransport: boolean,
+  params:        Parametres,
+): {
+  cdrHeberg:    number
+  cdrRepas:     number
+  cdrTransport: number
+  cdrTotal:     number
+  pvTotal:      number
+  marge:        number
+  taux:         number
+} {
+  const nbJours     = nombreNuits + 1
+  const nbPersonnes = nbAdultes + nbEnfants
+
+  const cdrParChambre: Record<TypeChambre, number> = {
+    Single:    params.cdr_single,
+    Double:    params.cdr_double,
+    Triple:    params.cdr_triple,
+    Quadruple: params.cdr_quadruple,
+  }
+  const cdrHeberg = cdrParChambre[typeChambre] * nombreNuits
+
+  const facteurRepas =
+    repasType === 'sans' ? 0 :
+    repasType === 'demi' ? (1 - params.taux_demi_pension / 100) : 1
+
+  const cdrRepas = params.cdr_repas_complet * facteurRepas * nbPersonnes * nbJours
+
+  const cdrTransport = avecTransport
+    ? params.cdr_transport_adulte * nbAdultes + params.cdr_transport_enfant * nbEnfants
+    : 0
+
+  const cdrTotal = Math.round(cdrHeberg + cdrRepas + cdrTransport)
+  const taux     = 1 + params.taux_marge_famille / 100
+  const pvTotal  = Math.round(cdrTotal * taux)
+  const marge    = pvTotal - cdrTotal
+
+  return { cdrHeberg, cdrRepas, cdrTransport, cdrTotal, pvTotal, marge, taux }
 }

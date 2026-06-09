@@ -114,6 +114,16 @@ function OfferCard({ offre, isFirst }: { offre: Offre; isFirst: boolean }) {
         )}
 
         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 12 }}>
+          {offre.type_public === 'famille' && offre.options_custom && (() => {
+            const oc = offre.options_custom as { nb_adultes?: number; nb_enfants?: number }
+            const ad = oc.nb_adultes ?? 2
+            const en = oc.nb_enfants ?? 0
+            return (
+              <span style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80', fontSize: 9, borderRadius: 5, padding: '3px 7px' }}>
+                {`${ad} adulte${ad > 1 ? 's' : ''}${en > 0 ? ` + ${en} enfant${en > 1 ? 's' : ''}` : ''}`}
+              </span>
+            )
+          })()}
           {[
             `${offre.nombre_nuits}N / ${offre.nombre_nuits + 1}J`,
             offre.repas_type === 'complet' ? 'Pension complète' : offre.repas_type === 'demi' ? 'Demi-pension' : 'Sans repas',
@@ -140,7 +150,7 @@ function OfferCard({ offre, isFirst }: { offre: Offre; isFirst: boolean }) {
             <span style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.3)', borderRadius: 10, padding: '9px 16px', fontSize: 11, fontWeight: 700 }}>Complet</span>
           ) : (
             <button type="button" onClick={() => router.push(`/offre/${offre.id}`)}
-              style={{ background: isFirst ? '#fdbe11' : '#003090', color: isFirst ? '#003090' : '#fff', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
+              style={{ background: offre.type_public === 'famille' ? '#22c55e' : isFirst ? '#fdbe11' : '#003090', color: offre.type_public === 'famille' ? '#fff' : isFirst ? '#003090' : '#fff', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
               Réserver →
             </button>
           )}
