@@ -167,7 +167,7 @@ export default function AdminNav() {
           height:      '100vh',
           background:  '#060a1e',
           borderRight: '1px solid rgba(255,255,255,0.06)',
-          zIndex:      50,
+          zIndex:      40,
           overflowY:   'auto',
         }}
       >
@@ -182,14 +182,17 @@ export default function AdminNav() {
       <header
         className="lg:hidden"
         style={{
-          position:     'sticky',
-          top:          0,
-          zIndex:       50,
-          background:   '#060a1e',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          padding:      '12px 16px',
-          display:      'flex',
-          alignItems:   'center',
+          position:       'fixed',
+          top:            0,
+          left:           0,
+          right:          0,
+          height:         56,
+          zIndex:         40,
+          background:     '#060a1e',
+          borderBottom:   '1px solid rgba(255,255,255,0.06)',
+          padding:        '0 16px',
+          display:        'flex',
+          alignItems:     'center',
           justifyContent: 'space-between',
         }}
       >
@@ -213,17 +216,18 @@ export default function AdminNav() {
 
       {/* ── Mobile drawer ─────────────────────────── */}
       {drawerOpen && (
-        <div className="lg:hidden" style={{ position: 'fixed', inset: 0, zIndex: 100 }}>
+        <div className="lg:hidden">
           <div
-            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)' }}
+            style={{ position: 'fixed', inset: 0, zIndex: 90, background: 'rgba(0,0,0,0.75)' }}
             onClick={() => setDrawerOpen(false)}
           />
           <div style={{
-            position:   'absolute',
+            position:   'fixed',
             top:        0,
             left:       0,
+            bottom:     0,
             width:      260,
-            height:     '100%',
+            zIndex:     91,
             background: '#060a1e',
             overflowY:  'auto',
           }}>
@@ -262,11 +266,12 @@ export default function AdminNav() {
           bottom:        0,
           left:          0,
           right:         0,
-          zIndex:        50,
+          height:        60,
+          zIndex:        40,
           background:    '#060a1e',
           borderTop:     '1px solid rgba(255,255,255,0.06)',
-          padding:       '8px 0 4px',
           display:       'flex',
+          alignItems:    'center',
         }}
       >
         {BOTTOM.map(item => {

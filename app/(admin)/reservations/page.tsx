@@ -133,7 +133,7 @@ function DrawerDetail({ r, onClose }: { r: ResWithOffre; onClose(): void }) {
   const marge  = Number(r.marge)
   const margeP = Number(r.prix_vente) > 0 ? (marge / Number(r.prix_vente)) * 100 : 0
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-[60] flex justify-end">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative w-full max-w-sm bg-[var(--color-surface)] h-full overflow-y-auto shadow-2xl flex flex-col">
         <div className="sticky top-0 bg-[var(--color-surface)] border-b border-gray-100 dark:border-white/10 px-4 py-3 flex items-center justify-between">
@@ -327,7 +327,7 @@ function CreateModal({
   const labelCls = 'block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
       <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-xl my-4">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-white/10">
           <h2 className="font-bold text-[#003090] dark:text-white">Nouvelle réservation (Admin)</h2>
@@ -720,7 +720,7 @@ export default function ReservationsPage() {
 
       {/* Cancel modal */}
       {cancelItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
           <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
@@ -748,7 +748,7 @@ export default function ReservationsPage() {
 
       {/* Delete modal */}
       {deleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
           <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"

@@ -12,13 +12,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div
         className="dark"
         style={{
-          '--color-bg':      '#0a0f2e',
-          '--color-surface': 'rgba(255,255,255,0.04)',
+          '--color-bg':          '#0a0f2e',
+          '--color-surface':     'rgba(255,255,255,0.04)',
+          '--admin-header-h':    '56px',
+          '--admin-sidebar-w':   '260px',
+          '--admin-bottomnav-h': '60px',
         } as React.CSSProperties}
       >
         <AdminNav />
         <main
-          className="lg:ml-[260px] pb-[72px] lg:pb-0"
+          className="lg:ml-[260px] pt-[56px] lg:pt-0 pb-[68px] lg:pb-0"
           style={{ background: '#0a0f2e', minHeight: '100vh' }}
         >
           {children}
