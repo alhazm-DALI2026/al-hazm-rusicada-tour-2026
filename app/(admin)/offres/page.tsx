@@ -564,8 +564,8 @@ export default function OffresPage() {
                     { label: 'Transport inclus',    key: 'transport_inclus'    as const },
                     { label: 'Transport optionnel', key: 'transport_optionnel' as const },
                   ].map(({ label, key }) => (
-                    <div key={key} className="flex items-center justify-between px-3 py-2 bg-[#f0f2f8] dark:bg-white/5 rounded-lg">
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{label}</span>
+                    <div key={key} className="flex items-center justify-between px-3 py-2 bg-[#f0f2f8] dark:bg-[#0a0f2e] dark:border dark:border-[#003090] rounded-lg">
+                      <span className="text-sm text-gray-700 dark:text-white">{label}</span>
                       <Toggle value={form[key]} onChange={v => setField(key, v)} />
                     </div>
                   ))}
