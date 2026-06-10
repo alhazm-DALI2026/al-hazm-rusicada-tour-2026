@@ -103,12 +103,14 @@ function Section({ title, icon, children }: { title: string; icon: string; child
 // ── TarifTable ────────────────────────────────────────────────────────────────
 
 interface TarifRow {
-  label:    string
-  cdrKey:   keyof FormState | null
-  pvKey:    keyof FormState | null
-  cdrAuto?: string
-  pvAuto?:  string
-  info?:    string
+  label:     string
+  cdrKey:    keyof FormState | null
+  pvKey:     keyof FormState | null
+  cdrAuto?:  string
+  pvAuto?:   string
+  info?:     string
+  capacite?: number
+  subLabel?: string
 }
 
 function TarifTable({
@@ -121,8 +123,9 @@ function TarifTable({
   note?:    string
   desc?:    string
 }) {
-  const hasInfo  = rows.some(r => r.info)
-  const inputCls = 'w-full px-2 py-1.5 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090] text-right font-mono'
+  const hasInfo     = rows.some(r => r.info)
+  const hasCapacite = rows.some(r => r.capacite)
+  const inputCls    = 'w-full px-2 py-1.5 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090] text-right font-mono'
 
   return (
     <div>
@@ -140,6 +143,18 @@ function TarifTable({
               <th className="px-3 py-2 font-semibold text-gray-600 dark:text-gray-300 w-36">CDR (DA)</th>
               <th className="px-3 py-2 font-semibold text-gray-600 dark:text-gray-300 w-36">PV (DA)</th>
               <th className="px-3 py-2 font-semibold text-gray-600 dark:text-gray-300">Marge</th>
+              {hasCapacite && (
+                <>
+                  <th className="px-3 py-2 font-semibold text-gray-600 dark:text-gray-300 bg-[#0a0f2e]/50 w-32">
+                    CDR/pers/nuit
+                    <span className="block text-xs text-gray-400 font-normal">(auto)</span>
+                  </th>
+                  <th className="px-3 py-2 font-semibold text-gray-600 dark:text-gray-300 bg-[#0a0f2e]/50 w-32">
+                    PV/pers/nuit
+                    <span className="block text-xs text-gray-400 font-normal">(auto)</span>
+                  </th>
+                </>
+              )}
               {hasInfo && <th className="px-3 py-2 font-semibold text-gray-600 dark:text-gray-300">Info</th>}
             </tr>
           </thead>
@@ -152,31 +167,57 @@ function TarifTable({
                   <td className="px-3 py-2 font-medium text-gray-700 dark:text-gray-300">{row.label}</td>
                   <td className="px-3 py-2">
                     {row.cdrKey ? (
-                      <input
-                        type="number" min="0" step="100"
-                        value={form[row.cdrKey]}
-                        onChange={e => onChange(row.cdrKey!, e.target.value)}
-                        className={inputCls}
-                      />
+                      <>
+                        <input
+                          type="number" min="0" step="100"
+                          value={form[row.cdrKey]}
+                          onChange={e => onChange(row.cdrKey!, e.target.value)}
+                          className={inputCls}
+                        />
+                        {row.subLabel && <span className="block text-xs text-gray-400 mt-0.5 text-right">{row.subLabel}</span>}
+                      </>
                     ) : (
-                      <span className="px-2 py-1.5 text-gray-400 font-mono text-sm">{row.cdrAuto ?? '0'}</span>
+                      <>
+                        <span className="px-2 py-1.5 text-gray-400 font-mono text-sm">{row.cdrAuto ?? '0'}</span>
+                        {row.subLabel && <span className="block text-xs text-gray-400 mt-0.5">{row.subLabel}</span>}
+                      </>
                     )}
                   </td>
                   <td className="px-3 py-2">
                     {row.pvKey ? (
-                      <input
-                        type="number" min="0" step="100"
-                        value={form[row.pvKey]}
-                        onChange={e => onChange(row.pvKey!, e.target.value)}
-                        className={inputCls}
-                      />
+                      <>
+                        <input
+                          type="number" min="0" step="100"
+                          value={form[row.pvKey]}
+                          onChange={e => onChange(row.pvKey!, e.target.value)}
+                          className={inputCls}
+                        />
+                        {row.subLabel && <span className="block text-xs text-gray-400 mt-0.5 text-right">{row.subLabel}</span>}
+                      </>
                     ) : (
-                      <span className="px-2 py-1.5 text-gray-400 font-mono text-sm">{row.pvAuto ?? '0'}</span>
+                      <>
+                        <span className="px-2 py-1.5 text-gray-400 font-mono text-sm">{row.pvAuto ?? '0'}</span>
+                        {row.subLabel && <span className="block text-xs text-gray-400 mt-0.5">{row.subLabel}</span>}
+                      </>
                     )}
                   </td>
                   <td className="px-3 py-2 font-mono text-sm">
                     <MargeCell cdr={cdrVal} pv={pvVal} />
                   </td>
+                  {hasCapacite && (
+                    <>
+                      <td className="px-3 py-2 bg-[#0a0f2e]/50">
+                        {row.capacite
+                          ? <span className="text-[#fdbe11] font-semibold font-mono text-sm">{Math.round(n(cdrVal) / row.capacite).toLocaleString('fr-DZ')} DA</span>
+                          : <span className="text-gray-400">—</span>}
+                      </td>
+                      <td className="px-3 py-2 bg-[#0a0f2e]/50">
+                        {row.capacite
+                          ? <span className="text-[#fdbe11] font-semibold font-mono text-sm">{Math.round(n(pvVal) / row.capacite).toLocaleString('fr-DZ')} DA</span>
+                          : <span className="text-gray-400">—</span>}
+                      </td>
+                    </>
+                  )}
                   {hasInfo && (
                     <td className="px-3 py-2 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                       {row.info ?? ''}
@@ -512,10 +553,10 @@ export default function ParametresPage() {
                 desc={"💡 Calcul : Prix chambre × nb chambres × nb nuits\n Ex: Double 24 000 DA × 1 chambre × 5 nuits\n = 120 000 DA"}
                 note={`Ex : si Double = ${Number(form.cdr_double).toLocaleString('fr-DZ')} DA/chambre → ${(Number(form.cdr_double) / 2).toLocaleString('fr-DZ')} DA/pers pour 2 personnes/nuit`}
                 rows={[
-                  { label: 'Single',    cdrKey: 'cdr_single',    pvKey: 'pv_single',    info: '1 pers. seule'   },
-                  { label: 'Double',    cdrKey: 'cdr_double',    pvKey: 'pv_double',    info: '2 pers. / chambre' },
-                  { label: 'Triple',    cdrKey: 'cdr_triple',    pvKey: 'pv_triple',    info: '3 pers. / chambre' },
-                  { label: 'Quadruple', cdrKey: 'cdr_quadruple', pvKey: 'pv_quadruple', info: '4 pers. / chambre' },
+                  { label: 'Single',    cdrKey: 'cdr_single',    pvKey: 'pv_single',    info: '1 pers. seule',     capacite: 1 },
+                  { label: 'Double',    cdrKey: 'cdr_double',    pvKey: 'pv_double',    info: '2 pers. / chambre', capacite: 2 },
+                  { label: 'Triple',    cdrKey: 'cdr_triple',    pvKey: 'pv_triple',    info: '3 pers. / chambre', capacite: 3 },
+                  { label: 'Quadruple', cdrKey: 'cdr_quadruple', pvKey: 'pv_quadruple', info: '4 pers. / chambre', capacite: 4 },
                 ]}
               />
 
@@ -529,8 +570,8 @@ export default function ParametresPage() {
                 desc={"💡 Calcul : Prix repas × nb personnes × (nb nuits + 1)\n Ex: Pension 3 200 DA × 2 pers × 6 jours\n = 38 400 DA\n ⚠️ nb jours = nb nuits + 1\n (5 nuits = 6 jours de repas)"}
                 note={`Demi-pension = Pension complète × (1 − ${form.taux_demi_pension}%)`}
                 rows={[
-                  { label: 'Pension complète',                           cdrKey: 'cdr_repas_complet', pvKey: 'pv_repas_complet' },
-                  { label: `Demi-pension (−${form.taux_demi_pension}%)`, cdrKey: null, pvKey: null, cdrAuto: cdrDemiAuto, pvAuto: pvDemiAuto },
+                  { label: 'Pension complète',                           cdrKey: 'cdr_repas_complet', pvKey: 'pv_repas_complet', subLabel: 'par pers/jour' },
+                  { label: `Demi-pension (−${form.taux_demi_pension}%)`, cdrKey: null, pvKey: null, cdrAuto: cdrDemiAuto, pvAuto: pvDemiAuto, subLabel: 'par pers/jour' },
                   { label: 'Sans repas',                                  cdrKey: null, pvKey: null, cdrAuto: '0',         pvAuto: '0'        },
                 ]}
               />
@@ -542,6 +583,7 @@ export default function ParametresPage() {
                 title="Transport (forfait par personne aller-retour)"
                 form={form}
                 onChange={setField}
+                note="ℹ️ Transport calculé par personne — adulte / enfant / bébé"
                 desc={"💡 Calcul : Prix transport × nb personnes\n Ex: 7 000 DA × 2 adultes = 14 000 DA\n ⚠️ Forfait fixe — pas multiplié par les nuits"}
                 rows={[
                   { label: 'Adulte', cdrKey: 'cdr_transport_adulte', pvKey: 'pv_transport_adulte' },

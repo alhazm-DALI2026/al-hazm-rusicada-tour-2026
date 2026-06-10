@@ -25,10 +25,11 @@ interface FormState {
 }
 
 interface ChargeModalForm {
-  libelle:   string
-  montant:   string
-  type:      'par_nuit' | 'par_jour' | 'par_personne' | 'fixe_global'
-  categorie: string
+  libelle:    string
+  montant:    string
+  type:       'par_nuit' | 'par_jour' | 'par_personne' | 'fixe_global'
+  categorie:  string
+  typeCharge: 'fixe' | 'hebergement' | 'repas' | 'transport'
 }
 
 const EMPTY: FormState = {
@@ -36,7 +37,7 @@ const EMPTY: FormState = {
 }
 
 const EMPTY_CHARGE: ChargeModalForm = {
-  libelle: '', montant: '', type: 'par_nuit', categorie: 'hebergement',
+  libelle: '', montant: '', type: 'par_nuit', categorie: 'hebergement', typeCharge: 'fixe',
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -63,6 +64,15 @@ function catColor(cat: string) {
     case 'hebergement': return 'text-blue-400'
     case 'repas':       return 'text-green-400'
     default:            return 'text-[#fdbe11]'
+  }
+}
+
+function catBadge(cat: string): { label: string; bg: string; color: string; border: string } {
+  switch (cat) {
+    case 'hebergement': return { label: 'Héberg.',  bg: 'rgba(0,48,144,0.35)',    color: '#7eb8ff',              border: 'rgba(0,48,144,0.5)'      }
+    case 'repas':       return { label: 'Repas',    bg: 'rgba(34,197,94,0.15)',   color: '#4ade80',              border: 'rgba(34,197,94,0.3)'     }
+    case 'transport':   return { label: 'Transp.',  bg: 'rgba(253,190,17,0.15)',  color: '#fdbe11',              border: 'rgba(253,190,17,0.3)'    }
+    default:            return { label: 'Fixe',     bg: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)', border: 'rgba(255,255,255,0.12)' }
   }
 }
 
@@ -250,8 +260,35 @@ export default function StaffPage() {
 
   function openEditCharge(c: ChargeStaff) {
     setEditingChargeId(c.id)
-    setChargeModal({ libelle: c.libelle, montant: String(c.montant), type: c.type, categorie: c.categorie })
+    const tc: ChargeModalForm['typeCharge'] =
+      c.categorie === 'hebergement' ? 'hebergement' :
+      c.categorie === 'repas'       ? 'repas'       :
+      c.categorie === 'transport'   ? 'transport'   : 'fixe'
+    setChargeModal({ libelle: c.libelle, montant: String(c.montant), type: c.type, categorie: c.categorie, typeCharge: tc })
     setChargeModalOpen(true)
+  }
+
+  function onTypeChargeChange(tc: ChargeModalForm['typeCharge']) {
+    if (!params) { setChargeModal(cm => ({ ...cm, typeCharge: tc })); return }
+    const fill: Partial<ChargeModalForm> = { typeCharge: tc }
+    switch (tc) {
+      case 'hebergement':
+        fill.montant   = String(Math.round(params.cdr_triple / 3))
+        fill.categorie = 'hebergement'
+        break
+      case 'repas':
+        fill.montant   = String(params.cdr_repas_complet)
+        fill.categorie = 'repas'
+        break
+      case 'transport':
+        fill.montant   = String(params.cdr_transport_adulte)
+        fill.categorie = 'transport'
+        break
+      case 'fixe':
+        fill.categorie = 'autre'
+        break
+    }
+    setChargeModal(cm => ({ ...cm, ...fill }))
   }
 
   function saveCharge() {
@@ -461,8 +498,9 @@ export default function StaffPage() {
                           {!hasCharges && (
                             <button
                               onClick={() => recalcFromMoteur(m)}
-                              title="Initialiser charges depuis moteur"
-                              className="p-1.5 text-[#fdbe11] hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
+                              title={m.type_chambre ? 'Initialiser charges depuis moteur' : 'Sélectionnez un type de chambre d\'abord'}
+                              disabled={!m.type_chambre}
+                              className="p-1.5 text-[#fdbe11] hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                               <i className="ti ti-refresh text-base" aria-hidden="true" />
                             </button>
@@ -670,10 +708,17 @@ export default function StaffPage() {
                           }} />
                         </button>
 
-                        {/* Icône catégorie */}
-                        <div className={`shrink-0 flex items-center justify-center ${catColor(c.categorie)}`} style={{ width: 26, height: 26 }}>
-                          <i className={`ti ${catIcon(c.categorie)} text-base`} aria-hidden="true" />
-                        </div>
+                        {/* Badge catégorie */}
+                        {(() => {
+                          const b = catBadge(c.categorie)
+                          return (
+                            <span className="shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold"
+                              style={{ background: b.bg, color: b.color, border: `1px solid ${b.border}` }}>
+                              <i className={`ti ${catIcon(c.categorie)} text-[10px]`} aria-hidden="true" />
+                              {b.label}
+                            </span>
+                          )
+                        })()}
 
                         {/* Info */}
                         <div className="flex-1 min-w-0">
@@ -859,6 +904,31 @@ export default function StaffPage() {
             <h3 style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>
               {editingChargeId ? 'Modifier la charge' : 'Ajouter une charge'}
             </h3>
+
+            {/* Type de charge */}
+            <div>
+              <label style={{ display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+                Type de charge
+              </label>
+              <select
+                value={chargeModal.typeCharge}
+                onChange={e => onTypeChargeChange(e.target.value as ChargeModalForm['typeCharge'])}
+                className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
+              >
+                <option value="fixe"        style={{ background: '#0a0f2e' }}>Charge fixe (saisie manuelle)</option>
+                <option value="hebergement" style={{ background: '#0a0f2e' }}>Hébergement — CDR/pers/nuit (triple)</option>
+                <option value="repas"       style={{ background: '#0a0f2e' }}>Repas — pension complète/pers/jour</option>
+                <option value="transport"   style={{ background: '#0a0f2e' }}>Transport — forfait adulte</option>
+              </select>
+              {params && chargeModal.typeCharge !== 'fixe' && (
+                <p style={{ color: 'rgba(253,190,17,0.7)', fontSize: 10, marginTop: 4 }}>
+                  {chargeModal.typeCharge === 'hebergement' && `Pré-rempli : ${Math.round(params.cdr_triple / 3).toLocaleString('fr-DZ')} DA (triple ÷ 3)`}
+                  {chargeModal.typeCharge === 'repas'       && `Pré-rempli : ${params.cdr_repas_complet.toLocaleString('fr-DZ')} DA (pension complète)`}
+                  {chargeModal.typeCharge === 'transport'   && `Pré-rempli : ${params.cdr_transport_adulte.toLocaleString('fr-DZ')} DA (adulte)`}
+                </p>
+              )}
+            </div>
 
             {/* Libellé */}
             <div>

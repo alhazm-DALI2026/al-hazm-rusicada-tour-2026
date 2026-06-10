@@ -1,5 +1,9 @@
 import type { ChargeStaff, CoutInclus, MoteurCout, Offre, Parametres, RepasType, TypeChambre } from '@/types';
 
+export const CAPACITE: Record<string, number> = {
+  single: 1, double: 2, triple: 3, quadruple: 4,
+}
+
 // ─── helpers internes ────────────────────────────────────────────────────────
 
 function trouverMontant(
@@ -179,6 +183,9 @@ export function calculerFamille(
     repas_pv:        number
     transport_cdr:   number
     transport_pv:    number
+    hebergement_par_pers_nuit: { cdr: number; pv: number }
+    repas_par_pers_jour:       { cdr: number; pv: number }
+    transport_par_pers:        { cdr: number; pv: number }
   }
 } {
   const ch = calculerChambres(choix.nbAdultes, choix.nbEnfants)
@@ -190,12 +197,6 @@ export function calculerFamille(
     ch.nbTriple    * params.cdr_triple    * choix.nombreNuits +
     ch.nbQuadruple * params.cdr_quadruple * choix.nombreNuits
 
-  const pvHeberg =
-    ch.nbSingle    * params.pv_single    * choix.nombreNuits +
-    ch.nbDouble    * params.pv_double    * choix.nombreNuits +
-    ch.nbTriple    * params.pv_triple    * choix.nombreNuits +
-    ch.nbQuadruple * params.pv_quadruple * choix.nombreNuits
-
   // Repas — par jour (nuits + 1) par personne
   const nbPersonnes = choix.nbAdultes + choix.nbEnfants
   const nbJours     = choix.nombreNuits + 1
@@ -204,7 +205,6 @@ export function calculerFamille(
     choix.repas === 'demi' ? (1 - params.taux_demi_pension / 100) : 1
 
   const cdrRepas = params.cdr_repas_complet * facteurRepas * nbPersonnes * nbJours
-  const pvRepas  = params.pv_repas_complet  * facteurRepas * nbPersonnes * nbJours
 
   // Transport
   const cdrTransport = choix.transport ? (
@@ -213,15 +213,10 @@ export function calculerFamille(
     params.cdr_transport_bebe   * choix.nbBebes
   ) : 0
 
-  const pvTransport = choix.transport ? (
-    params.pv_transport_adulte * choix.nbAdultes +
-    params.pv_transport_enfant * choix.nbEnfants +
-    params.pv_transport_bebe   * choix.nbBebes
-  ) : 0
-
   const cdrTotal = cdrHeberg + cdrRepas + cdrTransport
-  const pvTotal  = pvHeberg  + pvRepas  + pvTransport
-  const marge    = pvTotal - cdrTotal
+  const tauxMarge = params.taux_marge_famille ?? 23
+  const pvTotal   = Math.round(cdrTotal * (1 + tauxMarge / 100))
+  const marge     = pvTotal - cdrTotal
 
   return {
     chambres: ch.liste,
@@ -233,11 +228,23 @@ export function calculerFamille(
     marge,
     detail: {
       hebergement_cdr: cdrHeberg,
-      hebergement_pv:  pvHeberg,
+      hebergement_pv:  Math.round(cdrHeberg * (1 + tauxMarge / 100)),
       repas_cdr:       cdrRepas,
-      repas_pv:        pvRepas,
+      repas_pv:        Math.round(cdrRepas   * (1 + tauxMarge / 100)),
       transport_cdr:   cdrTransport,
-      transport_pv:    pvTransport,
+      transport_pv:    Math.round(cdrTransport * (1 + tauxMarge / 100)),
+      hebergement_par_pers_nuit: {
+        cdr: params.cdr_triple / 3,
+        pv:  params.pv_triple  / 3,
+      },
+      repas_par_pers_jour: {
+        cdr: params.cdr_repas_complet,
+        pv:  params.pv_repas_complet,
+      },
+      transport_par_pers: {
+        cdr: params.cdr_transport_adulte,
+        pv:  Math.round(params.cdr_transport_adulte * (1 + params.taux_marge_famille / 100)),
+      },
     },
   }
 }
