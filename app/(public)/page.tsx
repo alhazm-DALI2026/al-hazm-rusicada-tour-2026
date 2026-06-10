@@ -83,6 +83,14 @@ export default function HomePage() {
           .gallery-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 16px !important; }
           .insc-grid    { max-width: 700px; margin: 0 auto; }
         }
+        .incl { cursor: pointer; transition: transform 0.3s ease; height: 200px; }
+        @media (min-width: 900px) { .incl { height: 320px; } }
+        .incl:hover { transform: scale(1.02); }
+        .incl:hover .incl-ov { background: linear-gradient(180deg, transparent 40%, rgba(6,10,30,0.7) 100%) !important; }
+        .gal { cursor: pointer; transition: transform 0.3s ease; height: 180px; }
+        @media (min-width: 640px) { .gal { height: 220px; } }
+        .gal:hover { transform: scale(1.02); }
+        .gal:hover .gal-ov { background: linear-gradient(180deg, transparent 50%, rgba(6,10,30,0.7) 100%) !important; }
       `}</style>
 
       {/* ── 1. BACKGROUND GLOWS ────────────────────────────────── */}
@@ -250,9 +258,9 @@ export default function HomePage() {
       </section>
 
       {/* ── 5. GALERIE ─────────────────────────────────────────── */}
-      <section style={{ position: 'relative', zIndex: 5, padding: '40px 20px' }}>
+      <section style={{ position: 'relative', zIndex: 5, padding: '20px 20px 40px' }}>
         <div className="c">
-        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
           <h2 style={{ color: '#fff', fontSize: 28, fontWeight: 900, margin: '0 0 2px', textAlign: 'center' }}>
             Ils l&apos;ont vécu.
           </h2>
@@ -454,28 +462,23 @@ function InclusPhotoCard({ src, icon, label, sub }: {
 }) {
   return (
     <div
-      style={{
-        borderRadius: 18, overflow: 'hidden',
-        position: 'relative', height: 200,
-        cursor: 'pointer', transition: 'transform .25s',
-      }}
-      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.02)' }}
-      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)' }}
+      className="incl"
+      style={{ borderRadius: 18, overflow: 'hidden', position: 'relative' }}
     >
       <Image
         src={src}
         alt={label}
         fill
         sizes="(max-width: 768px) 50vw, 25vw"
-        style={{ objectFit: 'cover', objectPosition: 'center', filter: 'brightness(0.55)' }}
+        style={{ objectFit: 'cover', objectPosition: 'center' }}
       />
-      <div style={{
+      <div className="incl-ov" style={{
         position: 'absolute', inset: 0,
-        background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.3) 40%, rgba(10,15,46,0.9) 100%)',
+        background: 'linear-gradient(180deg, transparent 40%, rgba(6,10,30,0.85) 100%)',
       }} />
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
-        padding: 14, display: 'flex', alignItems: 'center', gap: 10,
+        padding: '16px 14px', display: 'flex', alignItems: 'center', gap: 10,
       }}>
         <div style={{
           width: 38, height: 38, borderRadius: 11, flexShrink: 0,
@@ -487,8 +490,8 @@ function InclusPhotoCard({ src, icon, label, sub }: {
           <i className={`ti ${icon}`} style={{ fontSize: 18, color: '#fff' }} aria-hidden="true" />
         </div>
         <div>
-          <div style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>{label}</div>
-          <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10 }}>{sub}</div>
+          <div style={{ color: '#fff', fontSize: 17, fontWeight: 800 }}>{label}</div>
+          <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13 }}>{sub}</div>
         </div>
       </div>
     </div>
@@ -498,25 +501,22 @@ function InclusPhotoCard({ src, icon, label, sub }: {
 function GalleryItem({ src, caption }: { src: string; caption: string }) {
   return (
     <div
-      style={{
-        height: 120, borderRadius: 14, overflow: 'hidden',
-        position: 'relative', transition: 'transform .25s',
-      }}
-      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.03)' }}
-      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)' }}
+      className="gal"
+      style={{ borderRadius: 14, overflow: 'hidden', position: 'relative' }}
     >
       <Image
         src={src}
         alt={caption}
         fill
         sizes="33vw"
-        style={{ objectFit: 'cover', filter: 'brightness(.8)' }}
+        style={{ objectFit: 'cover' }}
       />
-      <div style={{
+      <div className="gal-ov" style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
-        background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
-        color: '#fff', fontSize: 11, fontWeight: 600,
-        padding: '16px 6px 6px', textAlign: 'center',
+        background: 'linear-gradient(180deg, transparent 50%, rgba(6,10,30,0.9) 100%)',
+        color: '#fff', fontSize: 14, fontWeight: 700,
+        padding: '20px 10px 16px', textAlign: 'center',
+        textShadow: '0 2px 8px rgba(0,0,0,0.8)',
       }}>
         {caption}
       </div>
