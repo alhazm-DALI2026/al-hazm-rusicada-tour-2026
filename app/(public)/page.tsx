@@ -81,8 +81,23 @@ export default function HomePage() {
         @media (min-width: 900px) {
           .inclus-grid  { grid-template-columns: repeat(4, 1fr) !important; }
           .gallery-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 16px !important; }
-          .insc-grid    { max-width: 700px; margin: 0 auto; }
         }
+        .insc-grid  { grid-template-columns: 1fr !important; }
+        @media (min-width: 640px) { .insc-grid { grid-template-columns: 1fr 1fr !important; } }
+        @media (min-width: 1024px) { .insc-grid { max-width: 1100px !important; margin: 0 auto; } }
+        .insc-card  { padding: 24px !important; }
+        @media (min-width: 640px) { .insc-card { padding: 28px !important; } }
+        @media (min-width: 1024px) { .insc-card { padding: 40px !important; } }
+        @media (min-width: 1024px) {
+          .insc-icon { width: 64px !important; height: 64px !important; border-radius: 16px !important; margin-bottom: 18px !important; }
+          .insc-icon i { font-size: 28px !important; }
+        }
+        .insc-title { font-size: 19px !important; }
+        @media (min-width: 640px) { .insc-title { font-size: 20px !important; } }
+        @media (min-width: 1024px) { .insc-title { font-size: 24px !important; font-weight: 800 !important; } }
+        @media (min-width: 1024px) { .insc-desc { font-size: 15px !important; } }
+        .insc-btn   { min-height: 52px !important; font-size: 14px !important; padding: 10px 16px !important; }
+        @media (min-width: 1024px) { .insc-btn { min-height: 56px !important; font-size: 16px !important; font-weight: 700 !important; } }
         .incl { cursor: pointer; transition: transform 0.3s ease; height: 200px; }
         @media (min-width: 900px) { .incl { height: 320px; } }
         .incl:hover { transform: scale(1.02); }
@@ -270,8 +285,8 @@ export default function HomePage() {
         </div>
         <div className="gallery-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
           {([
-            { src: '/images/slide1.jpg', caption: 'Formation & technique' },
-            { src: '/images/slide2.jpg', caption: 'Amitié & complicité'   },
+            { src: '/images/slide1.jpg', caption: 'Amitié & complicité'   },
+            { src: '/images/slide2.jpg', caption: 'Formation & technique' },
             { src: '/images/slide3.jpg', caption: 'Confort & repas'       },
           ] as const).map(photo => (
             <GalleryItem key={photo.src} src={photo.src} caption={photo.caption} />
@@ -534,29 +549,31 @@ function InscriptionCard({
 }) {
   return (
     <div
+      className="insc-card"
       style={{
         background: bg, border: `1.5px solid ${border}`,
-        borderRadius: 18, padding: 20, transition: 'all .25s',
+        borderRadius: 18, transition: 'all .25s',
       }}
       onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)' }}
       onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)' }}
     >
-      <div style={{
+      <div className="insc-icon" style={{
         width: 40, height: 40, borderRadius: 12,
         background: circBg, border: `1px solid ${circBorder}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10,
       }}>
         <i className={`ti ${icon}`} style={{ color: iconColor, fontSize: 18 }} aria-hidden="true" />
       </div>
-      <div style={{ color: '#fff', fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{title}</div>
-      <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, marginBottom: 14 }}>{desc}</div>
+      <div className="insc-title" style={{ color: '#fff', fontWeight: 700, marginBottom: 4 }}>{title}</div>
+      <div className="insc-desc" style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, marginBottom: 14 }}>{desc}</div>
       <button
         type="button"
         onClick={onClick}
+        className="insc-btn"
         style={{
           width: '100%', background: btnBg, color: btnColor,
-          border: 'none', borderRadius: 10, padding: 9,
-          fontSize: 11, fontWeight: 800, cursor: 'pointer',
+          border: 'none', borderRadius: 10,
+          fontWeight: 800, cursor: 'pointer',
         }}
       >
         {btnLabel}
