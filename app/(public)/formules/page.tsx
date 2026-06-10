@@ -54,7 +54,9 @@ const RESPONSIVE_CSS = `
   /* Desktop */
   @media (min-width: 1024px) {
     .offres-grid {
-      padding: 0 48px 110px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 40px 110px;
       grid-template-columns: repeat(3, 1fr);
       gap: 24px;
     }
@@ -62,11 +64,13 @@ const RESPONSIVE_CSS = `
     .card-name        { font-size: 17px; }
     .card-price       { font-size: 22px; }
     .tabs-wrapper     { max-width: 640px; margin: 16px auto; }
+    .page-header-inner { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
   }
 
   /* Grand écran */
-  @media (min-width: 1280px) {
-    .offres-grid { padding: 0 64px 110px; gap: 28px; }
+  @media (min-width: 1440px) {
+    .offres-grid { max-width: 1280px; padding: 0 48px 110px; gap: 28px; }
+    .page-header-inner { max-width: 1280px; }
   }
 `
 

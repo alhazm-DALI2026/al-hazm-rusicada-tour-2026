@@ -245,6 +245,9 @@ export default function FamillePage() {
       <style>{`
         @keyframes fadeInUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
         input::placeholder{color:rgba(255,255,255,0.2)}
+        @media (min-width: 900px) {
+          .fam-inner { max-width: 700px; margin: 0 auto; }
+        }
       `}</style>
 
       {/* Glows */}
@@ -267,7 +270,7 @@ export default function FamillePage() {
       </header>
 
       {/* Étapes */}
-      <div style={{ position: 'relative', zIndex: 5, display: 'flex', alignItems: 'flex-start', padding: '16px 20px' }}>
+      <div className="fam-inner" style={{ position: 'relative', zIndex: 5, display: 'flex', alignItems: 'flex-start', padding: '16px 20px' }}>
         {ETAPES.map((label, idx) => {
           const num      = (idx + 1) as 1 | 2 | 3
           const isActive = etape === num
@@ -304,7 +307,7 @@ export default function FamillePage() {
 
           {/* ── ÉTAPE 1 ── */}
           {etape === 1 && (
-            <div style={{ padding: '0 16px', animation: 'fadeInUp 0.3s ease' }}>
+            <div className="fam-inner" style={{ padding: '0 16px', animation: 'fadeInUp 0.3s ease' }}>
               <div style={{ marginBottom: 16 }}>
                 <div style={{ color: '#fff', fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Votre famille</div>
                 <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>Indiquez la composition de votre groupe</div>
@@ -365,7 +368,7 @@ export default function FamillePage() {
 
           {/* ── ÉTAPE 2 ── */}
           {etape === 2 && (
-            <div style={{ padding: '0 16px', animation: 'fadeInUp 0.3s ease' }}>
+            <div className="fam-inner" style={{ padding: '0 16px', animation: 'fadeInUp 0.3s ease' }}>
 
               {/* Transport toggle */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 14, marginBottom: 12 }}>
@@ -419,7 +422,7 @@ export default function FamillePage() {
 
           {/* ── ÉTAPE 3 ── */}
           {etape === 3 && (
-            <div style={{ padding: '0 16px', animation: 'fadeInUp 0.3s ease' }}>
+            <div className="fam-inner" style={{ padding: '0 16px', animation: 'fadeInUp 0.3s ease' }}>
               <div style={{ marginBottom: 16 }}>
                 <div style={{ color: '#fff', fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Vos coordonnées</div>
                 <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>Pour confirmer votre réservation</div>

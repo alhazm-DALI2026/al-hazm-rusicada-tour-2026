@@ -77,16 +77,11 @@ export default function HomePage() {
           0%, 100% { transform: scale(1); }
           50%       { transform: scale(1.02); }
         }
-        .c { max-width: 960px; margin: 0 auto; width: 100%; }
-        @media (min-width: 768px) {
-          .hero-logo  { width: 140px !important; height: 140px !important; }
-          .hero-h1    { font-size: 56px !important; }
-          .hero-sub   { font-size: 16px !important; }
-          .inclus-grid { grid-template-columns: repeat(4, 1fr) !important; }
-          .gallery-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 14px !important; }
-          .insc-grid  { max-width: 640px; margin: 0 auto; }
-          .stats-inner { max-width: 600px; margin: 0 auto; display: grid; grid-template-columns: repeat(4,1fr); }
-          .stats-outer { display: block !important; }
+        .c { max-width: 1080px; margin: 0 auto; width: 100%; }
+        @media (min-width: 900px) {
+          .inclus-grid  { grid-template-columns: repeat(4, 1fr) !important; }
+          .gallery-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 16px !important; }
+          .insc-grid    { max-width: 700px; margin: 0 auto; }
         }
       `}</style>
 
@@ -128,26 +123,25 @@ export default function HomePage() {
         }}>
           <Image
             src="/images/logo-white.png"
-            width={90}
-            height={90}
+            width={120}
+            height={120}
             alt="Al Hazm Football Academy"
-            className="hero-logo"
             style={{
               objectFit: 'contain', margin: '0 auto 18px', display: 'block',
               animation: 'fadeInUp .6s ease',
             }}
           />
 
-          <h1 className="hero-h1" style={{
-            color: '#ffffff', fontSize: 32, fontWeight: 900,
+          <h1 style={{
+            color: '#ffffff', fontSize: 'clamp(32px, 4vw, 58px)', fontWeight: 900,
             letterSpacing: '-0.03em', lineHeight: 1.05,
             margin: '0 0 10px', animation: 'fadeInUp .7s ease',
           }}>
             <span style={{ color: '#fdbe11' }}>Rusicada</span> Tour 2026
           </h1>
 
-          <p className="hero-sub" style={{
-            color: 'rgba(255,255,255,0.65)', fontSize: 13,
+          <p style={{
+            color: 'rgba(255,255,255,0.65)', fontSize: 'clamp(12px, 1.2vw, 16px)',
             margin: '0 0 20px', animation: 'fadeInUp .8s ease',
           }}>
             L&apos;été du football, l&apos;été de ta vie
@@ -200,14 +194,13 @@ export default function HomePage() {
       </section>
 
       {/* ── 3. STATS BAR ───────────────────────────────────────── */}
-      <section className="stats-outer" style={{
+      <section style={{
         position: 'relative', zIndex: 5,
         display: 'grid', gridTemplateColumns: 'repeat(4,1fr)',
         background: 'rgba(255,255,255,0.03)',
         borderTop: '1px solid rgba(255,255,255,0.07)',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
       }}>
-        <div className="stats-inner" style={{ display: 'contents' }}>
         {([
           { icon: 'ti-moon-stars', val: String(nombreNuits), label: 'Nuits',      circBg: 'rgba(0,48,144,0.4)',    circBorder: 'rgba(0,80,204,0.25)',    ic: '#7eb8ff' },
           { icon: 'ti-sun',        val: String(nombreJours), label: 'Jours',      circBg: 'rgba(253,190,17,0.15)', circBorder: 'rgba(253,190,17,0.25)',  ic: '#fdbe11' },
@@ -230,7 +223,6 @@ export default function HomePage() {
             <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>{s.label}</div>
           </div>
         ))}
-        </div>
       </section>
 
       {/* ── 4. TOUT EST INCLUS ─────────────────────────────────── */}
