@@ -46,6 +46,7 @@ export interface Offre {
   actif:               boolean;
   ordre_affichage:     number;
   options_custom:      Record<string, unknown> | null;
+  image_url:           string | null;
   created_at:          string;
 }
 

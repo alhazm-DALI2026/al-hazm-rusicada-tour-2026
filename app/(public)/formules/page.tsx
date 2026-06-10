@@ -71,6 +71,14 @@ const RESPONSIVE_CSS = `
   }
 `
 
+function getOffreImage(offre: Offre): string {
+  if (offre.image_url) return offre.image_url
+  if (offre.type_public === 'enfant')  return '/images/enfants-marche.jpg'
+  if (offre.type_public === 'adulte')  return '/images/football-action.jpg'
+  if (offre.type_public === 'famille') return '/images/aquapark.jpg'
+  return '/images/slide1.jpg'
+}
+
 const ACCENT: Record<string, string> = {
   enfant:  'linear-gradient(90deg,#003090,#0050cc)',
   adulte:  'linear-gradient(90deg,#fdbe11,#ffd94d)',
@@ -102,14 +110,26 @@ function OfferCard({ offre, isFirst }: { offre: Offre; isFirst: boolean }) {
       onMouseEnter={e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = 'translateY(-4px)'; el.style.boxShadow = '0 16px 40px rgba(0,0,0,0.3)' }}
       onMouseLeave={e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = 'translateY(0)'; el.style.boxShadow = 'none' }}
     >
-      <div style={{ height: 4, background: ACCENT[offre.type_public] ?? ACCENT.enfant }} />
-      <div className="offer-card-inner">
-
-        {/* Tags */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ ...TAG[offre.type_public], fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6 }}>
+      {/* Image */}
+      <div style={{ position: 'relative', height: 160, background: '#060a1e', flexShrink: 0 }}>
+        <img
+          src={getOffreImage(offre)}
+          alt=""
+          loading="lazy"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent, rgba(10,15,46,0.8))' }} />
+        <div style={{ position: 'absolute', top: 10, right: 10 }}>
+          <span style={{ ...TAG[offre.type_public], fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6, backdropFilter: 'blur(6px)' }}>
             {offre.type_public.charAt(0).toUpperCase() + offre.type_public.slice(1)}
           </span>
+        </div>
+      </div>
+
+      <div className="offer-card-inner">
+
+        {/* Tag chambre */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6 }}>
             {offre.type_chambre}
           </span>
@@ -184,16 +204,25 @@ function FamilleCard({ offre }: { offre: Offre }) {
       onMouseEnter={e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = 'translateY(-4px)'; el.style.boxShadow = '0 20px 50px rgba(0,48,144,0.6)' }}
       onMouseLeave={e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = 'translateY(0)'; el.style.boxShadow = 'none' }}
     >
-      {/* Glow déco */}
-      <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, background: 'rgba(253,190,17,0.08)', borderRadius: '50%', filter: 'blur(24px)', pointerEvents: 'none' }} />
-
-      <div style={{ padding: 20, position: 'relative', zIndex: 1 }}>
-        {/* Badge */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-          <span style={{ background: 'rgba(34,197,94,0.2)', border: '1px solid rgba(34,197,94,0.4)', color: '#4ade80', fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 4 }}>
+      {/* Image */}
+      <div style={{ position: 'relative', height: 160, background: '#060a1e', flexShrink: 0 }}>
+        <img
+          src={getOffreImage(offre)}
+          alt=""
+          loading="lazy"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent, rgba(0,48,144,0.85))' }} />
+        <div style={{ position: 'absolute', top: 10, right: 10 }}>
+          <span style={{ background: 'rgba(34,197,94,0.25)', border: '1px solid rgba(34,197,94,0.5)', color: '#4ade80', fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 4, backdropFilter: 'blur(6px)' }}>
             🟢 Offre Famille
           </span>
         </div>
+      </div>
+
+      <div style={{ padding: 20, position: 'relative', zIndex: 1 }}>
+        {/* Glow déco */}
+        <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, background: 'rgba(253,190,17,0.08)', borderRadius: '50%', filter: 'blur(24px)', pointerEvents: 'none' }} />
 
         {/* Titre */}
         <div style={{ color: '#fff', fontSize: 16, fontWeight: 900, marginBottom: 6 }}>{offre.nom}</div>

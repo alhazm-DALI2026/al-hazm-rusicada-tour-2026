@@ -41,6 +41,7 @@ interface FormState {
   repas_type: RepasType
   couts_inclus: CoutFormItem[]; prix_vente: string; ordre_affichage: string
   nb_adultes: string; nb_enfants: string
+  image_url: string
 }
 
 const EMPTY: FormState = {
@@ -50,6 +51,7 @@ const EMPTY: FormState = {
   repas_type: 'demi',
   couts_inclus: [], prix_vente: '', ordre_affichage: '0',
   nb_adultes: '2', nb_enfants: '0',
+  image_url: '',
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -352,6 +354,7 @@ export default function OffresPage() {
       ordre_affichage:     String(o.ordre_affichage),
       nb_adultes:          String(oc?.nb_adultes ?? 2),
       nb_enfants:          String(oc?.nb_enfants ?? 0),
+      image_url:           o.image_url ?? '',
     })
     setShowForm(true)
   }
@@ -392,6 +395,7 @@ export default function OffresPage() {
       prix_vente:          isFamille ? (familleCalc?.pvTotal  ?? 0) : prixVente,
       actif:               editItem?.actif ?? true,
       ordre_affichage:     parseInt(form.ordre_affichage) || 0,
+      image_url:           form.image_url.trim() || null,
       ...(isFamille ? {
         options_custom: {
           type_chambre:   form.type_chambre,
@@ -516,6 +520,23 @@ export default function OffresPage() {
                     className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090] resize-none"
                   />
                 </div>
+              </div>
+
+              {/* Image URL */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  URL de l'image <span className="text-gray-400 font-normal">(optionnel)</span>
+                </label>
+                <input type="text" value={form.image_url}
+                  onChange={e => setField('image_url', e.target.value)}
+                  placeholder="/images/nom-image.jpg ou https://..."
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+                />
+                {form.image_url.trim() && (
+                  <div className="mt-2 rounded-lg overflow-hidden border border-white/10" style={{ height: 80 }}>
+                    <img src={form.image_url.trim()} alt="Aperçu" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                )}
               </div>
 
               {/* Type public + Chambre */}
