@@ -143,13 +143,10 @@ function OfferCard({ offre, isFirst }: { offre: Offre; isFirst: boolean }) {
           </div>
         </div>
 
-        {/* Prix + CDR + bouton */}
+        {/* Prix + bouton */}
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 12, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
           <div>
             <div className="card-price">{fmt(offre.prix_vente)}</div>
-            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginTop: 2 }}>
-              CDR : {fmt(offre.cout_revient)}
-            </div>
           </div>
           {complet ? (
             <span style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.3)', borderRadius: 10, padding: '9px 16px', fontSize: 11, fontWeight: 700 }}>Complet</span>
@@ -229,9 +226,6 @@ function FamilleCard({ offre }: { offre: Offre }) {
         {/* Prix */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ color: '#fdbe11', fontSize: 24, fontWeight: 900 }}>{fmt(offre.prix_vente)}</div>
-          <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 2 }}>
-            CDR : {fmt(offre.cout_revient)}
-          </div>
         </div>
 
         {/* Bouton */}

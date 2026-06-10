@@ -223,10 +223,10 @@ function DrawerDetail({ r, onClose }: { r: ResWithOffre; onClose(): void }) {
 // ── CreateModal ───────────────────────────────────────────────────────────────
 
 function CreateModal({
-  offres, params, onSuccess, onClose,
+  offres, params, onSuccess, onClose, onError,
 }: {
   offres: Offre[]; params: Parametres | null
-  onSuccess(): void; onClose(): void
+  onSuccess(): void; onClose(): void; onError(msg: string): void
 }) {
   const [form, setForm] = useState<CreateForm>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
@@ -317,7 +317,7 @@ function CreateModal({
     if (r.ok) { onSuccess() }
     else {
       const err = await r.json().catch(() => ({})) as { error?: string }
-      alert(err.error ?? 'Erreur lors de la création.')
+      onError(err.error ?? 'Erreur lors de la création.')
     }
     setSaving(false)
   }
@@ -715,6 +715,7 @@ export default function ReservationsPage() {
           offres={offres} params={params}
           onSuccess={() => { setShowCreate(false); notify('Réservation créée.', 'success'); loadAll() }}
           onClose={() => setShowCreate(false)}
+          onError={(msg) => notify(msg, 'error')}
         />
       )}
 

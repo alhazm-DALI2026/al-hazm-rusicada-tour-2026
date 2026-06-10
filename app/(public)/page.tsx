@@ -171,7 +171,7 @@ export default function HomePage() {
             animation: 'fadeInUp 1s ease',
           }}>
             <i className="ti ti-map-pin" style={{ color: '#fdbe11', fontSize: 11 }} aria-hidden="true" />
-            <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 10 }}>
+            <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>
               {datePill}
             </span>
           </div>
@@ -333,14 +333,14 @@ export default function HomePage() {
           borderBottom: '1px solid rgba(255,255,255,0.06)',
         }}>
           <a
-            href="https://alhazm.vercel.app/"
+            href={process.env.NEXT_PUBLIC_SITE_URL ?? 'https://alhazm-rusicada.vercel.app'}
             target="_blank"
             rel="noopener noreferrer"
             style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
             <i className="ti ti-world" style={{ color: '#fdbe11', fontSize: 16 }} aria-hidden="true" />
             <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>
-              alhazm.vercel.app
+              {(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://alhazm-rusicada.vercel.app').replace('https://', '')}
             </span>
           </a>
         </div>
@@ -356,7 +356,7 @@ export default function HomePage() {
           <SocialIcon
             icon="ti-brand-instagram"
             label="IG"
-            href="#"
+            href="https://www.instagram.com/alhazm.academy"
             hBorder="rgba(225,48,108,0.4)"
             hBg="rgba(225,48,108,0.1)"
             hIcon="#e1306c"
@@ -364,7 +364,7 @@ export default function HomePage() {
           <SocialIcon
             icon="ti-brand-facebook"
             label="FB"
-            href="#"
+            href="https://www.facebook.com/alhazm.academy"
             hBorder="rgba(24,119,242,0.4)"
             hBg="rgba(24,119,242,0.1)"
             hIcon="#1877f2"
@@ -372,7 +372,7 @@ export default function HomePage() {
           <SocialIcon
             icon="ti-brand-tiktok"
             label="TK"
-            href="#"
+            href="https://www.tiktok.com/@alhazm.academy"
             hBorder="rgba(255,255,255,0.3)"
             hBg="rgba(255,255,255,0.08)"
             hIcon="#fff"
@@ -608,7 +608,7 @@ function SocialIcon({ icon, label, href, hBorder, hBg, hIcon }: {
       }}>
         <i className={`ti ${icon}`} style={{ fontSize: 22, color: 'rgba(255,255,255,0.7)', transition: 'color .2s' }} aria-hidden="true" />
       </div>
-      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>{label}</span>
+      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>{label}</span>
     </a>
   )
 }

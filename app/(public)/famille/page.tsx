@@ -103,12 +103,12 @@ function Counter({ label, sub, value, min, max, onChange }: {
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         <button type="button" onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min}
-          style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: 18, cursor: value <= min ? 'not-allowed' : 'pointer', opacity: value <= min ? 0.4 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontSize: 18, cursor: value <= min ? 'not-allowed' : 'pointer', opacity: value <= min ? 0.4 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           −
         </button>
         <span style={{ color: '#fdbe11', fontSize: 20, fontWeight: 700, minWidth: 24, textAlign: 'center' }}>{value}</span>
         <button type="button" onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max}
-          style={{ width: 36, height: 36, borderRadius: '50%', background: '#003090', border: '1px solid rgba(0,80,204,0.5)', color: '#fff', fontSize: 18, cursor: value >= max ? 'not-allowed' : 'pointer', opacity: value >= max ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          style={{ width: 44, height: 44, borderRadius: '50%', background: '#003090', border: '1px solid rgba(0,80,204,0.5)', color: '#fff', fontSize: 18, cursor: value >= max ? 'not-allowed' : 'pointer', opacity: value >= max ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           +
         </button>
       </div>
@@ -292,7 +292,7 @@ export default function FamillePage() {
                 <div style={{ width: 28, height: 28, borderRadius: '50%', background: isActive || isDone ? '#fdbe11' : 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: isActive || isDone ? '#003090' : 'rgba(255,255,255,0.3)', transition: 'all .3s' }}>
                   {isDone ? <i className="ti ti-check" style={{ fontSize: 12 }} aria-hidden="true" /> : num}
                 </div>
-                <span style={{ fontSize: 9, fontWeight: 600, color: isActive ? '#fdbe11' : 'rgba(255,255,255,0.3)', transition: 'color .3s', whiteSpace: 'nowrap' }}>{label}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: isActive ? '#fdbe11' : 'rgba(255,255,255,0.3)', transition: 'color .3s', whiteSpace: 'nowrap' }}>{label}</span>
               </div>
               {idx < ETAPES.length - 1 && (
                 <div style={{ flex: 1, height: 1, background: isDone ? 'rgba(253,190,17,0.4)' : 'rgba(255,255,255,0.1)', margin: '0 8px 16px', transition: 'background .3s' }} />
@@ -480,7 +480,7 @@ export default function FamillePage() {
                 </div>
               </div>
 
-              <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, lineHeight: 1.6, marginBottom: 14 }}>
+              <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: 500, lineHeight: 1.6, marginBottom: 14 }}>
                 ⚠️ Le lien WhatsApp groupe sera partagé uniquement après confirmation de votre inscription par notre équipe.
               </p>
 
