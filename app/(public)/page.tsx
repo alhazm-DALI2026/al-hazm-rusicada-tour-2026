@@ -3,11 +3,13 @@
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
+import type { Parametres } from '@/types'
 
-const jours = Math.ceil(
-  (new Date('2026-06-23').getTime() - new Date().getTime())
-  / (1000 * 60 * 60 * 24)
-)
+function dateFR(iso: string) {
+  const months = ['jan.','fév.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.']
+  const d = new Date(iso + 'T12:00:00')
+  return `${d.getDate()} ${months[d.getMonth()]}`
+}
 
 const slides = [
   '/images/slide1.jpg',
@@ -17,8 +19,9 @@ const slides = [
 
 export default function HomePage() {
   const router = useRouter()
-  const [current, setCurrent] = useState(0)
+  const [current, setCurrent]   = useState(0)
   const [showSticky, setShowSticky] = useState(false)
+  const [params, setParams]     = useState<Parametres | null>(null)
   const inscriptionRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -26,6 +29,10 @@ export default function HomePage() {
       setCurrent(prev => (prev + 1) % slides.length)
     }, 3000)
     return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/parametres').then(r => r.json()).then((p: Parametres) => setParams(p)).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -39,10 +46,20 @@ export default function HomePage() {
     return () => observer.disconnect()
   }, [])
 
+  const dateDepart = new Date((params?.date_depart ?? '2026-06-23') + 'T12:00:00')
+  const dateRetour = new Date((params?.date_retour  ?? '2026-06-28') + 'T12:00:00')
+  const joursAvant = Math.ceil((dateDepart.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  const nombreNuits = Math.round((dateRetour.getTime() - dateDepart.getTime()) / (1000 * 60 * 60 * 24))
+  const nombreJours = nombreNuits + 1
+  const datePill = params?.date_depart && params?.date_retour
+    ? `Du ${dateFR(params.date_depart)} au ${dateFR(params.date_retour)} 2026 · RUSICA PARK · Skikda`
+    : 'Du 23 au 28 Juin 2026 · RUSICA PARK · Skikda'
+  const whatsappHref = `https://wa.me/${(process.env.NEXT_PUBLIC_WHATSAPP_NUMERO ?? '+213781608480').replace(/[^0-9]/g, '')}`
+
   const countdownText =
-    jours <= 0 ? null
-    : jours <= 30 ? `Plus que ${jours} jours avant le camp !`
-    : `Le camp commence dans ${jours} jours`
+    joursAvant <= 0 ? null
+    : joursAvant <= 30 ? `Plus que ${joursAvant} jours avant le camp !`
+    : `Le camp commence dans ${joursAvant} jours`
 
   return (
     <div style={{ backgroundColor: '#0a0f2e', minHeight: '100vh', position: 'relative' }}>
@@ -149,7 +166,7 @@ export default function HomePage() {
           }}>
             <i className="ti ti-map-pin" style={{ color: '#fdbe11', fontSize: 11 }} aria-hidden="true" />
             <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 10 }}>
-              Du 23 au 28 Juin 2026 · RUSICA PARK · Skikda
+              {datePill}
             </span>
           </div>
         </div>
@@ -179,11 +196,11 @@ export default function HomePage() {
         borderBottom: '1px solid rgba(255,255,255,0.07)',
       }}>
         {([
-          { icon: 'ti-moon-stars', val: '5',   label: 'NUITS',      circBg: 'rgba(0,48,144,0.4)',    circBorder: 'rgba(0,80,204,0.25)',    ic: '#7eb8ff' },
-          { icon: 'ti-sun',        val: '6',   label: 'JOURS',      circBg: 'rgba(253,190,17,0.15)', circBorder: 'rgba(253,190,17,0.25)',  ic: '#fdbe11' },
-          { icon: 'ti-ticket',     val: '50+', label: 'PLACES',     circBg: 'rgba(0,48,144,0.4)',    circBorder: 'rgba(0,80,204,0.25)',    ic: '#7eb8ff' },
-          { icon: 'ti-whistle',    val: '6',   label: 'ENCADRANTS', circBg: 'rgba(253,190,17,0.15)', circBorder: 'rgba(253,190,17,0.25)',  ic: '#fdbe11' },
-        ] as const).map((s, idx) => (
+          { icon: 'ti-moon-stars', val: String(nombreNuits), label: 'Nuits',      circBg: 'rgba(0,48,144,0.4)',    circBorder: 'rgba(0,80,204,0.25)',    ic: '#7eb8ff' },
+          { icon: 'ti-sun',        val: String(nombreJours), label: 'Jours',      circBg: 'rgba(253,190,17,0.15)', circBorder: 'rgba(253,190,17,0.25)',  ic: '#fdbe11' },
+          { icon: 'ti-ticket',     val: '50+',               label: 'Places',     circBg: 'rgba(0,48,144,0.4)',    circBorder: 'rgba(0,80,204,0.25)',    ic: '#7eb8ff' },
+          { icon: 'ti-whistle',    val: '6',                 label: 'Encadrants', circBg: 'rgba(253,190,17,0.15)', circBorder: 'rgba(253,190,17,0.25)',  ic: '#fdbe11' },
+        ]).map((s, idx) => (
           <div key={s.label} style={{
             padding: '16px 8px', textAlign: 'center',
             borderRight: idx < 3 ? '1px solid rgba(255,255,255,0.07)' : undefined,
@@ -197,7 +214,7 @@ export default function HomePage() {
               <i className={`ti ${s.icon}`} style={{ color: s.ic, fontSize: 20 }} aria-hidden="true" />
             </div>
             <div style={{ color: '#fff', fontSize: 18, fontWeight: 700, lineHeight: 1 }}>{s.val}</div>
-            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{s.label}</div>
           </div>
         ))}
       </section>
@@ -315,14 +332,14 @@ export default function HomePage() {
           </a>
         </div>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 28 }}>
-          {([
-            { icon: 'ti-brand-whatsapp',  label: 'WA', href: 'https://wa.me/213781608480', hBorder: 'rgba(37,211,102,0.4)',  hBg: 'rgba(37,211,102,0.1)',  hIcon: '#25d366' },
-            { icon: 'ti-brand-instagram', label: 'IG', href: '#',                           hBorder: 'rgba(225,48,108,0.4)',  hBg: 'rgba(225,48,108,0.1)',  hIcon: '#e1306c' },
-            { icon: 'ti-brand-facebook',  label: 'FB', href: '#',                           hBorder: 'rgba(24,119,242,0.4)', hBg: 'rgba(24,119,242,0.1)', hIcon: '#1877f2' },
-            { icon: 'ti-brand-tiktok',    label: 'TK', href: '#',                           hBorder: 'rgba(255,255,255,0.3)', hBg: 'rgba(255,255,255,0.08)', hIcon: '#fff'  },
-          ] as const).map(s => (
-            <SocialIcon key={s.label} {...s} />
-          ))}
+          <SocialIcon
+            icon="ti-brand-whatsapp"
+            label="WhatsApp"
+            href={whatsappHref}
+            hBorder="rgba(37,211,102,0.4)"
+            hBg="rgba(37,211,102,0.1)"
+            hIcon="#25d366"
+          />
         </div>
       </section>
 
@@ -353,7 +370,7 @@ export default function HomePage() {
                 Inscriptions ouvertes
               </span>
             </div>
-            {jours > 0 && (
+            {joursAvant > 0 && (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 5,
                 background: '#001a5e',
@@ -362,7 +379,7 @@ export default function HomePage() {
               }}>
                 <i className="ti ti-clock" style={{ color: '#fdbe11', fontSize: 13 }} aria-hidden="true" />
                 <span style={{ color: '#fdbe11', fontSize: 11, fontWeight: 800 }}>
-                  Plus que {jours} jours !
+                  Plus que {joursAvant} jours !
                 </span>
               </div>
             )}
@@ -470,7 +487,7 @@ function GalleryItem({ src, caption }: { src: string; caption: string }) {
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
         background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
-        color: '#fff', fontSize: 8, fontWeight: 700,
+        color: '#fff', fontSize: 11, fontWeight: 600,
         padding: '16px 6px 6px', textAlign: 'center',
       }}>
         {caption}
@@ -504,7 +521,7 @@ function InscriptionCard({
         <i className={`ti ${icon}`} style={{ color: iconColor, fontSize: 18 }} aria-hidden="true" />
       </div>
       <div style={{ color: '#fff', fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{title}</div>
-      <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 9, marginBottom: 14 }}>{desc}</div>
+      <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, marginBottom: 14 }}>{desc}</div>
       <button
         type="button"
         onClick={onClick}

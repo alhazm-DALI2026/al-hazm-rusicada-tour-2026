@@ -100,17 +100,17 @@ function OfferCard({ offre, isFirst }: { offre: Offre; isFirst: boolean }) {
       <div className="offer-card-inner">
 
         <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-          <span style={{ ...TAG[offre.type_public], fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6 }}>
+          <span style={{ ...TAG[offre.type_public], fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6 }}>
             {offre.type_public.charAt(0).toUpperCase() + offre.type_public.slice(1)}
           </span>
-          <span style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 6 }}>
+          <span style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6 }}>
             {offre.type_chambre}
           </span>
         </div>
 
         <div className="card-name">{offre.nom}</div>
         {offre.description && (
-          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, marginBottom: 12 }}>{offre.description}</div>
+          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 12 }}>{offre.description}</div>
         )}
 
         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -129,7 +129,7 @@ function OfferCard({ offre, isFirst }: { offre: Offre; isFirst: boolean }) {
             offre.repas_type === 'complet' ? 'Pension complète' : offre.repas_type === 'demi' ? 'Demi-pension' : 'Sans repas',
             offre.transport_inclus ? 'Transport inclus' : offre.transport_optionnel ? 'Transport optionnel' : 'Sans transport',
           ].map(p => (
-            <span key={p} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', fontSize: 9, borderRadius: 5, padding: '3px 7px' }}>
+            <span key={p} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', fontSize: 11, borderRadius: 5, padding: '3px 7px' }}>
               {p}
             </span>
           ))}
@@ -139,7 +139,7 @@ function OfferCard({ offre, isFirst }: { offre: Offre; isFirst: boolean }) {
           <div style={{ height: 3, background: 'rgba(255,255,255,0.1)', borderRadius: 2, marginBottom: 5 }}>
             <div style={{ height: '100%', borderRadius: 2, background: 'linear-gradient(90deg,#22c55e,#4ade80)', width: `${pct}%`, transition: 'width .3s' }} />
           </div>
-          <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 9 }}>
+          <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>
             {complet ? 'Complet' : `${offre.places_restantes} places restantes`}
           </div>
         </div>
@@ -287,12 +287,12 @@ export default function FormulesPage() {
       {/* Sticky bar */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(6,10,30,0.97)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.07)', padding: '10px 16px', zIndex: 100, display: 'flex', gap: 10 }}>
         <button type="button" onClick={() => setActiveTab('std')}
-          style={{ flex: 1, background: '#fdbe11', color: '#003090', border: 'none', borderRadius: 13, padding: 12, fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          style={{ flex: 1, background: activeTab === 'std' ? '#fdbe11' : 'rgba(255,255,255,0.07)', color: activeTab === 'std' ? '#003090' : 'rgba(255,255,255,0.6)', border: activeTab === 'std' ? 'none' : '1px solid rgba(255,255,255,0.12)', borderRadius: 13, padding: 12, fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all .2s' }}>
           <i className="ti ti-ticket" style={{ fontSize: 14 }} aria-hidden="true" />
           Offres standard
         </button>
-        <button type="button" onClick={() => { setActiveTab('fam'); router.push('/famille') }}
-          style={{ flex: 1, background: 'rgba(255,255,255,0.07)', color: '#fdbe11', border: '1.5px solid rgba(253,190,17,0.35)', borderRadius: 13, padding: 12, fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+        <button type="button" onClick={() => router.push('/famille')}
+          style={{ flex: 1, background: activeTab === 'fam' ? '#fdbe11' : 'rgba(255,255,255,0.07)', color: activeTab === 'fam' ? '#003090' : '#fdbe11', border: activeTab === 'fam' ? 'none' : '1.5px solid rgba(253,190,17,0.35)', borderRadius: 13, padding: 12, fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all .2s' }}>
           <i className="ti ti-users" style={{ fontSize: 14 }} aria-hidden="true" />
           Réservation famille
         </button>

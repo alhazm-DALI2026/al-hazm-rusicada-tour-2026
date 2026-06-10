@@ -93,7 +93,7 @@ function Counter({ label, sub, value, min, max, onChange }: {
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: 14, marginBottom: 10 }}>
       <div>
         <div style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{label}</div>
-        <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>{sub}</div>
+        <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>{sub}</div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         <button type="button" onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min}
@@ -310,7 +310,7 @@ export default function FamillePage() {
                 <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>Indiquez la composition de votre groupe</div>
               </div>
 
-              <Counter label="Adultes"         sub="min. 2 personnes"       value={form.nb_adultes}   min={1} max={20} onChange={v => setField('nb_adultes',   v)} />
+              <Counter label="Adultes"         sub="min. 1 adulte requis"   value={form.nb_adultes}   min={1} max={20} onChange={v => setField('nb_adultes',   v)} />
               <Counter label="Enfants"          sub="3 à 17 ans"             value={form.nb_enfants}   min={0} max={20} onChange={v => setField('nb_enfants',   v)} />
               <Counter label="Bébés"            sub="0 à 2 ans · gratuit"    value={form.nb_bebes}     min={0} max={10} onChange={v => setField('nb_bebes',     v)} />
               <Counter label="Nombre de nuits"  sub="5 nuits recommandées"   value={form.nombre_nuits} min={1} max={7}  onChange={v => setField('nombre_nuits', v)} />
@@ -454,8 +454,8 @@ export default function FamillePage() {
                   { label: 'Durée',       value: `${form.nombre_nuits} nuits / ${form.nombre_nuits + 1} jours` },
                 ]).map(row => (
                   <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8, marginBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                    <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{row.label}</span>
-                    <span style={{ color: '#fff', fontSize: 11, fontWeight: 600 }}>{row.value}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>{row.label}</span>
+                    <span style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>{row.value}</span>
                   </div>
                 ))}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 4 }}>

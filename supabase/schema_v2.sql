@@ -109,8 +109,9 @@ CREATE TABLE IF NOT EXISTS staff (
   type_chambre TEXT
                  CHECK (type_chambre IN ('Single','Double','Triple','Quadruple')),
   cout_revient NUMERIC(12,2) NOT NULL DEFAULT 0,
-  prime        NUMERIC(12,2) NOT NULL DEFAULT 0,
-  created_at   TIMESTAMPTZ   NOT NULL DEFAULT now()
+  prime           NUMERIC(12,2) NOT NULL DEFAULT 0,
+  charges_custom  JSONB         NOT NULL DEFAULT '[]'::jsonb,
+  created_at      TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 
 -- =============================================================
