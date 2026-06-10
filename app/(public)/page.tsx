@@ -261,10 +261,10 @@ export default function HomePage() {
         </div>
         <div className="inclus-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           {([
-            { src: '/images/slide2.jpg',   icon: 'ti-ball-football',   label: 'Football & Formation', sub: 'Entraînements quotidiens' },
-            { src: '/images/slide1.jpg',   icon: 'ti-bed',             label: 'Hébergement hôtel',    sub: 'Chambre confortable'      },
-            { src: '/images/slide3.jpg',   icon: 'ti-tools-kitchen-2', label: 'Pension complète',     sub: '3 repas par jour'         },
-            { src: '/images/aquapark.jpg', icon: 'ti-ripple',          label: 'Aqua Park Rusicada',   sub: 'Journée aquatique'        },
+            { src: '/images/slide2.jpg',  icon: 'ti-ball-football',   label: 'Football & Formation', sub: 'Entraînements quotidiens' },
+            { src: '/images/slide1.jpg',  icon: 'ti-bed',             label: 'Hébergement hôtel',    sub: 'Chambre confortable'      },
+            { src: '/images/slide3.jpg',              icon: 'ti-tools-kitchen-2', label: 'Pension complète',     sub: '3 repas par jour'         },
+            { src: '/images/aquapark.jpg',            icon: 'ti-ripple',          label: 'Aqua Park Rusicada',   sub: 'Journée aquatique'        },
           ] as const).map(item => (
             <InclusPhotoCard key={item.label} {...item} />
           ))}
