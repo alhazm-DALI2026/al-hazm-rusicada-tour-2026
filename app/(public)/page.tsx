@@ -392,36 +392,26 @@ export default function HomePage() {
         transform: showSticky ? 'translateY(0)' : 'translateY(100%)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ flex: 1, display: 'flex', gap: 10 }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 5,
+          <button
+            type="button"
+            onClick={() => router.push('/formules')}
+            style={{
+              flex: 1, display: 'inline-flex', alignItems: 'center', gap: 7,
               background: 'rgba(253,190,17,0.12)',
-              border: '1px solid rgba(253,190,17,0.35)',
-              borderRadius: 20, padding: '4px 10px', flexShrink: 0,
-            }}>
-              <div style={{
-                width: 6, height: 6, borderRadius: '50%',
-                background: '#fdbe11',
-                animation: 'pulse 2s infinite',
-              }} />
-              <span style={{ color: '#fdbe11', fontSize: 9, fontWeight: 700, letterSpacing: '0.05em' }}>
-                Inscriptions ouvertes
-              </span>
-            </div>
-            {joursAvant > 0 && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                background: '#001a5e',
-                border: '1px solid rgba(253,190,17,0.4)',
-                borderRadius: 10, padding: '6px 12px', flex: 1,
-              }}>
-                <i className="ti ti-clock" style={{ color: '#fdbe11', fontSize: 13 }} aria-hidden="true" />
-                <span style={{ color: '#fdbe11', fontSize: 11, fontWeight: 800 }}>
-                  Plus que {joursAvant} jours !
-                </span>
-              </div>
-            )}
-          </div>
+              border: '1px solid #fdbe11',
+              borderRadius: 20, padding: '8px 12px',
+              cursor: 'pointer', textAlign: 'left',
+            }}
+          >
+            <div style={{
+              width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+              background: '#22c55e',
+              animation: 'pulse 2s infinite',
+            }} />
+            <span style={{ color: '#fdbe11', fontSize: 11, fontWeight: 700, letterSpacing: '0.03em' }}>
+              Inscriptions ouvertes{joursAvant > 0 ? ` · Plus que ${joursAvant} jours !` : ''}
+            </span>
+          </button>
           <StickyButton onClick={() => router.push('/formules')} />
         </div>
       </div>
