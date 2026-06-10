@@ -12,6 +12,11 @@ function margePct(pv: number, cdr: number) {
   return Math.round((pv - cdr) / pv * 100)
 }
 
+function margeBadgeStyle(pct: number): React.CSSProperties {
+  const color = pct > 20 ? '#22c55e' : pct >= 10 ? '#f97316' : '#ef4444'
+  return { display: 'inline-block', background: color, color: '#fff', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700 }
+}
+
 const RESPONSIVE_CSS = `
   @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(16px); }
@@ -88,13 +93,12 @@ const TAG: Record<string, React.CSSProperties> = {
 
 // ── OfferCard (onglet Offres) ─────────────────────────────────────────────────
 
-function OfferCard({ offre, isFirst }: { offre: Offre; isFirst: boolean }) {
+function OfferCard({ offre, isFirst, isAdmin }: { offre: Offre; isFirst: boolean; isAdmin: boolean }) {
   const router  = useRouter()
   const complet = offre.places_restantes === 0
   const pct     = offre.places_total > 0 ? (offre.places_restantes / offre.places_total) * 100 : 0
-  const marge   = margePct(offre.prix_vente, offre.cout_revient)
-  const margeBg = marge > 20 ? 'rgba(34,197,94,0.15)' : marge >= 10 ? 'rgba(253,190,17,0.15)' : 'rgba(239,68,68,0.15)'
-  const margeColor = marge > 20 ? '#4ade80' : marge >= 10 ? '#fdbe11' : '#f87171'
+  const pct_marge = margePct(offre.prix_vente, offre.cout_revient)
+  const da_marge  = offre.prix_vente - offre.cout_revient
 
   return (
     <div
@@ -120,13 +124,16 @@ function OfferCard({ offre, isFirst }: { offre: Offre; isFirst: boolean }) {
           <span style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6 }}>
             {offre.type_chambre}
           </span>
-          {/* Badge marge */}
-          <span style={{ background: margeBg, color: margeColor, fontSize: 10, fontWeight: 700, padding: '3px 7px', borderRadius: 6, marginLeft: 'auto' }}>
-            {marge}% marge
-          </span>
         </div>
 
         <div className="card-name">{offre.nom}</div>
+        {isAdmin && (
+          <div style={{ marginBottom: 6 }}>
+            <span style={margeBadgeStyle(pct_marge)}>
+              Marge {pct_marge}% · {da_marge.toLocaleString('fr-DZ')} DA
+            </span>
+          </div>
+        )}
         {offre.description && (
           <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 12 }}>{offre.description}</div>
         )}
@@ -178,12 +185,14 @@ function OfferCard({ offre, isFirst }: { offre: Offre; isFirst: boolean }) {
 
 // ── FamilleCard (onglet Famille) ──────────────────────────────────────────────
 
-function FamilleCard({ offre }: { offre: Offre }) {
-  const router  = useRouter()
-  const complet = offre.places_restantes === 0
-  const oc      = (offre.options_custom ?? {}) as { nb_adultes?: number; nb_enfants?: number; nb_bebes?: number }
-  const ad = oc.nb_adultes ?? 2
-  const en = oc.nb_enfants ?? 0
+function FamilleCard({ offre, isAdmin }: { offre: Offre; isAdmin: boolean }) {
+  const router    = useRouter()
+  const complet   = offre.places_restantes === 0
+  const oc        = (offre.options_custom ?? {}) as { nb_adultes?: number; nb_enfants?: number; nb_bebes?: number }
+  const ad        = oc.nb_adultes ?? 2
+  const en        = oc.nb_enfants ?? 0
+  const pct_marge = margePct(offre.prix_vente, offre.cout_revient)
+  const da_marge  = offre.prix_vente - offre.cout_revient
 
   return (
     <div
@@ -243,6 +252,13 @@ function FamilleCard({ offre }: { offre: Offre }) {
           <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 2 }}>
             CDR : {fmt(offre.cout_revient)}
           </div>
+          {isAdmin && (
+            <div style={{ marginTop: 6 }}>
+              <span style={margeBadgeStyle(pct_marge)}>
+                Marge {pct_marge}% · {da_marge.toLocaleString('fr-DZ')} DA
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Bouton */}
@@ -267,16 +283,22 @@ function FamilleCard({ offre }: { offre: Offre }) {
 // ── Page principale ───────────────────────────────────────────────────────────
 
 export default function FormulesPage() {
-  const router                  = useRouter()
+  const router                    = useRouter()
   const [activeTab, setActiveTab] = useState<'offres' | 'famille'>('offres')
-  const [offres, setOffres]     = useState<Offre[]>([])
-  const [loading, setLoading]   = useState(true)
+  const [offres, setOffres]       = useState<Offre[]>([])
+  const [loading, setLoading]     = useState(true)
+  const [isAdmin, setIsAdmin]     = useState(false)
 
   useEffect(() => {
     fetch('/api/offres')
       .then(r => r.json())
       .then((data: Offre[]) => setOffres((data ?? []).filter(o => o.actif)))
       .finally(() => setLoading(false))
+
+    fetch('/api/auth/check')
+      .then(r => r.json())
+      .then((d: { isAdmin?: boolean }) => setIsAdmin(d.isAdmin === true))
+      .catch(() => { /* pas admin */ })
   }, [])
 
   const offreStd    = offres.filter(o => o.type_public !== 'famille')
@@ -321,7 +343,7 @@ export default function FormulesPage() {
                 <p style={{ fontWeight: 600 }}>Aucune formule disponible pour le moment.</p>
               </div>
             ) : offreStd.map((o, i) => (
-              <OfferCard key={o.id} offre={o} isFirst={i === 0} />
+              <OfferCard key={o.id} offre={o} isFirst={i === 0} isAdmin={isAdmin} />
             ))}
           </div>
         )}
@@ -335,7 +357,7 @@ export default function FormulesPage() {
                   <i className="ti ti-loader-2 animate-spin" style={{ fontSize: 36, color: 'rgba(255,255,255,0.5)', display: 'block' }} aria-hidden="true" />
                 </div>
               ) : offreFamille.map(o => (
-                <FamilleCard key={o.id} offre={o} />
+                <FamilleCard key={o.id} offre={o} isAdmin={isAdmin} />
               ))}
             </div>
 
