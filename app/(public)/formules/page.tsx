@@ -73,8 +73,8 @@ const RESPONSIVE_CSS = `
 
 function getOffreImage(offre: Offre): string {
   if (offre.image_url) return offre.image_url
-  if (offre.type_public === 'enfant')  return '/images/enfants-marche.jpg'
-  if (offre.type_public === 'adulte')  return '/images/football-action.jpg'
+  if (offre.type_public === 'enfant')  return '/images/slide1.jpg'
+  if (offre.type_public === 'adulte')  return '/images/slide2.jpg'
   if (offre.type_public === 'famille') return '/images/aquapark.jpg'
   return '/images/slide1.jpg'
 }
