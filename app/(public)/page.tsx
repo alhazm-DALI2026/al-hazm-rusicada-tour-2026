@@ -333,14 +333,14 @@ export default function HomePage() {
           borderBottom: '1px solid rgba(255,255,255,0.06)',
         }}>
           <a
-            href="https://alhazm-rusicada.vercel.app"
+            href="https://alhazm.vercel.app/"
             target="_blank"
             rel="noopener noreferrer"
             style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
             <i className="ti ti-world" style={{ color: '#fdbe11', fontSize: 16 }} aria-hidden="true" />
             <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>
-              alhazm-rusicada.vercel.app
+              alhazm.vercel.app
             </span>
           </a>
         </div>
