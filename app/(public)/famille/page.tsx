@@ -67,7 +67,13 @@ function configLabel(c: RoomConfig): string {
 }
 
 function pvHebergConfig(c: RoomConfig, p: Parametres, nuits: number): number {
-  return (c.s * p.pv_single + c.d * p.pv_double + c.t * p.pv_triple + c.q * p.pv_quadruple) * nuits
+  const cdrHeberg = (
+    c.s * p.cdr_single +
+    c.d * p.cdr_double +
+    c.t * p.cdr_triple +
+    c.q * p.cdr_quadruple
+  ) * nuits
+  return Math.round(cdrHeberg * (1 + p.taux_marge_famille / 100))
 }
 
 function cdrHebergConfig(c: RoomConfig, p: Parametres, nuits: number): number {
@@ -152,12 +158,17 @@ export default function FamillePage() {
 
   const selectedConfig = configs[Math.min(selectedConfigIdx, configs.length - 1)] ?? null
 
-  // Prix affiché = hébergement config choisie + repas (transport non compris)
-  const pvAffiche = params && selectedConfig && result
-    ? pvHebergConfig(selectedConfig, params, form.nombre_nuits) + result.detail.repas_pv
-    : 0
   const cdrAffiche = params && selectedConfig && result
-    ? cdrHebergConfig(selectedConfig, params, form.nombre_nuits) + result.detail.repas_cdr
+    ? cdrHebergConfig(selectedConfig, params, form.nombre_nuits)
+      + result.detail.repas_cdr
+      + (form.transport
+          ? params.cdr_transport_adulte * form.nb_adultes
+            + params.cdr_transport_enfant * form.nb_enfants
+            + params.cdr_transport_bebe   * form.nb_bebes
+          : 0)
+    : 0
+  const pvAffiche = params
+    ? Math.round(cdrAffiche * (1 + params.taux_marge_famille / 100))
     : 0
 
   function setField<K extends keyof FamilleForm>(key: K, val: FamilleForm[K]) {

@@ -1,5 +1,9 @@
 import type { ChargeStaff, CoutInclus, MoteurCout, Offre, Parametres, RepasType, TypeChambre } from '@/types';
 
+export function calculerPV(cdr: number, taux: number): number {
+  return Math.round(cdr * (1 + taux / 100))
+}
+
 export const CAPACITE: Record<string, number> = {
   single: 1, double: 2, triple: 3, quadruple: 4,
 }
@@ -215,7 +219,7 @@ export function calculerFamille(
 
   const cdrTotal = cdrHeberg + cdrRepas + cdrTransport
   const tauxMarge = params.taux_marge_famille ?? 23
-  const pvTotal   = Math.round(cdrTotal * (1 + tauxMarge / 100))
+  const pvTotal   = calculerPV(cdrTotal, tauxMarge)
   const marge     = pvTotal - cdrTotal
 
   return {
@@ -367,7 +371,7 @@ export function calculerOffreFamille(
 
   const cdrTotal = Math.round(cdrHeberg + cdrRepas + cdrTransport)
   const taux     = 1 + params.taux_marge_famille / 100
-  const pvTotal  = Math.round(cdrTotal * taux)
+  const pvTotal  = calculerPV(cdrTotal, params.taux_marge_famille)
   const marge    = pvTotal - cdrTotal
 
   return { cdrHeberg, cdrRepas, cdrTransport, cdrTotal, pvTotal, marge, taux }
