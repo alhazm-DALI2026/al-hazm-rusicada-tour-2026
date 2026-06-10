@@ -93,6 +93,13 @@ function MerciContent() {
             </a>
           )}
 
+          {/* Book another */}
+          <Link href="/formules"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '13px 0', background: 'rgba(253,190,17,0.12)', border: '1px solid rgba(253,190,17,0.35)', color: '#fdbe11', borderRadius: 13, fontSize: 13, fontWeight: 700, textDecoration: 'none', marginBottom: 10, boxSizing: 'border-box' }}>
+            <i className="ti ti-plus" aria-hidden="true" />
+            Réserver une autre place
+          </Link>
+
           {/* Back home */}
           <Link href="/"
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 0', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', borderRadius: 13, fontSize: 13, fontWeight: 600, textDecoration: 'none', boxSizing: 'border-box' }}>

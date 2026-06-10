@@ -77,6 +77,17 @@ export default function HomePage() {
           0%, 100% { transform: scale(1); }
           50%       { transform: scale(1.02); }
         }
+        .c { max-width: 960px; margin: 0 auto; width: 100%; }
+        @media (min-width: 768px) {
+          .hero-logo  { width: 140px !important; height: 140px !important; }
+          .hero-h1    { font-size: 56px !important; }
+          .hero-sub   { font-size: 16px !important; }
+          .inclus-grid { grid-template-columns: repeat(4, 1fr) !important; }
+          .gallery-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 14px !important; }
+          .insc-grid  { max-width: 640px; margin: 0 auto; }
+          .stats-inner { max-width: 600px; margin: 0 auto; display: grid; grid-template-columns: repeat(4,1fr); }
+          .stats-outer { display: block !important; }
+        }
       `}</style>
 
       {/* ── 1. BACKGROUND GLOWS ────────────────────────────────── */}
@@ -94,7 +105,7 @@ export default function HomePage() {
       </div>
 
       {/* ── 2. HERO ────────────────────────────────────────────── */}
-      <section style={{ position: 'relative', minHeight: 480, overflow: 'hidden' }}>
+      <section style={{ position: 'relative', minHeight: 560, overflow: 'hidden' }}>
 
         {slides.map((src, i) => (
           <div key={src} style={{
@@ -120,23 +131,24 @@ export default function HomePage() {
             width={90}
             height={90}
             alt="Al Hazm Football Academy"
+            className="hero-logo"
             style={{
-              objectFit: 'contain', margin: '0 auto 14px', display: 'block',
+              objectFit: 'contain', margin: '0 auto 18px', display: 'block',
               animation: 'fadeInUp .6s ease',
             }}
           />
 
-          <h1 style={{
+          <h1 className="hero-h1" style={{
             color: '#ffffff', fontSize: 32, fontWeight: 900,
             letterSpacing: '-0.03em', lineHeight: 1.05,
-            margin: '0 0 8px', animation: 'fadeInUp .7s ease',
+            margin: '0 0 10px', animation: 'fadeInUp .7s ease',
           }}>
             <span style={{ color: '#fdbe11' }}>Rusicada</span> Tour 2026
           </h1>
 
-          <p style={{
-            color: 'rgba(255,255,255,0.65)', fontSize: 12,
-            margin: '0 0 16px', animation: 'fadeInUp .8s ease',
+          <p className="hero-sub" style={{
+            color: 'rgba(255,255,255,0.65)', fontSize: 13,
+            margin: '0 0 20px', animation: 'fadeInUp .8s ease',
           }}>
             L&apos;été du football, l&apos;été de ta vie
           </p>
@@ -188,48 +200,51 @@ export default function HomePage() {
       </section>
 
       {/* ── 3. STATS BAR ───────────────────────────────────────── */}
-      <section style={{
+      <section className="stats-outer" style={{
         position: 'relative', zIndex: 5,
         display: 'grid', gridTemplateColumns: 'repeat(4,1fr)',
         background: 'rgba(255,255,255,0.03)',
         borderTop: '1px solid rgba(255,255,255,0.07)',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
       }}>
+        <div className="stats-inner" style={{ display: 'contents' }}>
         {([
           { icon: 'ti-moon-stars', val: String(nombreNuits), label: 'Nuits',      circBg: 'rgba(0,48,144,0.4)',    circBorder: 'rgba(0,80,204,0.25)',    ic: '#7eb8ff' },
           { icon: 'ti-sun',        val: String(nombreJours), label: 'Jours',      circBg: 'rgba(253,190,17,0.15)', circBorder: 'rgba(253,190,17,0.25)',  ic: '#fdbe11' },
           { icon: 'ti-ticket',     val: '50+',               label: 'Places',     circBg: 'rgba(0,48,144,0.4)',    circBorder: 'rgba(0,80,204,0.25)',    ic: '#7eb8ff' },
-          { icon: 'ti-whistle',    val: '6',                 label: 'Encadrants', circBg: 'rgba(253,190,17,0.15)', circBorder: 'rgba(253,190,17,0.25)',  ic: '#fdbe11' },
+          { icon: 'ti-award',      val: '6',                 label: 'Encadrants', circBg: 'rgba(253,190,17,0.15)', circBorder: 'rgba(253,190,17,0.25)',  ic: '#fdbe11' },
         ]).map((s, idx) => (
           <div key={s.label} style={{
-            padding: '16px 8px', textAlign: 'center',
+            padding: '20px 8px', textAlign: 'center',
             borderRight: idx < 3 ? '1px solid rgba(255,255,255,0.07)' : undefined,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
           }}>
             <div style={{
-              width: 44, height: 44, borderRadius: 13,
+              width: 52, height: 52, borderRadius: 15,
               background: s.circBg, border: `1px solid ${s.circBorder}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <i className={`ti ${s.icon}`} style={{ color: s.ic, fontSize: 20 }} aria-hidden="true" />
+              <i className={`ti ${s.icon}`} style={{ color: s.ic, fontSize: 24 }} aria-hidden="true" />
             </div>
-            <div style={{ color: '#fff', fontSize: 18, fontWeight: 700, lineHeight: 1 }}>{s.val}</div>
-            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>{s.label}</div>
+            <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, lineHeight: 1 }}>{s.val}</div>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>{s.label}</div>
           </div>
         ))}
+        </div>
       </section>
 
       {/* ── 4. TOUT EST INCLUS ─────────────────────────────────── */}
-      <section style={{ position: 'relative', zIndex: 5, padding: '32px 20px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 20 }}>
-          <h2 style={{ color: '#fff', fontSize: 24, fontWeight: 900, margin: '0 0 4px', textAlign: 'center' }}>
+      <section style={{ position: 'relative', zIndex: 5, padding: '40px 20px' }}>
+        <div className="c">
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <h2 style={{ color: '#fff', fontSize: 28, fontWeight: 900, margin: '0 0 4px', textAlign: 'center' }}>
             Tout est inclus
           </h2>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, margin: 0, textAlign: 'center' }}>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, margin: 0, textAlign: 'center' }}>
             Dans chaque pack Al Hazm
           </p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="inclus-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           {([
             { src: '/images/inclus-football.jpg',    icon: 'ti-ball-football',   label: 'Football & Formation', sub: 'Entraînements quotidiens' },
             { src: '/images/inclus-hebergement.jpg', icon: 'ti-bed',             label: 'Hébergement hôtel',    sub: 'Chambre confortable'      },
@@ -239,19 +254,21 @@ export default function HomePage() {
             <InclusPhotoCard key={item.label} {...item} />
           ))}
         </div>
+        </div>
       </section>
 
       {/* ── 5. GALERIE ─────────────────────────────────────────── */}
-      <section style={{ position: 'relative', zIndex: 5, padding: '32px 20px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 18 }}>
-          <h2 style={{ color: '#fff', fontSize: 24, fontWeight: 900, margin: '0 0 2px', textAlign: 'center' }}>
+      <section style={{ position: 'relative', zIndex: 5, padding: '40px 20px' }}>
+        <div className="c">
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <h2 style={{ color: '#fff', fontSize: 28, fontWeight: 900, margin: '0 0 2px', textAlign: 'center' }}>
             Ils l&apos;ont vécu.
           </h2>
-          <p style={{ color: '#fdbe11', fontSize: 13, fontWeight: 600, margin: 0, textAlign: 'center' }}>
+          <p style={{ color: '#fdbe11', fontSize: 14, fontWeight: 600, margin: 0, textAlign: 'center' }}>
             Votre enfant aussi.
           </p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+        <div className="gallery-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
           {([
             { src: '/images/slide1.jpg', caption: 'Formation & technique' },
             { src: '/images/slide2.jpg', caption: 'Amitié & complicité'   },
@@ -260,20 +277,22 @@ export default function HomePage() {
             <GalleryItem key={photo.src} src={photo.src} caption={photo.caption} />
           ))}
         </div>
+        </div>
       </section>
 
       {/* ── 6. INSCRIPTION ─────────────────────────────────────── */}
-      <section ref={inscriptionRef} style={{ position: 'relative', zIndex: 5, padding: '32px 20px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 16 }}>
-          <h2 style={{ color: '#fff', fontSize: 24, fontWeight: 900, margin: '0 0 4px', textAlign: 'center' }}>
+      <section ref={inscriptionRef} style={{ position: 'relative', zIndex: 5, padding: '40px 20px' }}>
+        <div className="c">
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <h2 style={{ color: '#fff', fontSize: 28, fontWeight: 900, margin: '0 0 4px', textAlign: 'center' }}>
             Votre inscription
           </h2>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, margin: 0, textAlign: 'center' }}>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, margin: 0, textAlign: 'center' }}>
             Choisissez la formule qui vous{' '}
             <span style={{ color: '#fdbe11' }}>correspond</span>
           </p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="insc-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
 
           <InscriptionCard
             bg="rgba(0,48,144,0.25)"
@@ -305,6 +324,7 @@ export default function HomePage() {
             onClick={() => router.push('/famille')}
           />
         </div>
+        </div>
       </section>
 
       {/* ── 7. SOCIAL BAR ──────────────────────────────────────── */}
@@ -314,24 +334,25 @@ export default function HomePage() {
         borderTop: '1px solid rgba(255,255,255,0.07)',
         padding: '20px 16px 90px',
       }}>
+        <div className="c">
         <div style={{
           textAlign: 'center', marginBottom: 16,
           paddingBottom: 14,
           borderBottom: '1px solid rgba(255,255,255,0.06)',
         }}>
           <a
-            href="https://alhazmfootballacademy.dz"
+            href="https://alhazm-rusicada.vercel.app"
             target="_blank"
             rel="noopener noreferrer"
             style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            <i className="ti ti-world" style={{ color: '#fdbe11', fontSize: 14 }} aria-hidden="true" />
-            <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>
-              www.alhazmfootballacademy.dz
+            <i className="ti ti-world" style={{ color: '#fdbe11', fontSize: 16 }} aria-hidden="true" />
+            <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>
+              alhazm-rusicada.vercel.app
             </span>
           </a>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 28 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 36 }}>
           <SocialIcon
             icon="ti-brand-whatsapp"
             label="WhatsApp"
@@ -340,6 +361,31 @@ export default function HomePage() {
             hBg="rgba(37,211,102,0.1)"
             hIcon="#25d366"
           />
+          <SocialIcon
+            icon="ti-brand-instagram"
+            label="IG"
+            href="#"
+            hBorder="rgba(225,48,108,0.4)"
+            hBg="rgba(225,48,108,0.1)"
+            hIcon="#e1306c"
+          />
+          <SocialIcon
+            icon="ti-brand-facebook"
+            label="FB"
+            href="#"
+            hBorder="rgba(24,119,242,0.4)"
+            hBg="rgba(24,119,242,0.1)"
+            hIcon="#1877f2"
+          />
+          <SocialIcon
+            icon="ti-brand-tiktok"
+            label="TK"
+            href="#"
+            hBorder="rgba(255,255,255,0.3)"
+            hBg="rgba(255,255,255,0.08)"
+            hIcon="#fff"
+          />
+        </div>
         </div>
       </section>
 
