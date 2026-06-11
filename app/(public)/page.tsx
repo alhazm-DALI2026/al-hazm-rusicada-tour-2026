@@ -104,6 +104,9 @@ export default function HomePage() {
         .incl:hover .incl-ov { background: linear-gradient(180deg, transparent 40%, rgba(6,10,30,0.7) 100%) !important; }
         .gal { cursor: pointer; transition: transform 0.3s ease; }
         .gal:hover { transform: scale(1.02); }
+        @media (min-width: 900px) {
+          .encad-grid { grid-template-columns: 360px 1fr !important; }
+        }
         .gal:hover .gal-ov { background: linear-gradient(180deg, transparent 50%, rgba(6,10,30,0.7) 100%) !important; }
       `}</style>
 
@@ -294,7 +297,59 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── 6. INSCRIPTION ─────────────────────────────────────── */}
+      {/* ── 6. ENCADREMENT ─────────────────────────────────────── */}
+      <section style={{ position: 'relative', zIndex: 5, padding: '40px 20px' }}>
+        <div className="c">
+          <div className="encad-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 28, alignItems: 'center' }}>
+
+            {/* Photo */}
+            <div style={{ borderRadius: 12, overflow: 'hidden', flexShrink: 0 }}>
+              <Image
+                src="/images/encadrant-fifa.jpg"
+                alt="Encadrant FIFA Al Hazm"
+                width={1320}
+                height={2030}
+                sizes="(min-width: 900px) 360px, 100vw"
+                style={{ width: '100%', height: 360, objectFit: 'cover', objectPosition: 'top', display: 'block' }}
+              />
+            </div>
+
+            {/* Texte */}
+            <div>
+              <h2 style={{ color: '#fff', fontSize: 26, fontWeight: 900, margin: '0 0 6px', lineHeight: 1.15 }}>
+                Un encadrement d&apos;exception
+              </h2>
+              <p style={{ color: '#fdbe11', fontSize: 14, fontWeight: 700, margin: '0 0 22px' }}>
+                Des professionnels au service de votre enfant
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {([
+                  { icon: 'ti-certificate', title: 'Entraîneurs certifiés',  desc: 'Formateurs diplômés et expérimentés' },
+                  { icon: 'ti-shield-check', title: 'Sécurité 24h/24',       desc: 'Vos enfants supervisés à chaque instant' },
+                  { icon: 'ti-user-check',   title: 'Suivi personnalisé',    desc: 'Une attention adaptée à chaque joueur' },
+                ]).map(pt => (
+                  <div key={pt.title} style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 11, flexShrink: 0,
+                      background: 'rgba(253,190,17,0.12)',
+                      border: '1px solid rgba(253,190,17,0.25)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <i className={`ti ${pt.icon}`} style={{ color: '#fdbe11', fontSize: 18 }} aria-hidden="true" />
+                    </div>
+                    <div>
+                      <div style={{ color: '#fff', fontSize: 17, fontWeight: 700, lineHeight: 1.3 }}>{pt.title}</div>
+                      <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, marginTop: 2 }}>{pt.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 7. INSCRIPTION ─────────────────────────────────────── */}
       <section ref={inscriptionRef} style={{ position: 'relative', zIndex: 5, padding: '40px 20px' }}>
         <div className="c">
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
