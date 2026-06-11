@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Toast from '@/components/Toast'
-import { calculerCoutOffre, calculerOffreFamille } from '@/lib/calc'
+import { calculerCoutOffre, calculerFamille } from '@/lib/calc'
 import type {
   CoutInclus, MoteurCout, MoteurCoutCategorie, Offre, Parametres,
   RepasType, TypeChambre, TypePublic,
@@ -40,7 +40,8 @@ interface FormState {
   transport_inclus: boolean; transport_optionnel: boolean
   repas_type: RepasType
   couts_inclus: CoutFormItem[]; prix_vente: string; ordre_affichage: string
-  nb_adultes: string; nb_enfants: string
+  nb_adultes: string; nb_enfants: string; nb_bebes: string
+  places_total: string
   image_url: string
 }
 
@@ -50,7 +51,8 @@ const EMPTY: FormState = {
   transport_inclus: false, transport_optionnel: false,
   repas_type: 'demi',
   couts_inclus: [], prix_vente: '', ordre_affichage: '0',
-  nb_adultes: '2', nb_enfants: '0',
+  nb_adultes: '2', nb_enfants: '2', nb_bebes: '0',
+  places_total: '50',
   image_url: '',
 }
 
@@ -97,6 +99,25 @@ function calcBreakdown(f: FormState, allCouts: MoteurCout[]) {
     res.set(c.categorie, (res.get(c.categorie) ?? 0) + v)
   }
   return res
+}
+
+// ── Counter ───────────────────────────────────────────────────────────────────
+
+function Counter({ value, onChange, min = 0 }: { value: string; onChange(v: string): void; min?: number }) {
+  const n = parseInt(value) || 0
+  return (
+    <div className="flex items-center gap-2">
+      <button type="button" onClick={() => onChange(String(Math.max(min, n - 1)))}
+        className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 border border-white/20 text-white hover:bg-white/10 transition-colors font-bold text-base leading-none">
+        −
+      </button>
+      <span className="w-8 text-center text-white font-bold text-sm tabular-nums">{n}</span>
+      <button type="button" onClick={() => onChange(String(n + 1))}
+        className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 border border-white/20 text-white hover:bg-white/10 transition-colors font-bold text-base leading-none">
+        +
+      </button>
+    </div>
+  )
 }
 
 // ── Toggle ────────────────────────────────────────────────────────────────────
@@ -297,15 +318,14 @@ export default function OffresPage() {
 
   const familleCalc = useMemo(() => {
     if (form.type_public !== 'famille' || !familleParams) return null
-    return calculerOffreFamille(
-      form.type_chambre,
-      parseInt(form.nb_adultes) || 2,
-      parseInt(form.nb_enfants) || 0,
-      parseInt(form.nombre_nuits) || 5,
-      form.repas_type,
-      form.transport_inclus,
-      familleParams,
-    )
+    return calculerFamille(familleParams, {
+      nbAdultes:   parseInt(form.nb_adultes)   || 2,
+      nbEnfants:   parseInt(form.nb_enfants)   || 0,
+      nbBebes:     parseInt(form.nb_bebes)     || 0,
+      nombreNuits: parseInt(form.nombre_nuits) || 5,
+      transport:   form.transport_inclus,
+      repas:       form.repas_type,
+    })
   }, [form, familleParams])
 
   // ── Form helpers ───────────────────────────────────────────────
@@ -338,7 +358,7 @@ export default function OffresPage() {
         ? { id: item, montant: String(allCouts.find(m => m.id === item)?.montant ?? 0) }
         : { id: item.id, montant: String(item.montant) }
     )
-    const oc = o.options_custom as { nb_adultes?: number; nb_enfants?: number } | null
+    const oc = o.options_custom as { nb_adultes?: number; nb_enfants?: number; nb_bebes?: number } | null
     setForm({
       nom:                 o.nom,
       description:         o.description ?? '',
@@ -354,6 +374,8 @@ export default function OffresPage() {
       ordre_affichage:     String(o.ordre_affichage),
       nb_adultes:          String(oc?.nb_adultes ?? 2),
       nb_enfants:          String(oc?.nb_enfants ?? 0),
+      nb_bebes:            String(oc?.nb_bebes   ?? 0),
+      places_total:        String(o.places_total ?? 50),
       image_url:           o.image_url ?? '',
     })
     setShowForm(true)
@@ -388,8 +410,8 @@ export default function OffresPage() {
       transport_inclus:    form.transport_inclus,
       transport_optionnel: form.transport_optionnel,
       repas_type:          form.repas_type,
-      places_total:        editItem?.places_total ?? 100,
-      places_restantes:    editItem ? editItem.places_restantes : 100,
+      places_total:        isFamille ? (parseInt(form.places_total) || 50) : (editItem?.places_total ?? 100),
+      places_restantes:    editItem ? editItem.places_restantes : (isFamille ? parseInt(form.places_total) || 50 : 100),
       couts_inclus:        isFamille ? [] : coutsPayload,
       cout_revient:        isFamille ? (familleCalc?.cdrTotal ?? 0) : cdr,
       prix_vente:          isFamille ? (familleCalc?.pvTotal  ?? 0) : prixVente,
@@ -398,12 +420,11 @@ export default function OffresPage() {
       image_url:           form.image_url.trim() || null,
       ...(isFamille ? {
         options_custom: {
-          type_chambre:   form.type_chambre,
-          nb_adultes:     parseInt(form.nb_adultes)  || 2,
-          nb_enfants:     parseInt(form.nb_enfants)  || 0,
-          nombre_nuits:   parseInt(form.nombre_nuits) || 5,
-          repas_type:     form.repas_type,
-          avec_transport: form.transport_inclus,
+          nb_adultes:  parseInt(form.nb_adultes)   || 2,
+          nb_enfants:  parseInt(form.nb_enfants)   || 0,
+          nb_bebes:    parseInt(form.nb_bebes)     || 0,
+          chambres:    familleCalc?.chambres        ?? [],
+          detail_cdr:  familleCalc?.detail          ?? null,
         },
       } : {}),
     }
@@ -539,8 +560,8 @@ export default function OffresPage() {
                 )}
               </div>
 
-              {/* Type public + Chambre */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Type public + Chambre (chambre masquée pour famille) */}
+              <div className={`grid gap-4 ${form.type_public === 'famille' ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type de public</label>
                   <select value={form.type_public}
@@ -549,74 +570,120 @@ export default function OffresPage() {
                     {TP_CFG.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type de chambre</label>
-                  <select value={form.type_chambre}
-                    onChange={e => setField('type_chambre', e.target.value as TypeChambre)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]">
-                    {CHAMBRES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
+                {form.type_public !== 'famille' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type de chambre</label>
+                    <select value={form.type_chambre}
+                      onChange={e => setField('type_chambre', e.target.value as TypeChambre)}
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]">
+                      {CHAMBRES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                )}
               </div>
 
-              {/* Durée */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre de nuits</label>
-                  <input type="number" min="1" value={form.nombre_nuits}
-                    onChange={e => setField('nombre_nuits', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre de jours</label>
-                  <input type="number" min="1" value={form.nombre_jours}
-                    onChange={e => setField('nombre_jours', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
-                  />
-                </div>
-              </div>
-
-              {/* Options */}
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Options</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {[
-                    { label: 'Transport inclus',    key: 'transport_inclus'    as const },
-                    { label: 'Transport optionnel', key: 'transport_optionnel' as const },
-                  ].map(({ label, key }) => (
-                    <div key={key} className="flex items-center justify-between px-3 py-2 bg-[#f0f2f8] dark:bg-[#0a0f2e] dark:border dark:border-[#003090] rounded-lg">
-                      <span className="text-sm text-gray-700 dark:text-white">{label}</span>
-                      <Toggle value={form[key]} onChange={v => setField(key, v)} />
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type de repas</label>
-                  <select value={form.repas_type}
-                    onChange={e => setField('repas_type', e.target.value as RepasType)}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]">
-                    {REPAS_OPTS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* Champs famille */}
-              {form.type_public === 'famille' && (
+              {/* Durée (masquée pour famille — incluse dans la section composition) */}
+              {form.type_public !== 'famille' && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nb adultes</label>
-                    <input type="number" min="1" value={form.nb_adultes}
-                      onChange={e => setField('nb_adultes', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre de nuits</label>
+                    <input type="number" min="1" value={form.nombre_nuits}
+                      onChange={e => setField('nombre_nuits', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nb enfants</label>
-                    <input type="number" min="0" value={form.nb_enfants}
-                      onChange={e => setField('nb_enfants', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 dark:border-white/20 rounded-lg text-sm bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#22c55e]"
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre de jours</label>
+                    <input type="number" min="1" value={form.nombre_jours}
+                      onChange={e => setField('nombre_jours', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
                     />
+                  </div>
+                </div>
+              )}
+
+              {/* Options standard (masquées pour famille) */}
+              {form.type_public !== 'famille' && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Options</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[
+                      { label: 'Transport inclus',    key: 'transport_inclus'    as const },
+                      { label: 'Transport optionnel', key: 'transport_optionnel' as const },
+                    ].map(({ label, key }) => (
+                      <div key={key} className="flex items-center justify-between px-3 py-2 bg-[#f0f2f8] dark:bg-[#0a0f2e] dark:border dark:border-[#003090] rounded-lg">
+                        <span className="text-sm text-gray-700 dark:text-white">{label}</span>
+                        <Toggle value={form[key]} onChange={v => setField(key, v)} />
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type de repas</label>
+                    <select value={form.repas_type}
+                      onChange={e => setField('repas_type', e.target.value as RepasType)}
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]">
+                      {REPAS_OPTS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Composition famille ─────────────────────────────── */}
+              {form.type_public === 'famille' && (
+                <div className="rounded-xl p-4 space-y-4" style={{ background: 'rgba(0,48,144,0.12)', border: '1px solid rgba(0,80,204,0.3)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#fdbe11' }}>
+                    Composition de la famille
+                  </p>
+
+                  {/* Compteurs */}
+                  <div className="grid grid-cols-3 gap-3">
+                    {([
+                      { label: 'Adultes', key: 'nb_adultes' as const, min: 1 },
+                      { label: 'Enfants', key: 'nb_enfants' as const, min: 0 },
+                      { label: 'Bébés',   key: 'nb_bebes'   as const, min: 0 },
+                    ]).map(({ label, key, min }) => (
+                      <div key={key} className="flex flex-col items-center gap-2">
+                        <span className="text-xs text-gray-400">{label}</span>
+                        <Counter value={form[key]} min={min} onChange={v => setField(key, v)} />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Nuits + Places */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Nuits</label>
+                      <input type="number" min="1" value={form.nombre_nuits}
+                        onChange={e => setField('nombre_nuits', e.target.value)}
+                        className="w-full px-3 py-2 border border-white/20 rounded-lg text-sm bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Places total</label>
+                      <input type="number" min="1" value={form.places_total}
+                        onChange={e => setField('places_total', e.target.value)}
+                        className="w-full px-3 py-2 border border-white/20 rounded-lg text-sm bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#003090]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Repas */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Repas</label>
+                    <select value={form.repas_type}
+                      onChange={e => setField('repas_type', e.target.value as RepasType)}
+                      className="w-full px-3 py-2 border border-white/20 rounded-lg text-sm bg-[#0a0f2e] text-white focus:outline-none focus:ring-2 focus:ring-[#003090]">
+                      {REPAS_OPTS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Transport */}
+                  <div className="flex items-center justify-between px-3 py-2.5 bg-white/5 border border-white/20 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <i className="ti ti-bus text-gray-400" aria-hidden="true" />
+                      <span className="text-sm text-white">Transport inclus</span>
+                    </div>
+                    <Toggle value={form.transport_inclus} onChange={v => setField('transport_inclus', v)} />
                   </div>
                 </div>
               )}
@@ -674,9 +741,9 @@ export default function OffresPage() {
 
               {/* CDR preview */}
               {form.type_public === 'famille' ? (
-                <div className="rounded-xl p-4 space-y-1.5" style={{ background: 'rgba(0,48,144,0.15)', border: '1px solid rgba(0,80,204,0.2)' }}>
-                  <p className="text-xs font-semibold text-green-500 uppercase tracking-wide mb-2">
-                    Aperçu offre famille — CDR depuis paramètres
+                <div className="rounded-xl p-4 space-y-1.5" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(0,80,204,0.25)' }}>
+                  <p className="text-xs font-semibold text-green-400 uppercase tracking-wide mb-2">
+                    Aperçu temps réel — Pack Famille
                   </p>
                   {!familleParams ? (
                     <p className="text-xs text-gray-400 italic">Chargement des paramètres…</p>
@@ -684,35 +751,54 @@ export default function OffresPage() {
                     <p className="text-xs text-gray-400 italic">Calcul en cours…</p>
                   ) : (
                     <>
-                      <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                      {/* Chambres distribuées */}
+                      {familleCalc.chambres.length > 0 && (
+                        <div className="mb-3 p-2.5 bg-white/5 rounded-lg">
+                          <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-2">Chambres distribuées</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {familleCalc.chambres.map((ch, i) => (
+                              <span key={i} className="text-xs px-2 py-0.5 rounded-full border"
+                                style={{ background: 'rgba(0,48,144,0.35)', borderColor: 'rgba(0,80,204,0.35)', color: '#93c5fd' }}>
+                                {ch.type} — {ch.occupants}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Détail CDR */}
+                      <div className="flex justify-between text-xs text-gray-400">
                         <span>CDR Hébergement</span>
-                        <span className="font-mono">{fmt(familleCalc.cdrHeberg)}</span>
+                        <span className="font-mono">{fmt(familleCalc.detail.hebergement_cdr)}</span>
                       </div>
-                      <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                      <div className="flex justify-between text-xs text-gray-400">
                         <span>CDR Repas</span>
-                        <span className="font-mono">{fmt(familleCalc.cdrRepas)}</span>
+                        <span className="font-mono">{fmt(familleCalc.detail.repas_cdr)}</span>
                       </div>
-                      <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                      <div className="flex justify-between text-xs text-gray-400">
                         <span>CDR Transport</span>
-                        <span className="font-mono">{fmt(familleCalc.cdrTransport)}</span>
+                        <span className="font-mono">{fmt(familleCalc.detail.transport_cdr)}</span>
                       </div>
-                      <div className="border-t border-gray-200 dark:border-white/10 pt-1.5 mt-1 space-y-1">
-                        <div className="flex justify-between text-sm font-bold text-gray-800 dark:text-white">
-                          <span>CDR Total</span>
+
+                      <div className="border-t border-white/10 pt-2 mt-1 space-y-1.5">
+                        <div className="flex justify-between text-sm font-bold text-white">
+                          <span>CDR TOTAL</span>
                           <span className="font-mono">{fmt(familleCalc.cdrTotal)}</span>
                         </div>
-                        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                          <span>Taux marge</span>
-                          <span className="font-mono">{((familleCalc.taux - 1) * 100).toFixed(0)}%</span>
-                        </div>
                         <div className="flex justify-between text-sm font-bold" style={{ color: '#fdbe11' }}>
-                          <span>PV Total</span>
+                          <span>PV TOTAL</span>
                           <span className="font-mono">{fmt(familleCalc.pvTotal)}</span>
                         </div>
-                        <div className="flex justify-between text-sm font-bold text-green-600 dark:text-green-400">
-                          <span>Marge</span>
-                          <span className="font-mono">{fmt(familleCalc.marge)}</span>
-                        </div>
+                        {(() => {
+                          const mp = familleCalc.pvTotal > 0 ? (familleCalc.marge / familleCalc.pvTotal) * 100 : 0
+                          const color = mp >= 20 ? '#22c55e' : mp >= 10 ? '#f59e0b' : '#ef4444'
+                          return (
+                            <div className="flex justify-between text-sm font-bold" style={{ color }}>
+                              <span>Marge</span>
+                              <span className="font-mono">{fmt(familleCalc.marge)} ({mp.toFixed(0)}%)</span>
+                            </div>
+                          )
+                        })()}
                       </div>
                     </>
                   )}
