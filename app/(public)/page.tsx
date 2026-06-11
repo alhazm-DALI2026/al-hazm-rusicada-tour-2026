@@ -102,8 +102,7 @@ export default function HomePage() {
         @media (min-width: 900px) { .incl { height: 320px; } }
         .incl:hover { transform: scale(1.02); }
         .incl:hover .incl-ov { background: linear-gradient(180deg, transparent 40%, rgba(6,10,30,0.7) 100%) !important; }
-        .gal { cursor: pointer; transition: transform 0.3s ease; height: 180px; }
-        @media (min-width: 640px) { .gal { height: 220px; } }
+        .gal { cursor: pointer; transition: transform 0.3s ease; }
         .gal:hover { transform: scale(1.02); }
         .gal:hover .gal-ov { background: linear-gradient(180deg, transparent 50%, rgba(6,10,30,0.7) 100%) !important; }
       `}</style>
@@ -285,11 +284,11 @@ export default function HomePage() {
         </div>
         <div className="gallery-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
           {([
-            { src: '/images/slide1.jpg', caption: 'Amitié & complicité'   },
-            { src: '/images/slide2.jpg', caption: 'Formation & technique' },
-            { src: '/images/slide3.jpg', caption: 'Confort & repas'       },
-          ] as const).map(photo => (
-            <GalleryItem key={photo.src} src={photo.src} caption={photo.caption} />
+            { src: '/images/slide1.jpg', caption: 'Amitié & complicité',   w: 1280, h: 1920 },
+            { src: '/images/slide2.jpg', caption: 'Formation & technique', w: 1280, h: 1920 },
+            { src: '/images/slide3.jpg', caption: 'Confort & repas',       w: 810,  h: 1080 },
+          ]).map(photo => (
+            <GalleryItem key={photo.src} src={photo.src} caption={photo.caption} imgW={photo.w} imgH={photo.h} />
           ))}
         </div>
         </div>
@@ -513,7 +512,7 @@ function InclusPhotoCard({ src, icon, label, sub }: {
   )
 }
 
-function GalleryItem({ src, caption }: { src: string; caption: string }) {
+function GalleryItem({ src, caption, imgW, imgH }: { src: string; caption: string; imgW: number; imgH: number }) {
   return (
     <div
       className="gal"
@@ -522,9 +521,10 @@ function GalleryItem({ src, caption }: { src: string; caption: string }) {
       <Image
         src={src}
         alt={caption}
-        fill
-        sizes="33vw"
-        style={{ objectFit: 'cover' }}
+        width={imgW}
+        height={imgH}
+        sizes="(max-width: 900px) 33vw, 340px"
+        style={{ width: '100%', height: 'auto', display: 'block' }}
       />
       <div className="gal-ov" style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
