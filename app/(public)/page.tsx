@@ -19,10 +19,21 @@ const slides = [
 
 export default function HomePage() {
   const router = useRouter()
+  const [splashChecked, setSplashChecked] = useState(false)
   const [current, setCurrent]   = useState(0)
   const [showSticky, setShowSticky] = useState(false)
   const [params, setParams]     = useState<Parametres | null>(null)
   const inscriptionRef = useRef<HTMLDivElement>(null)
+
+  // Vérifier si le splash a déjà été vu
+  useEffect(() => {
+    const seen = localStorage.getItem('splash_seen')
+    if (!seen) {
+      router.replace('/welcome')
+    } else {
+      setSplashChecked(true)
+    }
+  }, [router])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -60,6 +71,10 @@ export default function HomePage() {
     joursAvant <= 0 ? null
     : joursAvant <= 30 ? `Plus que ${joursAvant} jours avant le camp !`
     : `Le camp commence dans ${joursAvant} jours`
+
+  if (!splashChecked) {
+    return <div style={{ minHeight: '100vh', backgroundColor: '#0a0f2e' }} />
+  }
 
   return (
     <div style={{ backgroundColor: '#0a0f2e', minHeight: '100vh', position: 'relative' }}>
@@ -410,14 +425,14 @@ export default function HomePage() {
           borderBottom: '1px solid rgba(255,255,255,0.06)',
         }}>
           <a
-            href={process.env.NEXT_PUBLIC_SITE_URL ?? 'https://alhazm-rusicada.vercel.app'}
+            href={process.env.NEXT_PUBLIC_SITE_URL ?? 'https://alhazm.vercel.app'}
             target="_blank"
             rel="noopener noreferrer"
             style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
             <i className="ti ti-world" style={{ color: '#fdbe11', fontSize: 16 }} aria-hidden="true" />
             <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>
-              {(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://alhazm-rusicada.vercel.app').replace('https://', '')}
+              {(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://alhazm.vercel.app').replace('https://', '')}
             </span>
           </a>
         </div>
@@ -433,7 +448,7 @@ export default function HomePage() {
           <SocialIcon
             icon="ti-brand-instagram"
             label="IG"
-            href="https://www.instagram.com/alhazm.academy"
+            href="https://www.instagram.com/alhazm_dz"
             hBorder="rgba(225,48,108,0.4)"
             hBg="rgba(225,48,108,0.1)"
             hIcon="#e1306c"
@@ -441,7 +456,7 @@ export default function HomePage() {
           <SocialIcon
             icon="ti-brand-facebook"
             label="FB"
-            href="https://www.facebook.com/alhazm.academy"
+            href="https://www.facebook.com/alhazmfootballacademy"
             hBorder="rgba(24,119,242,0.4)"
             hBg="rgba(24,119,242,0.1)"
             hIcon="#1877f2"

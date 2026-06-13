@@ -26,6 +26,16 @@ html.dark {
   --color-surface: #1a1d2e;
 }
 
+/* ── Animations splash screen ───────────────────────────────── */
+@keyframes kenBurns {
+  0%, 100% { transform: scale(1.12) translate(0, 0); }
+  50%       { transform: scale(1.18) translate(-3%, -2%); }
+}
+@keyframes pulseRing {
+  0%, 100% { transform: scale(1);    opacity: 0.3; }
+  50%       { transform: scale(1.06); opacity: 0.65; }
+}
+
 /* ── Base ───────────────────────────────────────────────────── */
 body {
   background-color: var(--color-bg);
