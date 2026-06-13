@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
@@ -10,9 +10,17 @@ function MerciContent() {
   const searchParams = useSearchParams()
   const ref  = searchParams.get('ref')  ?? ''
   const nom  = searchParams.get('nom')  ?? ''
+  const [copied, setCopied] = useState(false)
 
   const lienGroupe   = process.env.NEXT_PUBLIC_LIEN_GROUPE_WHATSAPP ?? ''
   const nomEvenement = process.env.NEXT_PUBLIC_NOM_EVENEMENT ?? 'Rusicada Park 2026'
+
+  function handleCopy() {
+    navigator.clipboard.writeText(ref).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }).catch(() => {})
+  }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0a0f2e', position: 'relative', display: 'flex', flexDirection: 'column' }}>
@@ -64,8 +72,12 @@ function MerciContent() {
           {ref && (
             <div style={{ background: 'rgba(0,48,144,0.2)', border: '1px solid rgba(0,80,204,0.35)', borderRadius: 16, padding: '14px 20px', textAlign: 'center', marginBottom: 14 }}>
               <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Référence de réservation</p>
-              <p style={{ color: '#fdbe11', fontSize: 26, fontWeight: 800, fontFamily: 'monospace', letterSpacing: '0.12em', margin: '0 0 6px' }}>{ref}</p>
-              <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, margin: 0 }}>Conservez cette référence pour le suivi</p>
+              <p style={{ color: '#fdbe11', fontSize: 26, fontWeight: 800, fontFamily: 'monospace', letterSpacing: '0.12em', margin: '0 0 10px' }}>{ref}</p>
+              <button type="button" onClick={handleCopy}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 16px', background: copied ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.08)', border: `1px solid ${copied ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.15)'}`, borderRadius: 8, color: copied ? '#4ade80' : 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all .2s' }}>
+                <i className={`ti ${copied ? 'ti-check' : 'ti-copy'}`} style={{ fontSize: 13 }} aria-hidden="true" />
+                {copied ? 'Copié !' : 'Copier la référence'}
+              </button>
             </div>
           )}
 

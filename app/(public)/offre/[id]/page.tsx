@@ -166,6 +166,16 @@ export default function OffrePage() {
   }
   const tag = TYPE_TAG[offre.type_public] ?? TYPE_TAG.adulte
 
+  const CAT_ICON: Record<string, string> = {
+    hebergement: 'ti-bed',
+    repas:       'ti-soup',
+    transport:   'ti-bus',
+    assurance:   'ti-shield-check',
+    medical:     'ti-stethoscope',
+    media:       'ti-camera',
+    autre:       'ti-star',
+  }
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0a0f2e', position: 'relative' }}>
 
@@ -240,6 +250,20 @@ export default function OffrePage() {
                 </span>
               </div>
             </div>
+
+            {offre.couts_inclus.length > 0 && (
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>Ce qui est inclus</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {offre.couts_inclus.map(item => (
+                    <span key={item.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '5px 10px', fontSize: 11, color: 'rgba(255,255,255,0.75)', whiteSpace: 'nowrap' }}>
+                      <i className={`ti ${CAT_ICON[item.categorie] ?? 'ti-star'}`} style={{ fontSize: 12, color: '#7eb8ff' }} aria-hidden="true" />
+                      {item.libelle}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

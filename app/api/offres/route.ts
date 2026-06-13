@@ -1,41 +1,44 @@
 import { type NextRequest } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { calculerOffreFamille } from '@/lib/calc'
-import type { Parametres, RepasType, TypeChambre } from '@/types'
+import { calculerFamilleV2 } from '@/lib/calc'
+import type { ChargeFamille } from '@/lib/calc'
 
 // ── Recalcul sécurisé CDR/PV pour les offres famille ─────────────────────────
 
 async function recalcFamille(
   body: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
-  const { data: params } = await supabaseAdmin
-    .from('parametres')
+  const { data: charges } = await supabaseAdmin
+    .from('charges_famille')
     .select('*')
-    .eq('id', 'default')
-    .single<Parametres>()
+    .order('ordre')
 
-  if (!params) return body
+  if (!charges || charges.length === 0) return body
 
-  const oc = ((body.options_custom ?? {}) as {
-    type_chambre?:   TypeChambre
-    nb_adultes?:     number
-    nb_enfants?:     number
-    nombre_nuits?:   number
-    repas_type?:     RepasType
-    avec_transport?: boolean
+  const oc = (body.options_custom ?? {}) as {
+    nb_adultes?: number
+    nb_enfants?: number
+    nb_bebes?:   number
+  }
+
+  const result = calculerFamilleV2(charges as ChargeFamille[], {
+    nbAdultes:   Number(oc.nb_adultes   ?? body.nb_adultes   ?? 2),
+    nbEnfants:   Number(oc.nb_enfants   ?? body.nb_enfants   ?? 0),
+    nbBebes:     Number(oc.nb_bebes     ?? 0),
+    nombreNuits: Number(body.nombre_nuits ?? 5),
+    repas:       (body.repas_type as 'complet' | 'demi' | 'sans') ?? 'complet',
+    transport:   Boolean(body.transport_inclus ?? false),
   })
 
-  const calc = calculerOffreFamille(
-    oc.type_chambre   ?? 'Double',
-    oc.nb_adultes     ?? 2,
-    oc.nb_enfants     ?? 0,
-    oc.nombre_nuits   ?? 5,
-    oc.repas_type     ?? 'complet',
-    oc.avec_transport ?? false,
-    params,
-  )
-
-  return { ...body, cout_revient: calc.cdrTotal, prix_vente: calc.pvTotal }
+  return {
+    ...body,
+    cout_revient: result.cdrTotal,
+    prix_vente:   result.pvTotal,
+    options_custom: {
+      ...(oc as Record<string, unknown>),
+      detail_cdr: result.detail,
+    },
+  }
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────

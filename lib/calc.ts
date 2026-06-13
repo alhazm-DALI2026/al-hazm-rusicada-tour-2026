@@ -324,6 +324,84 @@ export function calculerCoutFamille(
   return cdrAdulte * nbAdultes + cdrEnfant * nbEnfants;
 }
 
+// ─── Logique C — grille charges_famille ──────────────────────────────────────
+
+export interface ChargeFamille {
+  id:     string
+  nom:    string
+  type:   'hebergement' | 'repas' | 'transport' | 'custom'
+  cdr:    number
+  pv:     number
+  unite:  'par_pers_nuit' | 'par_pers_jour' | 'par_personne' | 'fixe'
+  actif:  boolean
+}
+
+export function calculerFamilleV2(
+  charges: ChargeFamille[],
+  choix: {
+    nbAdultes:   number
+    nbEnfants:   number
+    nbBebes:     number
+    nombreNuits: number
+    repas:       'complet' | 'demi' | 'sans'
+    transport:   boolean
+  },
+): {
+  cdrTotal: number
+  pvTotal:  number
+  marge:    number
+  margeP:   number
+  detail:   { nom: string; cdr: number; pv: number }[]
+} {
+  const nbPersonnes  = choix.nbAdultes + choix.nbEnfants
+  const nbTotal      = choix.nbAdultes + choix.nbEnfants + choix.nbBebes
+  const nbJours      = choix.nombreNuits + 1
+  const facteurRepas = choix.repas === 'sans' ? 0
+                     : choix.repas === 'demi' ? 0.6
+                     : 1.0
+
+  let cdrTotal = 0
+  let pvTotal  = 0
+  const detail: { nom: string; cdr: number; pv: number }[] = []
+
+  for (const charge of charges.filter(c => c.actif)) {
+    if (charge.type === 'transport' && !choix.transport) continue
+    if (charge.type === 'repas'     && choix.repas === 'sans') continue
+
+    let cdr = 0, pv = 0
+    switch (charge.unite) {
+      case 'par_pers_nuit':
+        cdr = charge.cdr * nbPersonnes * choix.nombreNuits
+        pv  = charge.pv  * nbPersonnes * choix.nombreNuits
+        if (charge.type === 'repas') { cdr *= facteurRepas; pv *= facteurRepas }
+        break
+      case 'par_pers_jour':
+        cdr = charge.cdr * nbPersonnes * nbJours
+        pv  = charge.pv  * nbPersonnes * nbJours
+        if (charge.type === 'repas') { cdr *= facteurRepas; pv *= facteurRepas }
+        break
+      case 'par_personne':
+        cdr = charge.cdr * nbTotal
+        pv  = charge.pv  * nbTotal
+        break
+      case 'fixe':
+        cdr = charge.cdr
+        pv  = charge.pv
+        break
+    }
+
+    cdr = Math.round(cdr)
+    pv  = Math.round(pv)
+    cdrTotal += cdr
+    pvTotal  += pv
+    detail.push({ nom: charge.nom, cdr, pv })
+  }
+
+  const marge  = pvTotal - cdrTotal
+  const margeP = pvTotal > 0 ? Math.round((marge / pvTotal) * 100) : 0
+  return { cdrTotal, pvTotal, marge, margeP, detail }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**

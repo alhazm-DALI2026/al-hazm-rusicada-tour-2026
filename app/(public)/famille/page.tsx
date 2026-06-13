@@ -3,8 +3,9 @@
 import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { calculerFamille } from '@/lib/calc'
-import type { Parametres, RepasType } from '@/types'
+import { calculerFamilleV2 } from '@/lib/calc'
+import type { ChargeFamille } from '@/lib/calc'
+import type { RepasType } from '@/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -31,62 +32,13 @@ const EMPTY: FamilleForm = {
 
 function fmt(n: number) { return n.toLocaleString('fr-DZ') + ' DA' }
 
-function formatChambres(chambres: { type: string }[]) {
-  const counts = new Map<string, number>()
-  for (const c of chambres) counts.set(c.type, (counts.get(c.type) ?? 0) + 1)
-  return Array.from(counts.entries()).map(([type, n]) => `${n}×${type}`).join(' + ')
-}
-
-// ── Configurations de chambres ────────────────────────────────────────────────
-
-type RoomConfig = { s: number; d: number; t: number; q: number }
-
-function genererConfigs(nbAdultes: number, nbEnfants: number): RoomConfig[] {
-  const n = nbAdultes + nbEnfants
-  if (n === 0) return []
-  const all: RoomConfig[] = []
-  for (let q = Math.floor(n / 4); q >= 0; q--) {
-    for (let t = Math.floor((n - q * 4) / 3); t >= 0; t--) {
-      for (let d = Math.floor((n - q * 4 - t * 3) / 2); d >= 0; d--) {
-        const s = n - q * 4 - t * 3 - d * 2
-        if (s >= 0) all.push({ s, d, t, q })
-      }
-    }
-  }
-  all.sort((a, b) => (a.s + a.d + a.t + a.q) - (b.s + b.d + b.t + b.q))
-  return all.filter(c => c.s <= 2 && (c.s + c.d + c.t + c.q) <= 5).slice(0, 5)
-}
-
-function configLabel(c: RoomConfig): string {
-  const parts: string[] = []
-  if (c.q > 0) parts.push(`${c.q}×Quadruple`)
-  if (c.t > 0) parts.push(`${c.t}×Triple`)
-  if (c.d > 0) parts.push(`${c.d}×Double`)
-  if (c.s > 0) parts.push(`${c.s}×Single`)
-  return parts.join(' + ')
-}
-
-function pvHebergConfig(c: RoomConfig, p: Parametres, nuits: number): number {
-  const cdrHeberg = (
-    c.s * p.cdr_single +
-    c.d * p.cdr_double +
-    c.t * p.cdr_triple +
-    c.q * p.cdr_quadruple
-  ) * nuits
-  return Math.round(cdrHeberg * (1 + p.taux_marge_famille / 100))
-}
-
-function cdrHebergConfig(c: RoomConfig, p: Parametres, nuits: number): number {
-  return (c.s * p.cdr_single + c.d * p.cdr_double + c.t * p.cdr_triple + c.q * p.cdr_quadruple) * nuits
-}
-
-function configToChambres(c: RoomConfig): { type: string; occupants: string }[] {
-  const list: { type: string; occupants: string }[] = []
-  for (let i = 0; i < c.q; i++) list.push({ type: 'Quadruple', occupants: '4 personnes' })
-  for (let i = 0; i < c.t; i++) list.push({ type: 'Triple', occupants: '3 personnes' })
-  for (let i = 0; i < c.d; i++) list.push({ type: 'Double', occupants: '2 personnes' })
-  for (let i = 0; i < c.s; i++) list.push({ type: 'Single', occupants: '1 personne' })
-  return list
+function formatPeriode(dateDepart: string | null, dateRetour: string | null): string {
+  if (!dateDepart || !dateRetour) return ''
+  const [ay, am, ad] = dateDepart.split('-').map(Number)
+  const [, , rd]     = dateRetour.split('-').map(Number)
+  const mois = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août',
+                 'Septembre','Octobre','Novembre','Décembre'][am - 1]
+  return `Du ${ad} au ${rd} ${mois} ${ay}`
 }
 
 // ── Counter ───────────────────────────────────────────────────────────────────
@@ -120,26 +72,29 @@ function Counter({ label, sub, value, min, max, onChange }: {
 
 export default function FamillePage() {
   const router = useRouter()
-  const [params, setParams]         = useState<Parametres | null>(null)
-  const [loading, setLoading]       = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError]           = useState<string | null>(null)
-  const [form, setForm]             = useState<FamilleForm>(EMPTY)
-  const [etape, setEtape]           = useState<1 | 2 | 3>(1)
-  const [selectedConfigIdx, setSelectedConfigIdx] = useState(0)
+  const [charges, setCharges]         = useState<ChargeFamille[]>([])
+  const [loading, setLoading]         = useState(true)
+  const [submitting, setSubmitting]   = useState(false)
+  const [error, setError]             = useState<string | null>(null)
+  const [form, setForm]               = useState<FamilleForm>(EMPTY)
+  const [etape, setEtape]             = useState<1 | 2 | 3>(1)
+  const [dateLabel, setDateLabel]     = useState<string>('')
 
   const adminNumero = process.env.NEXT_PUBLIC_WHATSAPP_NUMERO ?? ''
 
   useEffect(() => {
-    fetch('/api/parametres')
-      .then(r => r.json())
-      .then((p: Parametres) => setParams(p))
-      .finally(() => setLoading(false))
+    Promise.all([
+      fetch('/api/charges-famille').then(r => r.json()),
+      fetch('/api/parametres').then(r => r.json()),
+    ]).then(([chargesData, params]: [ChargeFamille[], { date_depart?: string; date_retour?: string }]) => {
+      setCharges(chargesData)
+      setDateLabel(formatPeriode(params.date_depart ?? null, params.date_retour ?? null))
+    }).finally(() => setLoading(false))
   }, [])
 
   const result = useMemo(() => {
-    if (!params) return null
-    return calculerFamille(params, {
+    if (charges.length === 0) return null
+    return calculerFamilleV2(charges, {
       nbAdultes:   form.nb_adultes,
       nbEnfants:   form.nb_enfants,
       nbBebes:     form.nb_bebes,
@@ -147,29 +102,10 @@ export default function FamillePage() {
       transport:   form.transport,
       repas:       form.repas,
     })
-  }, [params, form])
+  }, [charges, form])
 
-  const configs = useMemo(
-    () => genererConfigs(form.nb_adultes, form.nb_enfants),
-    [form.nb_adultes, form.nb_enfants],
-  )
-
-  useEffect(() => { setSelectedConfigIdx(0) }, [form.nb_adultes, form.nb_enfants])
-
-  const selectedConfig = configs[Math.min(selectedConfigIdx, configs.length - 1)] ?? null
-
-  const cdrAffiche = params && selectedConfig && result
-    ? cdrHebergConfig(selectedConfig, params, form.nombre_nuits)
-      + result.detail.repas_cdr
-      + (form.transport
-          ? params.cdr_transport_adulte * form.nb_adultes
-            + params.cdr_transport_enfant * form.nb_enfants
-            + params.cdr_transport_bebe   * form.nb_bebes
-          : 0)
-    : 0
-  const pvAffiche = params
-    ? Math.round(cdrAffiche * (1 + params.taux_marge_famille / 100))
-    : 0
+  const pvAffiche  = result?.pvTotal  ?? 0
+  const cdrAffiche = result?.cdrTotal ?? 0
 
   function setField<K extends keyof FamilleForm>(key: K, val: FamilleForm[K]) {
     setForm(f => ({ ...f, [key]: val }))
@@ -199,9 +135,8 @@ export default function FamillePage() {
       cout_revient:   cdrAffiche,
       prix_vente:     pvAffiche,
       options_custom: {
-        chambres:   selectedConfig ? configToChambres(selectedConfig) : (result?.chambres ?? []),
         nb_bebes:   form.nb_bebes,
-        detail_cdr: result?.detail ?? null,
+        detail_cdr: result?.detail ?? [],
       },
     }
 
@@ -276,7 +211,7 @@ export default function FamillePage() {
         <Image src="/images/icon-white.png" width={36} height={36} alt="Al Hazm" style={{ objectFit: 'contain' }} />
         <div>
           <div style={{ color: '#fff', fontSize: 15, fontWeight: 700, lineHeight: 1.2 }}>Réservation famille</div>
-          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>Du 23 au 28 Juin 2026</div>
+          {dateLabel && <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>{dateLabel}</div>}
         </div>
       </header>
 
@@ -307,7 +242,7 @@ export default function FamillePage() {
         <div style={{ textAlign: 'center', padding: '40px 0', position: 'relative', zIndex: 5 }}>
           <i className="ti ti-loader-2 animate-spin" style={{ fontSize: 36, color: 'rgba(255,255,255,0.5)' }} aria-hidden="true" />
         </div>
-      ) : !params ? (
+      ) : charges.length === 0 ? (
         <div style={{ padding: 20, position: 'relative', zIndex: 5 }}>
           <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 32, color: 'rgba(255,255,255,0.5)', fontSize: 14, textAlign: 'center' }}>
             Pack Famille non disponible pour le moment.
@@ -324,50 +259,10 @@ export default function FamillePage() {
                 <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>Indiquez la composition de votre groupe</div>
               </div>
 
-              <Counter label="Adultes"         sub="min. 1 adulte requis"   value={form.nb_adultes}   min={1} max={20} onChange={v => setField('nb_adultes',   v)} />
-              <Counter label="Enfants"          sub="3 à 17 ans"             value={form.nb_enfants}   min={0} max={20} onChange={v => setField('nb_enfants',   v)} />
-              <Counter label="Bébés"            sub="0 à 2 ans · gratuit"    value={form.nb_bebes}     min={0} max={10} onChange={v => setField('nb_bebes',     v)} />
-              <Counter label="Nombre de nuits"  sub="5 nuits recommandées"   value={form.nombre_nuits} min={1} max={7}  onChange={v => setField('nombre_nuits', v)} />
-
-              {/* Sélection de la configuration des chambres */}
-              {params && configs.length > 0 && (
-                <div style={{ margin: '12px 0' }}>
-                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-                    Répartition des chambres
-                  </div>
-                  {configs.map((cfg, idx) => {
-                    const isSelected = idx === Math.min(selectedConfigIdx, configs.length - 1)
-                    const nbRooms = cfg.s + cfg.d + cfg.t + cfg.q
-                    return (
-                      <div key={idx} onClick={() => setSelectedConfigIdx(idx)}
-                        style={{
-                          background: isSelected ? 'rgba(253,190,17,0.08)' : 'rgba(255,255,255,0.04)',
-                          border: `1px solid ${isSelected ? 'rgba(253,190,17,0.5)' : 'rgba(255,255,255,0.08)'}`,
-                          borderRadius: 12, padding: '12px 14px', marginBottom: 8,
-                          cursor: 'pointer', transition: 'all .2s',
-                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ width: 32, height: 32, borderRadius: 9, flexShrink: 0, background: isSelected ? 'rgba(253,190,17,0.15)' : 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <i className="ti ti-bed" style={{ color: isSelected ? '#fdbe11' : 'rgba(255,255,255,0.4)', fontSize: 15 }} aria-hidden="true" />
-                          </div>
-                          <div>
-                            <div style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>{configLabel(cfg)}</div>
-                            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>{nbRooms} chambre{nbRooms > 1 ? 's' : ''}</div>
-                          </div>
-                        </div>
-                        <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${isSelected ? '#fdbe11' : 'rgba(255,255,255,0.2)'}`, background: isSelected ? '#fdbe11' : 'transparent', flexShrink: 0 }} />
-                      </div>
-                    )
-                  })}
-                  {form.nb_bebes > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(255,255,255,0.45)', fontSize: 11, marginTop: 2 }}>
-                      <i className="ti ti-baby" style={{ color: '#fdbe11', fontSize: 13 }} aria-hidden="true" />
-                      {form.nb_bebes} bébé{form.nb_bebes > 1 ? 's' : ''} — lit bébé inclus (gratuit)
-                    </div>
-                  )}
-                </div>
-              )}
+              <Counter label="Adultes"        sub="min. 1 adulte requis"  value={form.nb_adultes}   min={1} max={20} onChange={v => setField('nb_adultes',   v)} />
+              <Counter label="Enfants"         sub="3 à 17 ans"            value={form.nb_enfants}   min={0} max={20} onChange={v => setField('nb_enfants',   v)} />
+              <Counter label="Bébés"           sub="0 à 2 ans · gratuit"   value={form.nb_bebes}     min={0} max={10} onChange={v => setField('nb_bebes',     v)} />
+              <Counter label="Nombre de nuits" sub="5 nuits recommandées"  value={form.nombre_nuits} min={1} max={7}  onChange={v => setField('nombre_nuits', v)} />
 
               <button type="button" onClick={() => setEtape(2)}
                 style={{ width: '100%', background: '#003090', color: '#fff', border: 'none', borderRadius: 13, padding: 14, fontSize: 13, fontWeight: 800, cursor: 'pointer', marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -389,7 +284,12 @@ export default function FamillePage() {
                   </div>
                   <div>
                     <div style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>Transport aller-retour</div>
-                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>Forfait par personne</div>
+                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>
+                      {(() => {
+                        const tc = charges.find(c => c.type === 'transport')
+                        return tc ? `+ ${fmt(tc.pv)} / personne` : 'Forfait par personne'
+                      })()}
+                    </div>
                   </div>
                 </div>
                 <div onClick={() => setField('transport', !form.transport)}
@@ -462,7 +362,6 @@ export default function FamillePage() {
               <div style={{ background: 'rgba(0,48,144,0.2)', border: '1px solid rgba(0,80,204,0.3)', borderRadius: 14, padding: 14, marginBottom: 14 }}>
                 {([
                   { label: 'Composition', value: `${form.nb_adultes} adulte${form.nb_adultes > 1 ? 's' : ''}${form.nb_enfants > 0 ? ` + ${form.nb_enfants} enfant${form.nb_enfants > 1 ? 's' : ''}` : ''}${form.nb_bebes > 0 ? ` + ${form.nb_bebes} bébé${form.nb_bebes > 1 ? 's' : ''}` : ''}` },
-                  { label: 'Chambres',    value: selectedConfig ? configLabel(selectedConfig) : '—' },
                   { label: 'Transport',   value: form.transport ? 'Inclus' : 'Non' },
                   { label: 'Repas',       value: form.repas === 'complet' ? 'Pension complète' : form.repas === 'demi' ? 'Demi-pension' : 'Sans repas' },
                   { label: 'Durée',       value: `${form.nombre_nuits} nuits / ${form.nombre_nuits + 1} jours` },
@@ -470,6 +369,12 @@ export default function FamillePage() {
                   <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8, marginBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                     <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>{row.label}</span>
                     <span style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>{row.value}</span>
+                  </div>
+                ))}
+                {result && result.detail.map(d => (
+                  <div key={d.nom} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 6, marginBottom: 6, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>{d.nom}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, fontFamily: 'monospace' }}>{fmt(d.pv)}</span>
                   </div>
                 ))}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 4 }}>
@@ -510,17 +415,16 @@ export default function FamillePage() {
       )}
 
       {/* Sticky bar */}
-      {params && (
+      {!loading && charges.length > 0 && (
         <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(6,10,30,0.98)', backdropFilter: 'blur(24px)', borderTop: '2px solid rgba(253,190,17,0.4)', padding: '12px 16px', zIndex: 100 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 
-            {/* Étapes 1 & 2 : chambres seulement, pas de prix */}
             {etape < 3 && (
               <>
                 <div>
-                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>CHAMBRES</div>
+                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>COMPOSITION</div>
                   <div style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>
-                    {selectedConfig ? configLabel(selectedConfig) : '—'}
+                    {form.nb_adultes}A{form.nb_enfants > 0 ? ` + ${form.nb_enfants}E` : ''}{form.nb_bebes > 0 ? ` + ${form.nb_bebes}B` : ''}
                   </div>
                   <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>{form.nombre_nuits} nuit{form.nombre_nuits > 1 ? 's' : ''}</div>
                 </div>
@@ -533,15 +437,14 @@ export default function FamillePage() {
               </>
             )}
 
-            {/* Étape 3 : prix hébergement + repas uniquement */}
             {etape === 3 && (
               <div>
-                <div style={{ color: '#fdbe11', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>TOTAL HÉBERGEMENT + REPAS</div>
+                <div style={{ color: '#fdbe11', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>TOTAL PACK FAMILLE</div>
                 <div style={{ color: '#fff', fontSize: 22, fontWeight: 800, fontFamily: 'monospace', lineHeight: 1.2 }}>
                   {pvAffiche > 0 ? fmt(pvAffiche) : '—'}
                 </div>
                 <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>
-                  {selectedConfig ? configLabel(selectedConfig) : '—'} · {form.nombre_nuits} nuit{form.nombre_nuits > 1 ? 's' : ''}
+                  {form.nb_adultes}A{form.nb_enfants > 0 ? ` + ${form.nb_enfants}E` : ''} · {form.nombre_nuits} nuit{form.nombre_nuits > 1 ? 's' : ''}
                 </div>
               </div>
             )}
