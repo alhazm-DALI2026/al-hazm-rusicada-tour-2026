@@ -10,49 +10,49 @@ const BG_PHOTOS = ['/images/slide1.jpg', '/images/slide2.jpg', '/images/slide3.j
 
 const SOCIALS = [
   {
-    key:        'site',
-    href:       'https://alhazm.vercel.app/',
-    icon:       'ti-world',
-    badgeBg:    '#fdbe11',
-    badgeColor: '#003090',
-    label:      'alhazm.vercel.app',
-    img:        '/images/icon-color.png',
+    key:         'site',
+    href:        'https://alhazm.vercel.app/',
+    icon:        'ti-world',
+    label:       'alhazm.vercel.app',
+    hoverBg:     'rgba(253,190,17,0.14)',
+    hoverBorder: 'rgba(253,190,17,0.55)',
+    hoverColor:  '#fdbe11',
   },
   {
-    key:        'instagram',
-    href:       'https://www.instagram.com/alhazm_dz',
-    icon:       'ti-brand-instagram',
-    badgeBg:    'linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)',
-    badgeColor: '#fff',
-    label:      '@alhazm_dz',
-    img:        '/images/icon-color.png',
+    key:         'instagram',
+    href:        'https://www.instagram.com/alhazm_dz',
+    icon:        'ti-brand-instagram',
+    label:       '@alhazm_dz',
+    hoverBg:     'rgba(225,48,108,0.14)',
+    hoverBorder: 'rgba(225,48,108,0.55)',
+    hoverColor:  '#e1306c',
   },
   {
-    key:        'facebook',
-    href:       'https://www.facebook.com/alhazmfootballacademy',
-    icon:       'ti-brand-facebook',
-    badgeBg:    '#1877f2',
-    badgeColor: '#fff',
-    label:      'Al Hazm Football Academy',
-    img:        '/images/icon-color.png',
+    key:         'facebook',
+    href:        'https://www.facebook.com/alhazmfootballacademy',
+    icon:        'ti-brand-facebook',
+    label:       'Al Hazm Football Academy',
+    hoverBg:     'rgba(24,119,242,0.14)',
+    hoverBorder: 'rgba(24,119,242,0.55)',
+    hoverColor:  '#1877f2',
   },
   {
-    key:        'tiktok',
-    href:       'https://www.tiktok.com/@alhazm.academy',
-    icon:       'ti-brand-tiktok',
-    badgeBg:    '#010101',
-    badgeColor: '#fff',
-    label:      '@alhazm.academy',
-    img:        '/images/icon-color.png',
+    key:         'tiktok',
+    href:        'https://www.tiktok.com/@alhazm.academy',
+    icon:        'ti-brand-tiktok',
+    label:       '@alhazm.academy',
+    hoverBg:     'rgba(255,255,255,0.1)',
+    hoverBorder: 'rgba(255,255,255,0.5)',
+    hoverColor:  '#ffffff',
   },
   {
-    key:        'whatsapp',
-    href:       'https://wa.me/213781608480',
-    icon:       'ti-brand-whatsapp',
-    badgeBg:    '#25d366',
-    badgeColor: '#fff',
-    label:      '+213 781 608 480',
-    img:        '/images/icon-color.png',
+    key:         'whatsapp',
+    href:        'https://wa.me/213781608480',
+    icon:        'ti-brand-whatsapp',
+    label:       '+213 781 608 480',
+    hoverBg:     'rgba(37,211,102,0.14)',
+    hoverBorder: 'rgba(37,211,102,0.55)',
+    hoverColor:  '#25d366',
   },
 ]
 
@@ -135,19 +135,22 @@ export default function WelcomePage() {
         }
 
         .sp-social {
-          display: block; position: relative;
-          width: 42px; height: 42px;
-          border-radius: 50%; overflow: hidden;
-          transition: transform .3s ease;
+          display: flex; align-items: center; justify-content: center;
+          width: 46px; height: 46px; border-radius: 14px;
+          background: rgba(255,255,255,0.07);
+          border: 1.5px solid rgba(255,255,255,0.12);
           text-decoration: none; flex-shrink: 0;
+          transition: transform .25s ease, background .25s ease, border-color .25s ease;
+          backdrop-filter: blur(8px);
         }
+        .sp-social:hover { transform: translateY(-5px) scale(1.08); }
         @media (max-width: 768px) {
           .sp-logo-wrap  { width: 100px !important; height: 100px !important; }
           .sp-logo-img   { width: 78px !important; height: 78px !important; }
           .sp-title      { font-size: clamp(26px, 9vw, 42px) !important; white-space: normal !important; }
           .sp-cta        { padding: 12px 32px !important; font-size: 13px !important; }
           .sp-socials    { gap: 10px !important; }
-          .sp-social     { width: 36px !important; height: 36px !important; }
+          .sp-social     { width: 40px !important; height: 40px !important; border-radius: 12px !important; }
         }
       `}</style>
 
@@ -290,51 +293,32 @@ export default function WelcomePage() {
               target="_blank"
               rel="noopener noreferrer"
               className="sp-social"
-              onMouseEnter={e => {
-                setHovered(s.key);
-                (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-4px) scale(1.05)'
+              style={{
+                background:   hovered === s.key ? s.hoverBg     : 'rgba(255,255,255,0.07)',
+                borderColor:  hovered === s.key ? s.hoverBorder : 'rgba(255,255,255,0.12)',
               }}
-              onMouseLeave={e => {
-                setHovered(null);
-                (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0) scale(1)'
-              }}
+              onMouseEnter={() => setHovered(s.key)}
+              onMouseLeave={() => setHovered(null)}
             >
-              <Image
-                src={s.img}
-                fill
-                alt={s.label}
-                sizes="42px"
-                style={{ objectFit: 'cover' }}
+              <i
+                className={`ti ${s.icon}`}
+                style={{
+                  fontSize: 21,
+                  color: hovered === s.key ? s.hoverColor : 'rgba(255,255,255,0.6)',
+                  transition: 'color .25s ease',
+                }}
+                aria-hidden="true"
               />
-              {/* Bordure hover */}
-              <div style={{
-                position: 'absolute', inset: 0, borderRadius: '50%',
-                border: `2px solid ${hovered === s.key ? '#fdbe11' : 'rgba(255,255,255,0.15)'}`,
-                transition: 'border-color .3s',
-                pointerEvents: 'none', zIndex: 2,
-              }} />
             </a>
-
-            {/* Badge plateforme */}
-            <div style={{
-              position: 'absolute', bottom: -2, right: -2,
-              width: 18, height: 18, borderRadius: '50%',
-              background: s.badgeBg,
-              border: '2px solid #0a0f2e',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              zIndex: 10, pointerEvents: 'none',
-            }}>
-              <i className={`ti ${s.icon}`} style={{ fontSize: 9, color: s.badgeColor }} aria-hidden="true" />
-            </div>
 
             {/* Tooltip */}
             {hovered === s.key && (
               <div style={{
                 position: 'absolute', bottom: 'calc(100% + 8px)',
                 left: '50%', transform: 'translateX(-50%)',
-                background: 'rgba(0,0,0,0.85)',
+                background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
                 color: '#fff', fontSize: 10, fontWeight: 600,
-                padding: '4px 8px', borderRadius: 6,
+                padding: '4px 10px', borderRadius: 6,
                 whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 20,
               }}>
                 {s.label}
