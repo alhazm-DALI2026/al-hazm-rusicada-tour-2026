@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import StatutBadge from '@/components/StatutBadge'
 import Toast from '@/components/Toast'
-import { calculerFamille } from '@/lib/calc'
+import { calculerFamilleV2 } from '@/lib/calc'
+import type { ChargeFamille } from '@/lib/calc'
 import type {
   Offre, Parametres, Reservation,
   RepasType, SourceReservation, TypeReservation,
@@ -223,9 +224,9 @@ function DrawerDetail({ r, onClose }: { r: ResWithOffre; onClose(): void }) {
 // ── CreateModal ───────────────────────────────────────────────────────────────
 
 function CreateModal({
-  offres, params, onSuccess, onClose, onError,
+  offres, params, charges, onSuccess, onClose, onError,
 }: {
-  offres: Offre[]; params: Parametres | null
+  offres: Offre[]; params: Parametres | null; charges: ChargeFamille[]
   onSuccess(): void; onClose(): void; onError(msg: string): void
 }) {
   const [form, setForm] = useState<CreateForm>(EMPTY_FORM)
@@ -249,10 +250,10 @@ function CreateModal({
     }
   }, [form.offre_id, form.resType]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Live calcul famille
+  // Live calcul famille (Logique C)
   const familleResult = useMemo(() => {
-    if (form.resType !== 'famille' || !params) return null
-    return calculerFamille(params, {
+    if (form.resType !== 'famille' || charges.length === 0) return null
+    return calculerFamilleV2(charges, {
       nbAdultes:   parseInt(form.nb_adultes)   || 0,
       nbEnfants:   parseInt(form.nb_enfants)   || 0,
       nbBebes:     parseInt(form.nb_bebes)     || 0,
@@ -260,12 +261,11 @@ function CreateModal({
       transport:   form.transport,
       repas:       form.repas_type,
     })
-  }, [form.resType, form.nb_adultes, form.nb_enfants, form.nb_bebes, form.nombre_nuits, form.transport, form.repas_type, params])
+  }, [form.resType, form.nb_adultes, form.nb_enfants, form.nb_bebes, form.nombre_nuits, form.transport, form.repas_type, charges])
 
-  // Auto-fill PV when famille result changes
   useEffect(() => {
     if (form.resType === 'famille' && familleResult) {
-      setForm(f => ({ ...f, prix_vente: String(Math.round(familleResult.pvTotal)) }))
+      setForm(f => ({ ...f, prix_vente: String(familleResult.pvTotal) }))
     }
   }, [familleResult, form.resType]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -304,7 +304,6 @@ function CreateModal({
       notif_confirmation_envoyee: false,
       ...(form.resType === 'famille' && familleResult ? {
         options_custom: {
-          chambres:   familleResult.chambres,
           nb_bebes:   nbBebes,
           detail_cdr: familleResult.detail,
         },
@@ -374,14 +373,19 @@ function CreateModal({
                 <input type="number" min="0" value={form.nb_bebes}
                   onChange={e => setF('nb_bebes', e.target.value)} className={inputCls} />
               </div>
-              {familleResult && familleResult.chambres.length > 0 && (
-                <div className="col-span-3 flex items-center gap-2 px-3 py-2 bg-[#f0f2f8] dark:bg-white/5 rounded-lg text-xs text-gray-600 dark:text-gray-300">
-                  <i className="ti ti-bed text-[#003090] dark:text-[#fdbe11]" aria-hidden="true" />
-                  {(() => {
-                    const counts = new Map<string, number>()
-                    for (const c of familleResult.chambres) counts.set(c.type, (counts.get(c.type) ?? 0) + 1)
-                    return Array.from(counts.entries()).map(([t, n]) => `${n}×${t}`).join(' + ')
-                  })()}
+              {familleResult && familleResult.detail.length > 0 && (
+                <div className="col-span-3 bg-[#f0f2f8] dark:bg-white/5 rounded-lg overflow-hidden">
+                  {familleResult.detail.map(d => {
+                    const mp = d.pv > 0 ? Math.round(((d.pv - d.cdr) / d.pv) * 100) : 0
+                    return (
+                      <div key={d.nom} className="flex items-center justify-between px-3 py-1.5 text-xs border-b border-white/5 last:border-0">
+                        <span className="text-gray-500 dark:text-gray-400">{d.nom}</span>
+                        <span className="font-mono text-gray-700 dark:text-gray-300">CDR {d.cdr.toLocaleString('fr-DZ')} / PV {d.pv.toLocaleString('fr-DZ')} DA
+                          <span className="ml-2 text-green-500">({mp}%)</span>
+                        </span>
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -462,6 +466,7 @@ export default function ReservationsPage() {
   const [reservations, setReservations] = useState<ResWithOffre[]>([])
   const [offres, setOffres]             = useState<Offre[]>([])
   const [params, setParams]             = useState<Parametres | null>(null)
+  const [charges, setCharges]           = useState<ChargeFamille[]>([])
   const [loading, setLoading]           = useState(true)
   const [filters, setFilters]           = useState<Filters>({ statut: '', source: '', type: '', search: '' })
   const [drawerItem, setDrawerItem]     = useState<ResWithOffre | null>(null)
@@ -475,14 +480,16 @@ export default function ReservationsPage() {
   // ── Load ─────────────────────────────────────────────────────
   const loadAll = useCallback(async () => {
     setLoading(true)
-    const [rr, ro, rp] = await Promise.all([
+    const [rr, ro, rp, rc] = await Promise.all([
       fetch('/api/reservations'),
       fetch('/api/offres'),
       fetch('/api/parametres'),
+      fetch('/api/charges-famille'),
     ])
     if (rr.ok) setReservations(await rr.json())
     if (ro.ok) setOffres(await ro.json())
     if (rp.ok) setParams(await rp.json())
+    if (rc.ok) setCharges(await rc.json())
     setLoading(false)
   }, [])
 
@@ -712,7 +719,7 @@ export default function ReservationsPage() {
       {/* Create modal */}
       {showCreate && (
         <CreateModal
-          offres={offres} params={params}
+          offres={offres} params={params} charges={charges}
           onSuccess={() => { setShowCreate(false); notify('Réservation créée.', 'success'); loadAll() }}
           onClose={() => setShowCreate(false)}
           onError={(msg) => notify(msg, 'error')}
