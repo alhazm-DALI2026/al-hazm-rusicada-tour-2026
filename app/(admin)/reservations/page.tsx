@@ -20,7 +20,7 @@ interface CreateForm {
   resType: TypeReservation
   offre_id: string
   nb_adultes: string; nb_enfants: string; nb_bebes: string
-  nom: string; prenom: string; telephone: string; email: string
+  nom: string; prenom: string; telephone: string; email: string; annee_naissance: string
   transport: boolean; repas_type: RepasType
   nombre_nuits: string; prix_vente: string
 }
@@ -28,7 +28,7 @@ interface CreateForm {
 const EMPTY_FORM: CreateForm = {
   resType: 'standard', offre_id: '',
   nb_adultes: '2', nb_enfants: '1', nb_bebes: '0',
-  nom: '', prenom: '', telephone: '', email: '',
+  nom: '', prenom: '', telephone: '', email: '', annee_naissance: '',
   transport: false, repas_type: 'demi', nombre_nuits: '4', prix_vente: '',
 }
 
@@ -130,9 +130,22 @@ function DRow({ label, value: val, color }: { label: string; value: string; colo
 
 // ── Drawer ────────────────────────────────────────────────────────────────────
 
-function DrawerDetail({ r, onClose }: { r: ResWithOffre; onClose(): void }) {
+function DrawerDetail({ r, onClose, onSaveAnnee }: {
+  r: ResWithOffre; onClose(): void
+  onSaveAnnee(id: string, annee: number | null): Promise<void>
+}) {
   const marge  = Number(r.marge)
   const margeP = Number(r.prix_vente) > 0 ? (marge / Number(r.prix_vente)) * 100 : 0
+  const [annee, setAnnee] = useState(r.annee_naissance != null ? String(r.annee_naissance) : '')
+  const [saving, setSaving] = useState(false)
+  const dirty = annee !== (r.annee_naissance != null ? String(r.annee_naissance) : '')
+
+  async function saveAnnee() {
+    setSaving(true)
+    await onSaveAnnee(r.id, annee ? parseInt(annee) : null)
+    setSaving(false)
+  }
+
   return (
     <div className="fixed inset-0 z-[60] flex justify-end">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
@@ -152,6 +165,21 @@ function DrawerDetail({ r, onClose }: { r: ResWithOffre; onClose(): void }) {
             <DRow label="Nom complet" value={`${r.prenom} ${r.nom}`} />
             <DRow label="Téléphone" value={r.telephone} />
             <DRow label="Email" value={r.email ?? '—'} />
+            <div className="flex items-center justify-between px-3 py-2 gap-2">
+              <span className="text-xs text-gray-500 shrink-0">Année de naissance</span>
+              <div className="flex items-center gap-1.5">
+                <input type="number" min={1940} max={new Date().getFullYear()}
+                  placeholder="—" value={annee} onChange={e => setAnnee(e.target.value)}
+                  className="w-20 px-2 py-1 text-xs text-right border border-gray-200 dark:border-[#003090] rounded-md bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]" />
+                {dirty && (
+                  <button onClick={saveAnnee} disabled={saving}
+                    className="p-1 text-green-500 hover:bg-white/5 rounded-md transition-colors disabled:opacity-40"
+                    title="Enregistrer">
+                    <i className={`ti ${saving ? 'ti-loader-2 animate-spin' : 'ti-check'} text-sm`} aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+            </div>
           </Section>
           <Section title="Séjour">
             <DRow label="Offre" value={r.offre?.nom ?? '—'} />
@@ -290,6 +318,7 @@ function CreateModal({
       offre_id:    form.resType === 'standard' ? form.offre_id || null : null,
       nom:         form.nom.trim(), prenom: form.prenom.trim(),
       telephone:   form.telephone.trim(), email: form.email.trim() || null,
+      annee_naissance: form.annee_naissance ? parseInt(form.annee_naissance) : null,
       type:        form.resType,
       source:      'admin' as const,
       statut:      'en_attente' as const,
@@ -403,6 +432,14 @@ function CreateModal({
                   className={inputCls} />
               </div>
             ))}
+            <div>
+              <label className={labelCls}>Année de naissance</label>
+              <input type="number" min={1940} max={new Date().getFullYear()}
+                placeholder="ex: 1990"
+                value={form.annee_naissance}
+                onChange={e => setF('annee_naissance', e.target.value)}
+                className={inputCls} />
+            </div>
           </div>
 
           {/* Options */}
@@ -512,8 +549,20 @@ export default function ReservationsPage() {
   // ── Statut: mise à jour locale optimiste + notification dashboard ──
   const patchLocal = useCallback((id: string, patch: Partial<ResWithOffre>) => {
     setReservations(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r))
+    setDrawerItem(prev => prev && prev.id === id ? { ...prev, ...patch } : prev)
     window.dispatchEvent(new Event('reservations-changed'))
   }, [])
+
+  // ── Année de naissance ───────────────────────────────────────────
+  async function handleSaveAnnee(id: string, annee: number | null) {
+    const res = await fetch('/api/reservations', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, annee_naissance: annee }),
+    })
+    if (!res.ok) { notify('Erreur lors de la sauvegarde.', 'error'); return }
+    patchLocal(id, { annee_naissance: annee })
+    notify('Année de naissance enregistrée.', 'success')
+  }
 
   // ── Confirm ───────────────────────────────────────────────────
   async function handleConfirm(r: ResWithOffre) {
@@ -744,7 +793,7 @@ export default function ReservationsPage() {
       </div>
 
       {/* Drawer */}
-      {drawerItem && <DrawerDetail r={drawerItem} onClose={() => setDrawerItem(null)} />}
+      {drawerItem && <DrawerDetail r={drawerItem} onClose={() => setDrawerItem(null)} onSaveAnnee={handleSaveAnnee} />}
 
       {/* Create modal */}
       {showCreate && (
