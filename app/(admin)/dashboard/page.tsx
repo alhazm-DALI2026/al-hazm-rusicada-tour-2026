@@ -29,6 +29,10 @@ interface DashboardData {
     total:  number
     detail: { libelle: string; montant: number }[]
   }
+  encaissements: {
+    total:  number
+    detail: { designation: string; count: number; montant: number; pourcentage: number }[]
+  }
   bilan: {
     revenus_confirmes: number
     cdr_total:         number
@@ -416,6 +420,41 @@ export default function DashboardPage() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+            </Bloc>
+          </div>
+
+          {/* ── Ligne 3 : Encaissements ──────────────────────────── */}
+          <div className="grid grid-cols-1 gap-4">
+            <Bloc icon="ti-cash" title="💵 Encaissements">
+              <p className="text-3xl font-bold font-mono text-[#003090] dark:text-white mb-1">
+                {fmt(data.encaissements.total)}
+              </p>
+              <p className="text-xs text-gray-400 mb-3">Total encaissé, toutes réservations</p>
+
+              {data.encaissements.detail.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-4">Aucun encaissement enregistré.</p>
+              ) : (
+                <div className="space-y-3 border-t border-gray-100 dark:border-white/10 pt-3">
+                  {data.encaissements.detail.map(d => (
+                    <div key={d.designation}>
+                      <div className="flex justify-between items-baseline text-xs mb-1">
+                        <span className="text-gray-600 dark:text-gray-300">
+                          <span className="font-semibold text-[#003090] dark:text-[#fdbe11]">{d.count}</span> × {d.designation}
+                        </span>
+                        <span className="font-mono font-semibold text-gray-800 dark:text-gray-200">
+                          {fmt(d.montant)} <span className="text-gray-400">({d.pourcentage.toFixed(1)}%)</span>
+                        </span>
+                      </div>
+                      <div className="h-2 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#003090] dark:bg-[#fdbe11] rounded-full transition-all"
+                          style={{ width: `${Math.min(d.pourcentage, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </Bloc>

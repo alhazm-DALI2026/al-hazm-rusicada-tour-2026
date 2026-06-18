@@ -8,7 +8,7 @@ export async function GET() {
   ] = await Promise.all([
     supabaseAdmin
       .from('reservation')
-      .select('statut,type,nb_adultes,nb_enfants,prix_vente,cout_revient,marge'),
+      .select('statut,type,nb_adultes,nb_enfants,prix_vente,cout_revient,marge,encaissement,offre_id,offre(nom)'),
     supabaseAdmin
       .from('staff')
       .select('cout_revient,prime'),
@@ -49,6 +49,35 @@ export async function GET() {
   const cdr_total         = sum(confirmes, 'cout_revient')
   const marge_brute       = revenus_confirmes - cdr_total
 
+  // ── Encaissements — total + détail par désignation (offre / famille) ──────
+  const encaissees = all.filter(r => (Number(r.encaissement) || 0) > 0)
+  const encaissementTotal = encaissees.reduce((acc, r) => acc + (Number(r.encaissement) || 0), 0)
+
+  function designation(r: Row): string {
+    if (r.type === 'famille') return 'Famille'
+    const offre = r.offre as { nom?: string } | { nom?: string }[] | null
+    const nom = Array.isArray(offre) ? offre[0]?.nom : offre?.nom
+    return nom ?? 'Standard (offre supprimée)'
+  }
+
+  const encaissementParDesignation = new Map<string, { count: number; montant: number }>()
+  for (const r of encaissees) {
+    const d = designation(r)
+    const entry = encaissementParDesignation.get(d) ?? { count: 0, montant: 0 }
+    entry.count   += 1
+    entry.montant += Number(r.encaissement) || 0
+    encaissementParDesignation.set(d, entry)
+  }
+
+  const encaissementDetail = Array.from(encaissementParDesignation.entries())
+    .map(([designation, { count, montant }]) => ({
+      designation,
+      count,
+      montant,
+      pourcentage: encaissementTotal > 0 ? (montant / encaissementTotal) * 100 : 0,
+    }))
+    .sort((a, b) => b.montant - a.montant)
+
   return Response.json({
     confirmes: {
       count:        confirmes.length,
@@ -73,6 +102,10 @@ export async function GET() {
     charges_fixes: {
       total:  chargesFixesTotal,
       detail: fixes.map(c => ({ libelle: c.libelle, montant: Number(c.montant) })),
+    },
+    encaissements: {
+      total:  encaissementTotal,
+      detail: encaissementDetail,
     },
     bilan: {
       revenus_confirmes,
