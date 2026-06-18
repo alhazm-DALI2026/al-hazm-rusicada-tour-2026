@@ -141,11 +141,16 @@ export default function AdminNav() {
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   useEffect(() => {
-    fetch('/api/dashboard')
-      .then(r => r.json())
-      .then((d: { en_attente?: { count: number } }) => setPending(d?.en_attente?.count ?? 0))
-      .catch(() => {})
-  }, [])
+    const fetchPending = () => {
+      fetch('/api/dashboard')
+        .then(r => r.json())
+        .then((d: { en_attente?: { count: number } }) => setPending(d?.en_attente?.count ?? 0))
+        .catch(() => {})
+    }
+    fetchPending()
+    window.addEventListener('reservations-changed', fetchPending)
+    return () => window.removeEventListener('reservations-changed', fetchPending)
+  }, [pathname])
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' })

@@ -509,6 +509,12 @@ export default function ReservationsPage() {
     )
   }, [reservations, filters])
 
+  // ── Statut: mise à jour locale optimiste + notification dashboard ──
+  const patchLocal = useCallback((id: string, patch: Partial<ResWithOffre>) => {
+    setReservations(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r))
+    window.dispatchEvent(new Event('reservations-changed'))
+  }, [])
+
   // ── Confirm ───────────────────────────────────────────────────
   async function handleConfirm(r: ResWithOffre) {
     const res = await fetch('/api/reservations', {
@@ -516,20 +522,22 @@ export default function ReservationsPage() {
       body: JSON.stringify({ id: r.id, statut: 'confirmee', notif_confirmation_envoyee: false }),
     })
     if (!res.ok) { notify('Erreur de confirmation.', 'error'); return }
-    // WhatsApp notify
+    patchLocal(r.id, { statut: 'confirmee', confirmed_at: new Date().toISOString(), notif_confirmation_envoyee: false })
+    notify('Réservation confirmée.', 'success')
+    // WhatsApp notify (en arrière-plan, ne bloque pas l'UI)
     const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMERO
     if (whatsapp) {
-      await fetch('/api/notify', {
+      fetch('/api/notify', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telephone: whatsapp, message: buildConfirmMsg(r) }),
-      })
-      await fetch('/api/reservations', {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: r.id, notif_confirmation_envoyee: true }),
-      })
+      }).then(() => {
+        fetch('/api/reservations', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: r.id, notif_confirmation_envoyee: true }),
+        })
+        patchLocal(r.id, { notif_confirmation_envoyee: true })
+      }).catch(() => {})
     }
-    notify('Réservation confirmée.', 'success')
-    loadAll()
   }
 
   // ── Unconfirm (retour en attente) ────────────────────────────────
@@ -539,8 +547,8 @@ export default function ReservationsPage() {
       body: JSON.stringify({ id: r.id, statut: 'en_attente', notif_confirmation_envoyee: false, confirmed_at: null }),
     })
     if (!res.ok) { notify('Erreur lors du changement de statut.', 'error'); return }
+    patchLocal(r.id, { statut: 'en_attente', confirmed_at: null, notif_confirmation_envoyee: false })
     notify('Réservation remise en attente.', 'success')
-    loadAll()
   }
 
   // ── Cancel ────────────────────────────────────────────────────
@@ -550,7 +558,7 @@ export default function ReservationsPage() {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: cancelItem.id, statut: 'annulee' }),
     })
-    if (r.ok) { notify('Réservation annulée.', 'success'); loadAll() }
+    if (r.ok) { patchLocal(cancelItem.id, { statut: 'annulee' }); notify('Réservation annulée.', 'success') }
     else notify('Erreur lors de l\'annulation.', 'error')
     setCancelItem(null)
   }
@@ -559,7 +567,11 @@ export default function ReservationsPage() {
   async function handleDelete() {
     if (!deleteId) return
     const r = await fetch(`/api/reservations?id=${deleteId}`, { method: 'DELETE' })
-    if (r.ok) { notify('Réservation supprimée.', 'success'); setReservations(prev => prev.filter(x => x.id !== deleteId)) }
+    if (r.ok) {
+      notify('Réservation supprimée.', 'success')
+      setReservations(prev => prev.filter(x => x.id !== deleteId))
+      window.dispatchEvent(new Event('reservations-changed'))
+    }
     else notify('Erreur lors de la suppression.', 'error')
     setDeleteId(null)
   }
@@ -738,7 +750,7 @@ export default function ReservationsPage() {
       {showCreate && (
         <CreateModal
           offres={offres} params={params} charges={charges}
-          onSuccess={() => { setShowCreate(false); notify('Réservation créée.', 'success'); loadAll() }}
+          onSuccess={() => { setShowCreate(false); notify('Réservation créée.', 'success'); loadAll(); window.dispatchEvent(new Event('reservations-changed')) }}
           onClose={() => setShowCreate(false)}
           onError={(msg) => notify(msg, 'error')}
         />
