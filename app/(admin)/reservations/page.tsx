@@ -14,6 +14,8 @@ import type {
 
 type ResWithOffre = Reservation & { offre: Offre | null }
 
+interface Membre { nom: string; prenom: string; annee_naissance: number | null }
+
 interface Filters { statut: string; source: string; type: string; search: string }
 
 interface CreateForm {
@@ -54,13 +56,13 @@ function buildConfirmMsg(r: ResWithOffre) {
 async function exportToExcel(data: ResWithOffre[]) {
   const XLSX = await import('xlsx')
   const headers = [
-    'Référence','Nom','Prénom','Téléphone','Email','Offre','Type',
+    'Référence','Nom','Prénom','Année de naissance','Téléphone','Email','Offre','Type',
     'Adultes','Enfants','Nuits','Transport','Repas',
     'CDR (DA)','Prix vente (DA)','Marge (DA)',
     'Statut','Source','Créé le','Confirmé le',
   ]
   const toRow = (r: ResWithOffre) => [
-    r.reference, r.nom, r.prenom, r.telephone, r.email ?? '',
+    r.reference, r.nom, r.prenom, r.annee_naissance ?? '', r.telephone, r.email ?? '',
     r.offre?.nom ?? '', r.type, r.nb_adultes, r.nb_enfants, r.nombre_nuits,
     r.transport ? 'Oui' : 'Non', r.repas_type,
     Number(r.cout_revient), Number(r.prix_vente), Number(r.marge),
@@ -130,9 +132,10 @@ function DRow({ label, value: val, color }: { label: string; value: string; colo
 
 // ── Drawer ────────────────────────────────────────────────────────────────────
 
-function DrawerDetail({ r, onClose, onSaveAnnee }: {
+function DrawerDetail({ r, onClose, onSaveAnnee, onSaveMembres }: {
   r: ResWithOffre; onClose(): void
   onSaveAnnee(id: string, annee: number | null): Promise<void>
+  onSaveMembres(id: string, membres: Membre[]): Promise<void>
 }) {
   const marge  = Number(r.marge)
   const margeP = Number(r.prix_vente) > 0 ? (marge / Number(r.prix_vente)) * 100 : 0
@@ -144,6 +147,34 @@ function DrawerDetail({ r, onClose, onSaveAnnee }: {
     setSaving(true)
     await onSaveAnnee(r.id, annee ? parseInt(annee) : null)
     setSaving(false)
+  }
+
+  // ── Membres de la famille ──────────────────────────────────────
+  const nbBebes = r.type === 'famille'
+    ? ((r.options_custom as { nb_bebes?: number } | null)?.nb_bebes ?? 0)
+    : 0
+  const totalMembres  = r.type === 'famille' ? r.nb_adultes + r.nb_enfants + nbBebes : 0
+  const savedMembres  = (r.options_custom as { membres?: Membre[] } | null)?.membres ?? []
+  const initMembres   = Array.from({ length: totalMembres }, (_, i) =>
+    savedMembres[i] ?? { nom: '', prenom: '', annee_naissance: null })
+  const [membres, setMembres] = useState<Membre[]>(initMembres)
+  const [savingMembres, setSavingMembres] = useState(false)
+  const membresDirty = JSON.stringify(membres) !== JSON.stringify(initMembres)
+
+  function updateMembre(i: number, patch: Partial<Membre>) {
+    setMembres(prev => prev.map((m, idx) => idx === i ? { ...m, ...patch } : m))
+  }
+
+  function roleLabel(i: number): string {
+    if (i < r.nb_adultes) return `Adulte ${i + 1}`
+    if (i < r.nb_adultes + r.nb_enfants) return `Enfant ${i - r.nb_adultes + 1}`
+    return `Bébé ${i - r.nb_adultes - r.nb_enfants + 1}`
+  }
+
+  async function saveMembres() {
+    setSavingMembres(true)
+    await onSaveMembres(r.id, membres)
+    setSavingMembres(false)
   }
 
   return (
@@ -211,6 +242,36 @@ function DrawerDetail({ r, onClose, onSaveAnnee }: {
               : 'Sans repas'
             } />
           </Section>
+          {r.type === 'famille' && totalMembres > 0 && (
+            <Section title="Membres de la famille">
+              <div className="p-2 space-y-2">
+                {membres.map((m, i) => (
+                  <div key={i} className="bg-white/5 rounded-lg p-2 space-y-1.5">
+                    <p className="text-[11px] font-semibold text-gray-400">{roleLabel(i)}</p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <input placeholder="Prénom" value={m.prenom}
+                        onChange={e => updateMembre(i, { prenom: e.target.value })}
+                        className="px-2 py-1 text-xs border border-gray-200 dark:border-[#003090] rounded-md bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]" />
+                      <input placeholder="Nom" value={m.nom}
+                        onChange={e => updateMembre(i, { nom: e.target.value })}
+                        className="px-2 py-1 text-xs border border-gray-200 dark:border-[#003090] rounded-md bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]" />
+                    </div>
+                    <input type="number" min={1940} max={new Date().getFullYear()} placeholder="Année de naissance"
+                      value={m.annee_naissance ?? ''}
+                      onChange={e => updateMembre(i, { annee_naissance: e.target.value ? parseInt(e.target.value) : null })}
+                      className="w-full px-2 py-1 text-xs border border-gray-200 dark:border-[#003090] rounded-md bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]" />
+                  </div>
+                ))}
+                {membresDirty && (
+                  <button onClick={saveMembres} disabled={savingMembres}
+                    className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold bg-green-500/10 text-green-500 hover:bg-green-500/20 transition-colors disabled:opacity-40">
+                    <i className={`ti ${savingMembres ? 'ti-loader-2 animate-spin' : 'ti-check'} text-sm`} aria-hidden="true" />
+                    Enregistrer les membres
+                  </button>
+                )}
+              </div>
+            </Section>
+          )}
           <Section title="Finance">
             <DRow label="CDR" value={fmt(Number(r.cout_revient))} />
             <DRow label="Prix vente" value={fmt(Number(r.prix_vente))} />
@@ -564,6 +625,19 @@ export default function ReservationsPage() {
     notify('Année de naissance enregistrée.', 'success')
   }
 
+  // ── Membres de la famille ─────────────────────────────────────
+  async function handleSaveMembres(id: string, membres: Membre[]) {
+    const oc = (drawerItem?.options_custom ?? {}) as Record<string, unknown>
+    const options_custom = { ...oc, membres }
+    const res = await fetch('/api/reservations', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, options_custom }),
+    })
+    if (!res.ok) { notify('Erreur lors de la sauvegarde des membres.', 'error'); return }
+    patchLocal(id, { options_custom })
+    notify('Membres de la famille enregistrés.', 'success')
+  }
+
   // ── Confirm ───────────────────────────────────────────────────
   async function handleConfirm(r: ResWithOffre) {
     const res = await fetch('/api/reservations', {
@@ -692,7 +766,7 @@ export default function ReservationsPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-[#f0f2f8] dark:bg-white/5 text-left">
-                  {['Référence','Nom Prénom','Téléphone','Offre','Composition','Transport','CDR','Prix vente','Marge','Statut','Source','Date','Actions']
+                  {['Référence','Nom Prénom','Naissance','Téléphone','Offre','Composition','Transport','CDR','Prix vente','Marge','Statut','Source','Date','Actions']
                     .map(h => (
                       <th key={h} className="px-3 py-3 font-semibold text-[#003090] dark:text-[#fdbe11] whitespace-nowrap">
                         {h}
@@ -713,6 +787,9 @@ export default function ReservationsPage() {
                       </td>
                       <td className="px-3 py-3 font-medium text-gray-800 dark:text-gray-200 whitespace-nowrap">
                         {r.prenom} {r.nom}
+                      </td>
+                      <td className="px-3 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                        {r.annee_naissance ?? '—'}
                       </td>
                       <td className="px-3 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                         {r.telephone}
@@ -793,7 +870,7 @@ export default function ReservationsPage() {
       </div>
 
       {/* Drawer */}
-      {drawerItem && <DrawerDetail r={drawerItem} onClose={() => setDrawerItem(null)} onSaveAnnee={handleSaveAnnee} />}
+      {drawerItem && <DrawerDetail key={drawerItem.id} r={drawerItem} onClose={() => setDrawerItem(null)} onSaveAnnee={handleSaveAnnee} onSaveMembres={handleSaveMembres} />}
 
       {/* Create modal */}
       {showCreate && (
