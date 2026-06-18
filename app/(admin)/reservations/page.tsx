@@ -532,6 +532,17 @@ export default function ReservationsPage() {
     loadAll()
   }
 
+  // ── Unconfirm (retour en attente) ────────────────────────────────
+  async function handleUnconfirm(r: ResWithOffre) {
+    const res = await fetch('/api/reservations', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: r.id, statut: 'en_attente', notif_confirmation_envoyee: false, confirmed_at: null }),
+    })
+    if (!res.ok) { notify('Erreur lors du changement de statut.', 'error'); return }
+    notify('Réservation remise en attente.', 'success')
+    loadAll()
+  }
+
   // ── Cancel ────────────────────────────────────────────────────
   async function handleCancel() {
     if (!cancelItem) return
@@ -683,6 +694,13 @@ export default function ReservationsPage() {
                               className="p-1.5 text-green-500 hover:bg-white/5 rounded-lg transition-colors"
                               title="Confirmer">
                               <i className="ti ti-circle-check text-base" aria-hidden="true" />
+                            </button>
+                          )}
+                          {r.statut === 'confirmee' && (
+                            <button onClick={() => handleUnconfirm(r)}
+                              className="p-1.5 text-amber-500 hover:bg-white/5 rounded-lg transition-colors"
+                              title="Remettre en attente">
+                              <i className="ti ti-rotate-2 text-base" aria-hidden="true" />
                             </button>
                           )}
                           {r.statut !== 'annulee' && (
