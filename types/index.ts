@@ -59,6 +59,7 @@ export interface Reservation {
   telephone:                  string;
   email:                      string | null;
   annee_naissance:            number | null;
+  encaissement:               number;
   type:                       TypeReservation;
   source:                     SourceReservation;
   statut:                     StatutReservation;

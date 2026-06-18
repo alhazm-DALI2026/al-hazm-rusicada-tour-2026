@@ -58,14 +58,14 @@ async function exportToExcel(data: ResWithOffre[]) {
   const headers = [
     'Référence','Nom','Prénom','Année de naissance','Téléphone','Email','Offre','Type',
     'Adultes','Enfants','Nuits','Transport','Repas',
-    'CDR (DA)','Prix vente (DA)','Marge (DA)',
+    'CDR (DA)','Prix vente (DA)','Encaissé (DA)','Marge (DA)',
     'Statut','Source','Créé le','Confirmé le',
   ]
   const toRow = (r: ResWithOffre) => [
     r.reference, r.nom, r.prenom, r.annee_naissance ?? '', r.telephone, r.email ?? '',
     r.offre?.nom ?? '', r.type, r.nb_adultes, r.nb_enfants, r.nombre_nuits,
     r.transport ? 'Oui' : 'Non', r.repas_type,
-    Number(r.cout_revient), Number(r.prix_vente), Number(r.marge),
+    Number(r.cout_revient), Number(r.prix_vente), Number(r.encaissement), Number(r.marge),
     r.statut, r.source,
     dateStr(r.created_at),
     r.confirmed_at ? dateStr(r.confirmed_at) : '',
@@ -132,10 +132,11 @@ function DRow({ label, value: val, color }: { label: string; value: string; colo
 
 // ── Drawer ────────────────────────────────────────────────────────────────────
 
-function DrawerDetail({ r, onClose, onSaveAnnee, onSaveMembres }: {
+function DrawerDetail({ r, onClose, onSaveAnnee, onSaveMembres, onSaveEncaissement }: {
   r: ResWithOffre; onClose(): void
   onSaveAnnee(id: string, annee: number | null): Promise<void>
   onSaveMembres(id: string, membres: Membre[]): Promise<void>
+  onSaveEncaissement(id: string, montant: number): Promise<void>
 }) {
   const marge  = Number(r.marge)
   const margeP = Number(r.prix_vente) > 0 ? (marge / Number(r.prix_vente)) * 100 : 0
@@ -147,6 +148,16 @@ function DrawerDetail({ r, onClose, onSaveAnnee, onSaveMembres }: {
     setSaving(true)
     await onSaveAnnee(r.id, annee ? parseInt(annee) : null)
     setSaving(false)
+  }
+
+  const [encaissement, setEncaissement] = useState(String(r.encaissement ?? 0))
+  const [savingEnc, setSavingEnc] = useState(false)
+  const encDirty = encaissement !== String(r.encaissement ?? 0)
+
+  async function saveEncaissement() {
+    setSavingEnc(true)
+    await onSaveEncaissement(r.id, parseFloat(encaissement) || 0)
+    setSavingEnc(false)
   }
 
   // ── Membres de la famille ──────────────────────────────────────
@@ -275,6 +286,23 @@ function DrawerDetail({ r, onClose, onSaveAnnee, onSaveMembres }: {
           <Section title="Finance">
             <DRow label="CDR" value={fmt(Number(r.cout_revient))} />
             <DRow label="Prix vente" value={fmt(Number(r.prix_vente))} />
+            <div className="flex items-center justify-between px-3 py-2 gap-2">
+              <span className="text-xs text-gray-500 shrink-0">Encaissé (DA)</span>
+              <div className="flex items-center gap-1.5">
+                <input type="number" min={0} step="0.01"
+                  value={encaissement} onChange={e => setEncaissement(e.target.value)}
+                  className="w-24 px-2 py-1 text-xs text-right border border-gray-200 dark:border-[#003090] rounded-md bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]" />
+                {encDirty && (
+                  <button onClick={saveEncaissement} disabled={savingEnc}
+                    className="p-1 text-green-500 hover:bg-white/5 rounded-md transition-colors disabled:opacity-40"
+                    title="Enregistrer">
+                    <i className={`ti ${savingEnc ? 'ti-loader-2 animate-spin' : 'ti-check'} text-sm`} aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+            </div>
+            <DRow label="Reste à encaisser" value={fmt(Math.max(Number(r.prix_vente) - Number(r.encaissement), 0))}
+              color={Number(r.encaissement) >= Number(r.prix_vente) ? 'text-green-600 dark:text-green-400' : 'text-amber-500'} />
             <DRow label={`Marge (${margeP.toFixed(1)}%)`} value={fmt(marge)}
               color={marge >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600'} />
           </Section>
@@ -571,6 +599,8 @@ export default function ReservationsPage() {
   const [showCreate, setShowCreate]     = useState(false)
   const [deleteId, setDeleteId]         = useState<string | null>(null)
   const [cancelItem, setCancelItem]     = useState<ResWithOffre | null>(null)
+  const [confirmItem, setConfirmItem]   = useState<ResWithOffre | null>(null)
+  const [confirmAmount, setConfirmAmount] = useState('')
   const [toast, setToast]               = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   const notify = (msg: string, type: 'success' | 'error') => setToast({ message: msg, type })
@@ -625,6 +655,17 @@ export default function ReservationsPage() {
     notify('Année de naissance enregistrée.', 'success')
   }
 
+  // ── Encaissement ───────────────────────────────────────────────
+  async function handleSaveEncaissement(id: string, montant: number) {
+    const res = await fetch('/api/reservations', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, encaissement: montant }),
+    })
+    if (!res.ok) { notify('Erreur lors de la sauvegarde de l\'encaissement.', 'error'); return }
+    patchLocal(id, { encaissement: montant })
+    notify('Encaissement enregistré.', 'success')
+  }
+
   // ── Membres de la famille ─────────────────────────────────────
   async function handleSaveMembres(id: string, membres: Membre[]) {
     const oc = (drawerItem?.options_custom ?? {}) as Record<string, unknown>
@@ -639,13 +680,25 @@ export default function ReservationsPage() {
   }
 
   // ── Confirm ───────────────────────────────────────────────────
-  async function handleConfirm(r: ResWithOffre) {
+  // Une réservation confirmée doit être validée par un encaissement (DA) > 0.
+  function tryConfirm(r: ResWithOffre) {
+    if (Number(r.encaissement) > 0) { handleConfirm(r); return }
+    setConfirmItem(r)
+    setConfirmAmount(String(r.prix_vente))
+  }
+
+  async function handleConfirm(r: ResWithOffre, encaissement?: number) {
+    const body: Record<string, unknown> = { id: r.id, statut: 'confirmee', notif_confirmation_envoyee: false }
+    if (encaissement != null) body.encaissement = encaissement
     const res = await fetch('/api/reservations', {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: r.id, statut: 'confirmee', notif_confirmation_envoyee: false }),
+      body: JSON.stringify(body),
     })
     if (!res.ok) { notify('Erreur de confirmation.', 'error'); return }
-    patchLocal(r.id, { statut: 'confirmee', confirmed_at: new Date().toISOString(), notif_confirmation_envoyee: false })
+    patchLocal(r.id, {
+      statut: 'confirmee', confirmed_at: new Date().toISOString(), notif_confirmation_envoyee: false,
+      ...(encaissement != null ? { encaissement } : {}),
+    })
     notify('Réservation confirmée.', 'success')
     // WhatsApp notify (en arrière-plan, ne bloque pas l'UI)
     const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMERO
@@ -766,7 +819,7 @@ export default function ReservationsPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-[#f0f2f8] dark:bg-white/5 text-left">
-                  {['Référence','Nom Prénom','Naissance','Téléphone','Offre','Composition','Transport','CDR','Prix vente','Marge','Statut','Source','Date','Actions']
+                  {['Référence','Nom Prénom','Naissance','Téléphone','Offre','Composition','Transport','CDR','Prix vente','Encaissé','Marge','Statut','Source','Date','Actions']
                     .map(h => (
                       <th key={h} className="px-3 py-3 font-semibold text-[#003090] dark:text-[#fdbe11] whitespace-nowrap">
                         {h}
@@ -819,6 +872,18 @@ export default function ReservationsPage() {
                       <td className="px-3 py-3 font-mono font-semibold text-[#003090] dark:text-[#7a9de8] whitespace-nowrap">
                         {Number(r.prix_vente).toLocaleString('fr-DZ')} DA
                       </td>
+                      <td className="px-3 py-3 font-mono whitespace-nowrap">
+                        {(() => {
+                          const enc = Number(r.encaissement)
+                          const pv  = Number(r.prix_vente)
+                          const color = enc <= 0
+                            ? 'text-gray-400'
+                            : enc >= pv
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-amber-500'
+                          return <span className={color}>{enc.toLocaleString('fr-DZ')} DA</span>
+                        })()}
+                      </td>
                       <td className={`px-3 py-3 font-mono font-semibold whitespace-nowrap ${marge >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600'}`}>
                         {margeP.toFixed(0)}%
                       </td>
@@ -828,7 +893,7 @@ export default function ReservationsPage() {
                       <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center gap-1">
                           {r.statut === 'en_attente' && (
-                            <button onClick={() => handleConfirm(r)}
+                            <button onClick={() => tryConfirm(r)}
                               className="p-1.5 text-green-500 hover:bg-white/5 rounded-lg transition-colors"
                               title="Confirmer">
                               <i className="ti ti-circle-check text-base" aria-hidden="true" />
@@ -870,7 +935,7 @@ export default function ReservationsPage() {
       </div>
 
       {/* Drawer */}
-      {drawerItem && <DrawerDetail key={drawerItem.id} r={drawerItem} onClose={() => setDrawerItem(null)} onSaveAnnee={handleSaveAnnee} onSaveMembres={handleSaveMembres} />}
+      {drawerItem && <DrawerDetail key={drawerItem.id} r={drawerItem} onClose={() => setDrawerItem(null)} onSaveAnnee={handleSaveAnnee} onSaveMembres={handleSaveMembres} onSaveEncaissement={handleSaveEncaissement} />}
 
       {/* Create modal */}
       {showCreate && (
@@ -904,6 +969,49 @@ export default function ReservationsPage() {
               <button onClick={handleCancel}
                 className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors">
                 Confirmer l'annulation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm modal — encaissement requis */}
+      {confirmItem && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-[#0f172a] border border-white/10 rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                <i className="ti ti-cash text-lg" style={{ color: '#22c55e' }} aria-hidden="true" />
+              </div>
+              <div>
+                <p className="font-bold text-gray-900 dark:text-white">Confirmer la réservation</p>
+                <p className="text-xs text-gray-500 font-mono">{confirmItem.reference}</p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500">
+              Une réservation confirmée doit être validée par un encaissement. Saisissez le montant reçu en DA.
+            </p>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Montant encaissé (DA) <span className="text-red-500">*</span></label>
+              <input type="number" min={0.01} step="0.01" autoFocus required
+                value={confirmAmount} onChange={e => setConfirmAmount(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 dark:border-[#003090] rounded-lg text-sm bg-white dark:bg-[#0a0f2e] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#003090]" />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmItem(null)}
+                className="flex-1 px-4 py-2 border border-gray-200 dark:border-white/20 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+                Annuler
+              </button>
+              <button
+                onClick={() => {
+                  const montant = parseFloat(confirmAmount)
+                  if (!montant || montant <= 0) { notify('Le montant encaissé doit être supérieur à 0.', 'error'); return }
+                  handleConfirm(confirmItem, montant)
+                  setConfirmItem(null)
+                }}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                Confirmer
               </button>
             </div>
           </div>
